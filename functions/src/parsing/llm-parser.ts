@@ -181,7 +181,7 @@ Your response MUST be in valid JSON format with this exact structure:
 Important: Format all dates in ISO format (YYYY-MM-DD).
 Be flexible with date interpretations. For example, "next Monday" should resolve to the actual date.
 Handle ranges like "June 2-4" as individual dates (June 2, June 3, June 4).
-If a year is not specified, assume the current year.
+If a year is not specified, assume the current year. Today's date is: ${new Date().toISOString().split('T')[0]}.
 
 Here is the raw input: 
 ${rawInput}`
