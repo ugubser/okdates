@@ -9,6 +9,13 @@ import { getFunctions, provideFunctions, connectFunctionsEmulator } from '@angul
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
 
+// Debug environment variables to see if production config is loaded correctly
+console.log('----- ENVIRONMENT CONFIGURATION -----');
+console.log('Production mode:', environment.production);
+console.log('Use emulators:', environment.useEmulators);
+console.log('Firebase config:', environment.firebase);
+console.log('------------------------------------');
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }), 
