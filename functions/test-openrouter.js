@@ -34,6 +34,7 @@ const baseURL = "https://openrouter.ai/api/v1";
 // Create a simple fetch function to test the API directly
 async function testDirectFetch() {
   console.log('Testing direct fetch to OpenRouter API...');
+  console.log('Using API key (first 10 chars):', apiKey.substring(0, 10) + '...');
   
   try {
     const response = await fetch(`${baseURL}/chat/completions`, {
@@ -52,9 +53,19 @@ async function testDirectFetch() {
       })
     });
     
+    // Log the full request and response for debugging
+    console.log('Request headers:', {
+      'Authorization': `Bearer ${apiKey.substring(0, 10)}...`,
+      'HTTP-Referer': 'https://okdates.web.app',
+      'X-Title': 'OkDates App',
+      'Content-Type': 'application/json'
+    });
+    
     const data = await response.json();
     console.log('Direct fetch response:');
     console.log(JSON.stringify(data, null, 2));
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
     
     if (data.error) {
       console.error('Error from direct fetch:', data.error);
@@ -64,10 +75,11 @@ async function testDirectFetch() {
   }
 }
 
-// Test using the OpenAI library
+// Test using the OpenAI library with direct API key
 async function testOpenAILibrary() {
   console.log('\nTesting OpenAI library with OpenRouter...');
   
+  // Use the API key directly - no defaultHeaders with Authorization
   const openai = new OpenAI({
     apiKey: apiKey,
     baseURL: baseURL,
