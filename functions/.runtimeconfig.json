@@ -1,0 +1,6 @@
+{
+  "openrouter": {
+    "api_key": "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",
+    "model": "meta-llama/llama-4-maverick:free"
+  }
+}

@@ -1,32 +1,70 @@
 import { OpenAI } from 'openai';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as functions from 'firebase-functions';
 
-// Load AI config from file
-let aiConfig: any;
+// Try to get config from Firebase Functions config
+let openRouterKey: string | undefined;
+let openRouterBaseUrl = 'https://openrouter.ai/api/v1';
+let openRouterModel = 'meta-llama/llama-4-maverick:free';
+
 try {
-  const configPath = path.resolve(__dirname, '../../ai.config.json');
-  const configData = fs.readFileSync(configPath, 'utf8');
-  aiConfig = JSON.parse(configData);
-  console.log('AI configuration loaded from:', configPath);
+  // Get from Firebase config
+  const config = functions.config();
+  if (config.openrouter) {
+    console.log('Found OpenRouter config in Firebase Functions config');
+    openRouterKey = config.openrouter.api_key;
+    openRouterModel = config.openrouter.model || openRouterModel;
+  } else {
+    console.log('No OpenRouter config found in Firebase Functions config');
+  }
 } catch (error) {
-  console.error('Error loading AI config:', error);
-  // Fallback configuration - we'll use environment variables instead
-  aiConfig = {
-    openRouter: {
-      key: process.env.OPENROUTER_API_KEY || '',
-      baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
-      model: process.env.OPENROUTER_MODEL || 'meta-llama/llama-4-maverick:free'
+  console.error('Error accessing Firebase Functions config:', error);
+}
+
+// If not found in Firebase config, try process.env
+if (!openRouterKey) {
+  openRouterKey = process.env.OPENROUTER_API_KEY;
+  openRouterBaseUrl = process.env.OPENROUTER_BASE_URL || openRouterBaseUrl;
+  openRouterModel = process.env.OPENROUTER_MODEL || openRouterModel;
+}
+
+// If environment variables aren't set, attempt to load from config file
+if (!openRouterKey) {
+  try {
+    const configPath = path.resolve(__dirname, '../../ai.config.json');
+    console.log('Attempting to load AI config from:', configPath);
+    if (fs.existsSync(configPath)) {
+      const configData = fs.readFileSync(configPath, 'utf8');
+      const aiConfig = JSON.parse(configData);
+      console.log('AI configuration successfully loaded from file');
+      
+      if (aiConfig.openRouter && aiConfig.openRouter.key) {
+        openRouterKey = aiConfig.openRouter.key;
+        openRouterBaseUrl = aiConfig.openRouter.baseUrl || openRouterBaseUrl;
+        openRouterModel = aiConfig.openRouter.model || openRouterModel;
+      }
+    } else {
+      console.warn('AI config file not found:', configPath);
     }
-  };
+  } catch (error) {
+    console.error('Error loading AI config from file:', error);
+  }
+}
+
+// Log API key status (safely without revealing the key)
+if (openRouterKey) {
+  console.log('OpenRouter API key is configured (starts with:', openRouterKey.substring(0, 5) + '...)');
+} else {
+  console.error('No OpenRouter API key found in environment variables or config file!');
 }
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: aiConfig.openRouter.key,
-  baseURL: aiConfig.openRouter.baseUrl,
+  apiKey: openRouterKey || 'missing-api-key',
+  baseURL: openRouterBaseUrl,
   defaultHeaders: {
-    'HTTP-Referer': 'https://okdates.app', // Replace with your actual domain
+    'HTTP-Referer': 'https://okdates.web.app', // Update with actual domain
     'X-Title': 'OkDates App'
   }
 });
@@ -77,7 +115,7 @@ ${rawInput}`
     
     // Call the LLM API
     const response = await openai.chat.completions.create({
-      model: aiConfig.openRouter.model,
+      model: openRouterModel,
       messages: messages as any,
       response_format: { type: 'json_object' },
       temperature: 0.2, // Lower temperature for more consistent results
