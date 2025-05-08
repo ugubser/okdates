@@ -66,3 +66,42 @@ firebase deploy --only functions
 - Use `.gitignore` to prevent accidental commits
 - Use the Firebase Functions config for production deployment
 - Consider rotating API keys periodically for enhanced security
+
+### OpenRouter Authentication Notes
+
+Use the OpenAI client with OpenRouter by setting the API key directly:
+
+```typescript
+// CORRECT: Let the OpenAI client handle the auth header
+const openai = new OpenAI({
+  apiKey: openRouterKey, // OpenAI library adds Authorization header
+  baseURL: 'https://openrouter.ai/api/v1',
+  defaultHeaders: {
+    'HTTP-Referer': 'https://example.com', // Required
+    'X-Title': 'My App' // Required
+  }
+});
+```
+
+### Troubleshooting
+
+If you experience authentication issues with OpenRouter:
+
+1. **Check your API key**
+   - Make sure the API key is in the expected format (`sk-or-v1-...`)
+   - Verify the key is valid and not expired
+   - Try generating a new key if authentication fails
+
+2. **Authentication Errors**
+   - If you see "Invalid JWT form" errors, the API key may not be correctly formatted
+   - The error "No auth credentials found" might indicate the key is inactive or invalid
+
+3. **Testing the API directly**
+   - Use the test script at `functions/test-openrouter.js` to test direct API access
+   - Run with `node functions/test-openrouter.js` to debug authentication issues
+
+4. **Troubleshooting steps**
+   - Try a direct fetch without the OpenAI library
+   - Check the OpenRouter documentation for recent changes
+   - Ensure you've set the required HTTP-Referer and X-Title headers
+   - Consider using a different model if specific models are unavailable
