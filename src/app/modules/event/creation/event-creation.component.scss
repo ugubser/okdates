@@ -31,6 +31,32 @@
     font-size: 0.9rem;
     font-style: italic;
   }
+  
+  &.admin-link-section {
+    background-color: #fff8e1; // Light amber background to distinguish it
+    border: 1px solid #ffca28;
+    
+    h3 {
+      color: #f57c00;
+    }
+    
+    .admin-hint {
+      margin-bottom: 0.5rem;
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 0.9rem;
+    }
+    
+    .warning {
+      margin-top: 0.5rem;
+      color: #d32f2f; // Red warning text
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    
+    .event-link {
+      color: #f57c00; // Orange text for admin URL
+    }
+  }
 }
 
 .link-container {

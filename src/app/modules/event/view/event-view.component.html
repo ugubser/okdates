@@ -9,6 +9,10 @@
     </div>
     
     <div class="event-actions">
+      <div class="admin-badge" *ngIf="isAdmin">
+        <mat-icon>admin_panel_settings</mat-icon>
+        Administrator
+      </div>
       <button mat-stroked-button (click)="editEvent()">
         <mat-icon>edit</mat-icon> Edit Event
       </button>

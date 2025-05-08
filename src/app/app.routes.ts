@@ -10,6 +10,7 @@ export const routes: Routes = [
   { path: 'event/create', component: EventCreationComponent },
   { path: 'event/:id/edit', component: EventCreationComponent },
   { path: 'event/:id/view', component: EventViewComponent },
+  { path: 'event/:id/admin/:adminKey', component: EventViewComponent },
   { path: 'event/:id/participate', component: ParticipantFormComponent },
   { path: 'test/date-parser', component: DateParserTestComponent },
   // Redirect to home for any unmatched routes

@@ -34,6 +34,8 @@ export class EventViewComponent implements OnInit {
   participants: Participant[] = [];
   isLoading = true;
   linkCopied = false;
+  isAdmin = false;
+  adminKey = '';
   
   // For date visualization
   availabilityMap: Map<string, string[]> = new Map();
@@ -47,6 +49,7 @@ export class EventViewComponent implements OnInit {
     private participantService: ParticipantService
   ) {
     this.eventId = this.route.snapshot.paramMap.get('id') || '';
+    this.adminKey = this.route.snapshot.paramMap.get('adminKey') || '';
   }
   
   ngOnInit(): void {
@@ -67,6 +70,18 @@ export class EventViewComponent implements OnInit {
       if (!this.event) {
         this.router.navigate(['/']);
         return;
+      }
+      
+      // Check if user has admin access
+      if (this.adminKey) {
+        this.isAdmin = await this.eventService.verifyAdminKey(this.eventId, this.adminKey);
+        
+        if (!this.isAdmin) {
+          console.warn('Invalid admin key provided');
+          // Still show the event, but without admin privileges
+        } else {
+          console.log('Admin access verified');
+        }
       }
       
       // Load participants
@@ -122,8 +137,17 @@ export class EventViewComponent implements OnInit {
   }
   
   editEvent(): void {
-    // Navigate to event creation/edit page
-    this.router.navigate(['/event', this.eventId, 'edit']);
+    // Only allow editing if admin key is valid or we're in development
+    if (this.isAdmin) {
+      // Navigate to event edit page with admin key
+      this.router.navigate(['/event', this.eventId, 'edit'], { 
+        queryParams: { adminKey: this.adminKey }
+      });
+    } else {
+      console.warn('Edit attempted without admin permissions');
+      // Show notification that admin permissions are required
+      alert('You need administrator access to edit this event.');
+    }
   }
   
   /**

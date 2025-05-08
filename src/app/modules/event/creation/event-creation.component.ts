@@ -36,6 +36,8 @@ export class EventCreationComponent implements OnInit {
   isSaving = false;
   isCreatingNew = false;
   isLoading = false;
+  adminKey: string = '';
+  isAdmin = false;
   
   constructor(
     private fb: FormBuilder,
@@ -51,6 +53,9 @@ export class EventCreationComponent implements OnInit {
     
     this.eventId = this.route.snapshot.paramMap.get('id') || '';
     this.isCreatingNew = this.router.url.includes('/event/create');
+    
+    // Check for admin key in query params (passed from event view)
+    this.adminKey = this.route.snapshot.queryParamMap.get('adminKey') || '';
   }
   
   ngOnInit(): void {
@@ -108,6 +113,23 @@ export class EventCreationComponent implements OnInit {
       this.event = await this.eventService.getEventDirect(this.eventId);
       
       if (this.event) {
+        // Verify admin key if not creating new event
+        if (this.adminKey && !this.isCreatingNew) {
+          this.isAdmin = await this.eventService.verifyAdminKey(this.eventId, this.adminKey);
+          
+          if (!this.isAdmin) {
+            console.warn('Invalid admin key provided - redirecting to view');
+            this.router.navigate(['/event', this.eventId, 'view']);
+            return;
+          }
+        } else if (!this.isCreatingNew) {
+          // If no admin key is provided and we're not creating a new event, redirect to view
+          console.warn('No admin key provided - redirecting to view');
+          this.router.navigate(['/event', this.eventId, 'view']);
+          return;
+        }
+        
+        // Populate form
         this.eventForm.patchValue({
           title: this.event.title || '',
           description: this.event.description || ''
@@ -115,6 +137,7 @@ export class EventCreationComponent implements OnInit {
       }
     } catch (error) {
       console.error('Error loading event:', error);
+      this.router.navigate(['/']);
     } finally {
       this.isLoading = false;
     }
@@ -149,6 +172,14 @@ export class EventCreationComponent implements OnInit {
     const eventUrl = `${window.location.origin}/event/${this.eventId}/view`;
     navigator.clipboard.writeText(eventUrl);
     // Would add a notification here in a real app
+  }
+  
+  copyAdminLink(): void {
+    if (this.event?.adminKey) {
+      const adminUrl = `${window.location.origin}/event/${this.eventId}/admin/${this.event.adminKey}`;
+      navigator.clipboard.writeText(adminUrl);
+      // Would add a notification here in a real app
+    }
   }
   
   // Expose window object for template
