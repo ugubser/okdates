@@ -55,21 +55,37 @@
     <h2>Confirm Your Dates</h2>
     
     <div class="parsed-dates-section">
+      <div class="ai-powered-badge">
+        <mat-icon>smart_toy</mat-icon> AI-Powered Date Recognition
+      </div>
+      
       <p>We identified the following dates from your input:</p>
       
       <div class="parsed-dates-list">
         <mat-selection-list #datesList>
           <mat-list-option 
-            *ngFor="let date of parsedDates"
+            *ngFor="let date of parsedDates; let i = index"
             [selected]="true"
-            checkboxPosition="before">
-            {{ formatDate(date.timestamp) }}
-            <small class="original-text">From: "{{ date.originalText }}"</small>
+            checkboxPosition="before"
+            [attr.data-index]="i">
+            <div class="date-option-content">
+              <div class="date-display">
+                <span class="date-number">{{ i + 1 }}.</span>
+                <span class="date-value">{{ formatDate(date.timestamp) }}</span>
+              </div>
+              <small class="original-text">From: "{{ date.originalText }}"</small>
+            </div>
           </mat-list-option>
         </mat-selection-list>
         
+        <p class="help-text">
+          <mat-icon class="info-icon">info</mat-icon>
+          Uncheck any dates that were incorrectly identified. Only checked dates will be submitted.
+        </p>
+        
         <div class="no-dates" *ngIf="parsedDates.length === 0">
           <p>We couldn't identify any dates from your input. Please go back and try a different format.</p>
+          <p class="suggestion">Try formats like "June 15-17", "6/15, 6/16", or "next Monday and Tuesday".</p>
         </div>
       </div>
     </div>

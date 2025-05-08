@@ -1,6 +1,7 @@
 import { ApplicationConfig, provideZoneChangeDetection, isDevMode } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
+import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { getFirestore, provideFirestore, connectFirestoreEmulator } from '@angular/fire/firestore';
 import { getFunctions, provideFunctions, connectFunctionsEmulator } from '@angular/fire/functions';
@@ -13,6 +14,7 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }), 
     provideRouter(routes),
     provideAnimations(),
+    provideHttpClient(withFetch()),
     
     // Firebase
     provideFirebaseApp(() => initializeApp(environment.firebase)),
@@ -31,7 +33,9 @@ export const appConfig: ApplicationConfig = {
     
     // Functions
     provideFunctions(() => {
-      const functions = getFunctions();
+      // Initialize functions with europe-west1 region
+      const functions = getFunctions(undefined, 'europe-west1');
+      
       if (environment.useEmulators) {
         console.log('Connecting to Functions emulator...');
         connectFunctionsEmulator(functions, 'localhost', 5001);
