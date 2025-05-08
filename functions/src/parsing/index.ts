@@ -1,11 +1,11 @@
 import * as functions from 'firebase-functions';
+import { parseDatesWithLLM } from './llm-parser';
 
 /**
- * Parses raw text input into structured date objects
- * Note: In a complete implementation, this would integrate with an LLM API
- * For now, we'll implement a basic parser for common date formats
+ * Parses raw text input into structured date objects using LLM
  */
-export const parseDates = functions.https.onCall(async (data, context) => {
+export const parseDates = functions.region('europe-west1').https.onCall(async (data, context) => {
+  // CORS headers are automatically handled for us in HTTP Callable functions
   try {
     const { rawDateInput } = data;
     
@@ -16,17 +16,34 @@ export const parseDates = functions.https.onCall(async (data, context) => {
       };
     }
     
-    // Basic implementation for parsing common date formats
-    // This would be replaced with LLM integration in Phase 4
-    const parsedDates = basicDateParsing(rawDateInput);
-    
-    return {
-      success: true,
-      data: {
-        rawDateInput,
-        parsedDates
-      }
-    };
+    try {
+      // Try to use LLM parsing
+      console.log('Attempting to parse dates with LLM...');
+      const llmResult = await parseDatesWithLLM(rawDateInput);
+      console.log('LLM parsing successful:', llmResult);
+      
+      return {
+        success: true,
+        data: {
+          rawDateInput,
+          parsedDates: llmResult.dates,
+          title: llmResult.title
+        }
+      };
+    } catch (llmError) {
+      console.error('LLM parsing failed, falling back to basic parsing:', llmError);
+      // Fall back to basic parsing if LLM fails
+      const parsedDates = basicDateParsing(rawDateInput);
+      
+      return {
+        success: true,
+        data: {
+          rawDateInput,
+          parsedDates,
+          title: 'Available Dates (Basic Parsing)'
+        }
+      };
+    }
   } catch (error) {
     console.error('Error parsing dates:', error);
     return {
@@ -43,7 +60,6 @@ export const parseDates = functions.https.onCall(async (data, context) => {
 function basicDateParsing(rawInput: string): any[] {
   const dates = [];
   const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth();
   
   // Split by common separators
   const parts = rawInput.split(/[,;\n]+/).map(part => part.trim()).filter(Boolean);

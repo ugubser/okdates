@@ -1,8 +1,21 @@
-import * as functions from 'firebase-functions';
+// Initialize Firebase Admin
 import * as admin from 'firebase-admin';
+import * as cors from 'cors';
 
 // Initialize Firebase Admin
 admin.initializeApp();
+
+// CORS configuration with allowed origins
+export const corsConfig = cors({
+  origin: [
+    'http://localhost:4200',
+    'http://localhost:5003',
+    'https://okdates.tribecans.com',
+    'https://okdate.vanguardsignals.com'
+  ],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  credentials: true
+});
 
 // Import function modules
 import * as eventFunctions from './events';
