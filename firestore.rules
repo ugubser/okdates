@@ -1,9 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow all operations for testing
     match /{document=**} {
-      allow read, write;
+      allow read, write: if true;
     }
   }
 }
