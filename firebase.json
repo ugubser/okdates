@@ -4,7 +4,7 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "public": "public",
+    "public": "dist/okdates/browser",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -15,19 +15,32 @@
         "source": "**",
         "destination": "/index.html"
       }
-    ]
+    ],
+    "trailingSlash": false
   },
   "emulators": {
-
     "firestore": {
-      "port": 8080
+      "port": 8081
     },
     "hosting": {
-      "port": 5002
+      "port": 5003
     },
     "ui": {
-      "enalbed": true
+      "enabled": true,
+      "port": 4002
     },
-    "singleProjectMode": true
+    "hub": {
+      "port": 4402
+    },
+    "logging": {
+      "port": 4502
+    },
+    "singleProjectMode": true,
+    "storage": {
+      "port": 9199
+    }
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }

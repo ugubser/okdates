@@ -1,0 +1,243 @@
+.event-view-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    
+    .event-actions {
+      margin-top: 1rem;
+      width: 100%;
+      
+      button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+      }
+    }
+  }
+  
+  .event-info {
+    h1 {
+      margin-bottom: 0.5rem;
+    }
+    
+    p {
+      color: rgba(0, 0, 0, 0.6);
+      white-space: pre-line;
+    }
+  }
+  
+  .event-actions {
+    display: flex;
+    gap: 1rem;
+    
+    @media (max-width: 768px) {
+      flex-direction: column;
+    }
+  }
+}
+
+.share-section {
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 2rem 0;
+  
+  h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: #333;
+  }
+  
+  .share-prompt {
+    margin-bottom: 1rem;
+    color: rgba(0, 0, 0, 0.7);
+  }
+}
+
+.link-container {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: 0.5rem;
+  
+  .event-link {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: monospace;
+    font-size: 0.9rem;
+  }
+}
+
+.share-success {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  color: var(--primary-color);
+  font-size: 0.9rem;
+  
+  mat-icon {
+    font-size: 1.2rem;
+    height: 1.2rem;
+    width: 1.2rem;
+  }
+}
+
+.participants-section {
+  margin: 2rem 0;
+  
+  h2 {
+    margin-bottom: 1.5rem;
+  }
+}
+
+/* Date summary styles */
+.date-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+  
+  .date-card {
+    background-color: #f9f9f9;
+    transition: box-shadow 0.3s ease;
+    
+    &:hover {
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .availability-percentage {
+      font-size: 28px;
+      font-weight: 500;
+      text-align: center;
+      margin: 0.5rem 0;
+      color: var(--primary-color);
+    }
+    
+    .available-names {
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      
+      span {
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+    }
+  }
+}
+
+/* Availability table styles */
+.availability-table {
+  margin-bottom: 2rem;
+  overflow-x: auto;
+  
+  table {
+    width: 100%;
+    
+    th:first-child, td:first-child {
+      text-align: left;
+      padding-left: 16px;
+    }
+    
+    .availability-indicator {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      margin: 0 auto;
+      
+      &.available {
+        background-color: var(--primary-color);
+      }
+      
+      &.unavailable {
+        background-color: #f5f5f5;
+        border: 1px solid #e0e0e0;
+      }
+    }
+  }
+}
+
+/* Raw participant input list */
+.raw-input-section {
+  margin-top: 2rem;
+  
+  h3 {
+    margin-bottom: 1rem;
+  }
+}
+
+.participant-list {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  
+  .participant-item {
+    display: flex;
+    padding: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    .participant-name {
+      flex: 0 0 200px;
+      font-weight: 500;
+    }
+    
+    .participant-dates {
+      flex: 1;
+      color: rgba(0, 0, 0, 0.7);
+    }
+  }
+}
+
+.no-participants {
+  margin: 4rem 0;
+  
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    
+    .empty-icon {
+      font-size: 4rem;
+      height: 4rem;
+      width: 4rem;
+      color: rgba(0, 0, 0, 0.2);
+      margin-bottom: 1rem;
+    }
+    
+    h3 {
+      margin-bottom: 0.5rem;
+    }
+    
+    p {
+      margin-bottom: 1.5rem;
+      color: rgba(0, 0, 0, 0.6);
+    }
+  }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+}

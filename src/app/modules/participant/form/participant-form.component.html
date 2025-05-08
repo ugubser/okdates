@@ -1,0 +1,98 @@
+<div class="participant-form-container" *ngIf="event && !isLoading">
+  <div class="event-info">
+    <h1>{{ event.title || 'Untitled Event' }}</h1>
+    <p *ngIf="event.description">{{ event.description }}</p>
+  </div>
+  
+  <div *ngIf="!showParsedDates">
+    <h2>Enter Your Availability</h2>
+    
+    <form [formGroup]="participantForm" (ngSubmit)="parseDates()">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Your Name</mat-label>
+        <input matInput formControlName="name" placeholder="Enter your name">
+        <mat-error *ngIf="participantForm.get('name')?.hasError('required')">
+          Name is required
+        </mat-error>
+      </mat-form-field>
+      
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Available Dates</mat-label>
+        <textarea 
+          matInput 
+          formControlName="availability" 
+          placeholder="e.g., June 2-4, July 5"
+          rows="4">
+        </textarea>
+        <mat-hint>
+          Enter dates in any format: "June 2,3,4", "06/02, 06/03", "June 2-4", etc.
+        </mat-hint>
+        <mat-error *ngIf="participantForm.get('availability')?.hasError('required')">
+          Availability is required
+        </mat-error>
+      </mat-form-field>
+      
+      <div class="form-actions">
+        <button 
+          mat-raised-button
+          color="primary"
+          type="submit"
+          [disabled]="!participantForm.valid || isParsing">
+          {{ isParsing ? 'Processing...' : 'Next' }}
+        </button>
+        
+        <button 
+          mat-button
+          type="button"
+          [routerLink]="['/event', eventId, 'view']">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+  
+  <div *ngIf="showParsedDates">
+    <h2>Confirm Your Dates</h2>
+    
+    <div class="parsed-dates-section">
+      <p>We identified the following dates from your input:</p>
+      
+      <div class="parsed-dates-list">
+        <mat-selection-list #datesList>
+          <mat-list-option 
+            *ngFor="let date of parsedDates"
+            [selected]="true"
+            checkboxPosition="before">
+            {{ formatDate(date.timestamp) }}
+            <small class="original-text">From: "{{ date.originalText }}"</small>
+          </mat-list-option>
+        </mat-selection-list>
+        
+        <div class="no-dates" *ngIf="parsedDates.length === 0">
+          <p>We couldn't identify any dates from your input. Please go back and try a different format.</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-actions">
+      <button 
+        mat-raised-button
+        color="primary"
+        (click)="confirmDates()"
+        [disabled]="isSubmitting || parsedDates.length === 0">
+        {{ isSubmitting ? 'Submitting...' : 'Submit' }}
+      </button>
+      
+      <button 
+        mat-button
+        (click)="backToDateInput()"
+        [disabled]="isSubmitting">
+        Back
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="loading-container" *ngIf="isLoading">
+  <mat-spinner></mat-spinner>
+</div>

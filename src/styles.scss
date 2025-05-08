@@ -1,19 +1,68 @@
+/* Simple CSS theme */
 
-// Custom Theming for Angular Material
-// For more information: https://material.angular.io/guide/theming
-@use '@angular/material' as mat;
+:root {
+  --primary-color: #3f51b5;
+  --primary-light: #757de8;
+  --primary-dark: #002984;
+  --accent-color: #ff4081;
+  --accent-light: #ff79b0;
+  --accent-dark: #c60055;
+  --text-on-primary: #ffffff;
+  --text-on-accent: #ffffff;
+}
 
-html {
-  @include mat.theme((
-    color: (
-      theme-type: light,
-      primary: mat.$azure-palette,
-      tertiary: mat.$blue-palette,
-    ),
-    typography: Roboto,
-    density: 0,
-  ));
-}/* You can add global styles to this file, and also import other style files */
-
+/* Global styles */
 html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+body { 
+  margin: 0; 
+  font-family: Roboto, "Helvetica Neue", sans-serif; 
+  color: rgba(0, 0, 0, 0.87);
+}
+
+/* Material theme overrides */
+.mat-mdc-button.mat-primary {
+  background-color: var(--primary-color);
+  color: var(--text-on-primary);
+}
+
+.mat-mdc-raised-button.mat-primary {
+  background-color: var(--primary-color);
+  color: var(--text-on-primary);
+}
+
+.mat-toolbar.mat-primary {
+  background-color: var(--primary-color);
+  color: var(--text-on-primary);
+}
+
+.mat-mdc-button.mat-accent {
+  background-color: var(--accent-color);
+  color: var(--text-on-accent);
+}
+
+/* Global styles */
+* {
+  box-sizing: border-box;
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c2c2c2;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
