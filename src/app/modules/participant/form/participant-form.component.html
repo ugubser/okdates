@@ -5,7 +5,7 @@
   </div>
   
   <div *ngIf="!showParsedDates">
-    <h2>Enter Your Availability</h2>
+    <h2>{{ isEditMode ? 'Update Your Availability' : 'Enter Your Availability' }}</h2>
     
     <form [formGroup]="participantForm" (ngSubmit)="parseDates()">
       <mat-form-field appearance="outline" class="full-width">
@@ -38,7 +38,7 @@
           color="primary"
           type="submit"
           [disabled]="!participantForm.valid || isParsing">
-          {{ isParsing ? 'Processing...' : 'Next' }}
+          {{ isParsing ? 'Processing...' : (isEditMode ? 'Update Dates' : 'Next') }}
         </button>
         
         <button 
@@ -96,7 +96,7 @@
         color="primary"
         (click)="confirmDates()"
         [disabled]="isSubmitting || parsedDates.length === 0">
-        {{ isSubmitting ? 'Submitting...' : 'Submit' }}
+        {{ isSubmitting ? 'Submitting...' : (isEditMode ? 'Update' : 'Submit') }}
       </button>
       
       <button 
