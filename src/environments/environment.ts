@@ -1,12 +1,12 @@
 export const environment = {
   production: false,
   firebase: {
-    apiKey: "demo-api-key",
-    authDomain: "demo-project-id.firebaseapp.com",
+    apiKey: "AIzaSyDummyApiKeyForDevelopment",
+    authDomain: "okdates.web.app",
     projectId: "okdates",
-    storageBucket: "demo-project-id.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "1:123456789:web:abc123def456"
+    storageBucket: "okdates.appspot.com",
+    messagingSenderId: "000000000000",
+    appId: "1:000000000000:web:0000000000000000000000"
   },
   useEmulators: true,
   emulators: {
