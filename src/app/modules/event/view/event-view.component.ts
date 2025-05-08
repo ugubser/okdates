@@ -7,8 +7,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatCardModule } from '@angular/material/card';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { EventService } from '../../../core/services/event.service';
 import { ParticipantService } from '../../../core/services/participant.service';
+import { ParticipantStorageService } from '../../../core/services/participant-storage.service';
 import { Event } from '../../../core/models/event.model';
 import { Participant } from '../../../core/models/participant.model';
 import { ParsedDate } from '../../../core/models/parsed-date.model';
@@ -23,7 +26,9 @@ import { ParsedDate } from '../../../core/models/parsed-date.model';
     MatProgressSpinnerModule,
     MatTableModule,
     MatChipsModule,
-    MatCardModule
+    MatCardModule,
+    MatMenuModule,
+    MatDialogModule
   ],
   templateUrl: './event-view.component.html',
   styleUrls: ['./event-view.component.scss']
@@ -46,10 +51,25 @@ export class EventViewComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private eventService: EventService,
-    private participantService: ParticipantService
+    private participantService: ParticipantService,
+    private participantStorageService: ParticipantStorageService,
+    private dialog: MatDialog
   ) {
     this.eventId = this.route.snapshot.paramMap.get('id') || '';
     this.adminKey = this.route.snapshot.paramMap.get('adminKey') || '';
+  }
+  
+  /**
+   * Check if the current user is the owner of a participant or an admin
+   */
+  isParticipantOwner(participant: Participant): boolean {
+    if (!participant.id) return false;
+    
+    // Admin can edit any participant
+    if (this.isAdmin) return true;
+    
+    // Check local storage for ownership
+    return this.participantStorageService.isParticipantOwner(this.eventId, participant.id);
   }
   
   ngOnInit(): void {
@@ -269,5 +289,83 @@ export class EventViewComponent implements OnInit {
   // Expose Math object for template
   get Math(): Math {
     return Math;
+  }
+  
+  /**
+   * Edit a participant's availability
+   */
+  editParticipant(participant: Participant): void {
+    if (!participant.id) return;
+    
+    // Prepare query params 
+    const queryParams: any = { edit: 'true' };
+    
+    // If admin, pass the admin key
+    if (this.isAdmin && this.adminKey) {
+      queryParams.adminKey = this.adminKey;
+    }
+    
+    // Navigate to participant edit route
+    this.router.navigate(['/event', this.eventId, 'participant', participant.id], {
+      queryParams
+    });
+  }
+  
+  /**
+   * Remove a participant from the event
+   */
+  async deleteParticipant(participant: Participant): Promise<void> {
+    if (!participant.id) return;
+    
+    if (confirm(`Are you sure you want to remove ${participant.name} from this event?`)) {
+      try {
+        // Delete the participant
+        await this.participantService.deleteParticipantDirect(this.eventId, participant.id);
+        
+        // If this was the current user's entry, remove from localStorage
+        if (this.participantStorageService.isParticipantOwner(this.eventId, participant.id)) {
+          this.participantStorageService.removeParticipantId(this.eventId);
+        }
+        
+        // Refresh the participant list
+        this.participants = await this.participantService.getParticipantsDirect(this.eventId);
+        this.processAvailabilityData();
+      } catch (error) {
+        console.error('Error deleting participant:', error);
+        alert('Failed to delete participant. Please try again.');
+      }
+    }
+  }
+  
+  /**
+   * Admin function to remove all participants
+   */
+  async deleteAllParticipants(): Promise<void> {
+    if (!this.isAdmin) return;
+    
+    if (this.participants.length === 0) {
+      alert('There are no participants to remove.');
+      return;
+    }
+    
+    if (confirm(`Are you sure you want to remove ALL participants (${this.participants.length}) from this event? This action cannot be undone.`)) {
+      try {
+        // Delete each participant one by one
+        for (const participant of this.participants) {
+          if (participant.id) {
+            await this.participantService.deleteParticipantDirect(this.eventId, participant.id);
+          }
+        }
+        
+        // Clear the participant list
+        this.participants = [];
+        this.processAvailabilityData();
+        
+        alert('All participants have been removed successfully.');
+      } catch (error) {
+        console.error('Error deleting all participants:', error);
+        alert('Failed to delete all participants. Please try again.');
+      }
+    }
   }
 }

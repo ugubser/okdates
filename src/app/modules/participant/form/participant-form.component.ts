@@ -11,8 +11,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { EventService } from '../../../core/services/event.service';
 import { ParticipantService } from '../../../core/services/participant.service';
 import { DateParsingService } from '../../../core/services/date-parsing.service';
+import { ParticipantStorageService } from '../../../core/services/participant-storage.service';
 import { Event } from '../../../core/models/event.model';
 import { ParsedDate } from '../../../core/models/parsed-date.model';
+import { Participant } from '../../../core/models/participant.model';
 
 @Component({
   selector: 'app-participant-form',
@@ -43,6 +45,11 @@ export class ParticipantFormComponent implements OnInit {
   isLoading = true;
   showParsedDates = false;
   parsingTitle: string = '';
+  isEditMode = false;
+  participantId = '';
+  existingParticipant: Participant | null = null;
+  isAdmin = false;
+  adminKey = '';
   
   constructor(
     private fb: FormBuilder,
@@ -50,7 +57,8 @@ export class ParticipantFormComponent implements OnInit {
     private router: Router,
     private eventService: EventService,
     private participantService: ParticipantService,
-    private dateParsingService: DateParsingService
+    private dateParsingService: DateParsingService,
+    private participantStorageService: ParticipantStorageService
   ) {
     this.participantForm = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(100)]],
@@ -62,6 +70,24 @@ export class ParticipantFormComponent implements OnInit {
   
   ngOnInit(): void {
     if (this.eventId) {
+      // Check for edit mode - either via query param or if we have a participantId in the route
+      this.isEditMode = this.route.snapshot.queryParamMap.get('edit') === 'true';
+      
+      // Get participant ID either from the route or from query params
+      const routeParticipantId = this.route.snapshot.paramMap.get('participantId');
+      const queryParticipantId = this.route.snapshot.queryParamMap.get('participantId');
+      
+      this.participantId = routeParticipantId || queryParticipantId || '';
+      
+      // Check for admin key in query params
+      this.adminKey = this.route.snapshot.queryParamMap.get('adminKey') || '';
+      
+      // If we have a participant ID in the route, we're definitely in edit mode
+      if (routeParticipantId) {
+        this.isEditMode = true;
+      }
+      
+      // Load event and participant data
       this.loadEvent();
     } else {
       this.router.navigate(['/']);
@@ -77,8 +103,58 @@ export class ParticipantFormComponent implements OnInit {
         this.router.navigate(['/']);
         return;
       }
+      
+      // Check if admin key is valid
+      if (this.adminKey) {
+        this.isAdmin = await this.eventService.verifyAdminKey(this.eventId, this.adminKey);
+      }
+      
+      // If in edit mode, load the existing participant data
+      if (this.isEditMode && this.participantId) {
+        // Fetch the participant data
+        this.existingParticipant = await this.participantService.getParticipantDirect(
+          this.eventId,
+          this.participantId
+        );
+        
+        if (this.existingParticipant) {
+          // Verify that the user is either the admin or the owner of this participant
+          const isOwner = this.participantStorageService.isParticipantOwner(
+            this.eventId, 
+            this.participantId
+          );
+          
+          if (!isOwner && !this.isAdmin) {
+            // Redirect to view page if not the owner or admin
+            console.warn('User is not the owner of this participant entry and not an admin');
+            this.router.navigate(['/event', this.eventId, 'view']);
+            return;
+          }
+          
+          // Populate the form with existing data
+          this.participantForm.patchValue({
+            name: this.existingParticipant.name,
+            availability: this.existingParticipant.rawDateInput
+          });
+          
+          // Convert the existing parsed dates to our format
+          if (this.existingParticipant.parsedDates && this.existingParticipant.parsedDates.length > 0) {
+            this.parsedDates = this.existingParticipant.parsedDates.map(timestamp => {
+              return {
+                timestamp,
+                originalText: '', // We don't have this info from storage
+                isConfirmed: true
+              };
+            });
+          }
+        } else {
+          console.warn('Participant not found:', this.participantId);
+          this.router.navigate(['/event', this.eventId, 'view']);
+          return;
+        }
+      }
     } catch (error) {
-      console.error('Error loading event:', error);
+      console.error('Error loading event or participant:', error);
     } finally {
       this.isLoading = false;
     }
@@ -125,13 +201,33 @@ export class ParticipantFormComponent implements OnInit {
         // Extract the timestamps for storage
         const parsedDates = this.parsedDates.map(d => d.timestamp);
         
-        // Add participant to the event
-        await this.participantService.addParticipantDirect(
-          this.eventId,
-          name,
-          rawDateInput,
-          parsedDates
-        );
+        if (this.isEditMode && this.participantId && this.existingParticipant) {
+          // Update existing participant
+          await this.participantService.updateParticipantDirect(
+            this.eventId,
+            this.participantId,
+            {
+              name,
+              rawDateInput,
+              parsedDates,
+              submittedAt: { seconds: Date.now() / 1000, nanoseconds: 0 }
+            }
+          );
+          
+          console.log('Updated participant:', this.participantId);
+        } else {
+          // Add new participant
+          const result = await this.participantService.addParticipantDirect(
+            this.eventId,
+            name,
+            rawDateInput,
+            parsedDates
+          );
+          
+          // Store participant ID in localStorage for future editing
+          this.participantStorageService.storeParticipantId(this.eventId, result.participantId);
+          console.log('Stored participant ID in localStorage:', result.participantId);
+        }
         
         // Navigate to event view
         this.router.navigate(['/event', this.eventId, 'view']);

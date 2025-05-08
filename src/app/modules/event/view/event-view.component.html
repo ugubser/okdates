@@ -22,6 +22,29 @@
     </div>
   </div>
   
+  <!-- Admin Panel (visible only to admins) -->
+  <div class="admin-panel" *ngIf="isAdmin">
+    <div class="admin-panel-header">
+      <mat-icon color="warn">admin_panel_settings</mat-icon>
+      <h3>Administrator Controls</h3>
+    </div>
+    
+    <div class="admin-panel-content">
+      <p class="admin-note">As the event administrator, you can edit or remove any participant's availability.</p>
+      <p class="admin-hint">Use the edit/delete buttons next to each participant in the list below.</p>
+      
+      <div class="admin-actions">
+        <button 
+          mat-stroked-button 
+          color="warn" 
+          (click)="deleteAllParticipants()"
+          *ngIf="participants.length > 0">
+          <mat-icon>delete_sweep</mat-icon> Delete All Participants
+        </button>
+      </div>
+    </div>
+  </div>
+  
   <div class="share-section">
     <h3>Share this event with participants</h3>
     <p class="share-prompt">Copy and share this link so people can add their availability:</p>
@@ -96,8 +119,29 @@
       <h3>Raw Availability Input</h3>
       <div class="participant-list">
         <div class="participant-item" *ngFor="let participant of participants">
-          <div class="participant-name">{{ participant.name }}</div>
-          <div class="participant-dates">{{ participant.rawDateInput }}</div>
+          <div class="participant-info">
+            <div class="participant-name">{{ participant.name }}</div>
+            <div class="participant-dates">{{ participant.rawDateInput }}</div>
+          </div>
+          <div class="participant-actions">
+            <!-- Show edit/delete for admin or participant owner -->
+            <ng-container *ngIf="isAdmin || isParticipantOwner(participant)">
+              <button 
+                mat-icon-button 
+                color="primary" 
+                (click)="editParticipant(participant)"
+                matTooltip="Edit availability">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button 
+                mat-icon-button 
+                color="warn" 
+                (click)="deleteParticipant(participant)"
+                matTooltip="Remove participant">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </ng-container>
+          </div>
         </div>
       </div>
     </div>

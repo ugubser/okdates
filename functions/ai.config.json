@@ -1,9 +1,8 @@
 {
   "// API settings for text generation via OpenRouter": "",
   "openRouter": {
-    "key": "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",
+    "key": "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",
     "baseUrl": "https://openrouter.ai/api/v1",
     "model": "meta-llama/llama-4-maverick:free"
   }
-  
 }

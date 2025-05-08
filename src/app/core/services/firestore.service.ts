@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Firestore, collection, doc, getDoc, setDoc, addDoc, getDocs, Timestamp, DocumentData } from '@angular/fire/firestore';
+import { Firestore, collection, doc, getDoc, setDoc, addDoc, getDocs, Timestamp, DocumentData, deleteDoc } from '@angular/fire/firestore';
 import { Functions, httpsCallable } from '@angular/fire/functions';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -102,6 +102,18 @@ export class FirestoreService {
       if (error instanceof Error) {
         console.error(error.stack);
       }
+      throw error;
+    }
+  }
+
+  async deleteDocument(collectionPath: string, docId: string): Promise<void> {
+    try {
+      console.log(`FirestoreService: Deleting document ${collectionPath}/${docId}`);
+      const docRef = doc(this.firestore, collectionPath, docId);
+      await deleteDoc(docRef);
+      console.log(`Document successfully deleted at ${collectionPath}/${docId}`);
+    } catch (error) {
+      console.error(`Error deleting document ${collectionPath}/${docId}:`, error);
       throw error;
     }
   }
