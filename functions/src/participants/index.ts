@@ -4,7 +4,8 @@ import * as admin from 'firebase-admin';
 /**
  * Adds a new participant to an event
  */
-export const addParticipant = functions.https.onCall(async (data, context) => {
+export const addParticipant = functions.region('europe-west1').https.onCall(async (data, context) => {
+  // CORS headers are automatically handled for us in HTTP Callable functions
   try {
     const { eventId, name, rawDateInput, parsedDates } = data;
     
@@ -62,7 +63,8 @@ export const addParticipant = functions.https.onCall(async (data, context) => {
 /**
  * Gets all participants for an event
  */
-export const getParticipants = functions.https.onCall(async (data, context) => {
+export const getParticipants = functions.region('europe-west1').https.onCall(async (data, context) => {
+  // CORS headers are automatically handled for us in HTTP Callable functions
   try {
     const { eventId } = data;
     
