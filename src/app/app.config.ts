@@ -21,6 +21,21 @@ export const appConfig: ApplicationConfig = {
     
     // Firestore
     provideFirestore(() => {
+      // Clear any persisted emulator settings from local storage
+      if (environment.production) {
+        try {
+          // Clear Firebase emulator settings from IndexedDB and localStorage
+          window.localStorage.removeItem('firebase:host:firestore');
+          window.localStorage.removeItem('firestore:emulator');
+          window.localStorage.removeItem('firebase:useEmulator');
+          // In some cases, IndexedDB is used to store settings
+          indexedDB.deleteDatabase('firestore/settings');
+          console.log('Cleared emulator settings from browser storage');
+        } catch (e) {
+          console.warn('Failed to clear emulator settings:', e);
+        }
+      }
+      
       const firestore = getFirestore();
       if (environment.useEmulators) {
         console.log('Connecting to Firestore emulator at localhost:8081...');
@@ -28,13 +43,24 @@ export const appConfig: ApplicationConfig = {
         connectFirestoreEmulator(firestore, 'localhost', 8081);
         console.log('Firestore emulator connection established');
       } else {
-        console.log('Using production Firestore instance');
+        console.log('Using production Firestore instance - NO EMULATOR');
       }
       return firestore;
     }),
     
     // Functions
     provideFunctions(() => {
+      // Clear any persisted functions emulator settings
+      if (environment.production) {
+        try {
+          window.localStorage.removeItem('firebase:host:functions');
+          window.localStorage.removeItem('functions:emulator');
+          console.log('Cleared Functions emulator settings from browser storage');
+        } catch (e) {
+          console.warn('Failed to clear Functions emulator settings:', e);
+        }
+      }
+      
       // Initialize functions with europe-west1 region
       const functions = getFunctions(undefined, 'europe-west1');
       
@@ -42,7 +68,7 @@ export const appConfig: ApplicationConfig = {
         console.log('Connecting to Functions emulator...');
         connectFunctionsEmulator(functions, 'localhost', 5001);
       } else {
-        console.log('Using production Functions instance in europe-west1 region');
+        console.log('Using production Functions instance in europe-west1 region - NO EMULATOR');
       }
       return functions;
     })

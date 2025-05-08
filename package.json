@@ -6,8 +6,10 @@
     "start": "ng serve --configuration development",
     "serve": "ng serve --configuration development --open",
     "build": "ng build",
+    "build:prod": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "deploy": "ng build --configuration production && firebase deploy"
   },
   "private": true,
   "dependencies": {
