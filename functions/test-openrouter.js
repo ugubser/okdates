@@ -1,7 +1,34 @@
 const { OpenAI } = require('openai');
+const fs = require('fs');
+const path = require('path');
 
-// API key from the runtime config
-const apiKey = "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";
+// Load API key from the key file
+function loadApiKey() {
+  try {
+    const keyPath = path.resolve(__dirname, '../keys/openrouter.key');
+    if (fs.existsSync(keyPath)) {
+      return fs.readFileSync(keyPath, 'utf8').trim();
+    }
+    
+    // Fallback: try to load from config
+    const configPath = path.resolve(__dirname, './ai.config.json');
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (config.openRouter && config.openRouter.key) {
+        return config.openRouter.key;
+      }
+    }
+    
+    console.error('API key not found. Please run ./start-emulator.sh first');
+    return 'YOUR_API_KEY_REQUIRED';
+  } catch (error) {
+    console.error('Error loading API key:', error);
+    return 'ERROR_LOADING_API_KEY';
+  }
+}
+
+// API key from the key file
+const apiKey = loadApiKey();
 const baseURL = "https://openrouter.ai/api/v1";
 
 // Create a simple fetch function to test the API directly

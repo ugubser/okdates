@@ -1,0 +1,6 @@
+{
+  "openrouter": {
+    "api_key": "YOUR_OPENROUTER_API_KEY_HERE",
+    "model": "meta-llama/llama-4-maverick"
+  }
+}
