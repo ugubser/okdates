@@ -31,8 +31,37 @@ export class DateParsingService {
   }
   
   /**
-   * Basic client-side date parsing for use during development
-   * This is a placeholder that will be replaced by the Cloud Function
+   * Parse dates using LLM via Cloud Function
+   * This is the primary method that should be used for production
+   */
+  async parseLlm(rawInput: string): Promise<ParsedDate[]> {
+    try {
+      console.log('Parsing dates with LLM Cloud Function...');
+      
+      // Call the Firebase Function
+      const response = await this.firestoreService.callFunction('parsing-parseDates', {
+        rawDateInput: rawInput
+      });
+      
+      console.log('Cloud Function response:', response);
+      
+      if (response.data.success) {
+        // The parsed dates are already in the correct format
+        return response.data.data.parsedDates;
+      } else {
+        throw new Error(response.data.error || 'Failed to parse dates with LLM');
+      }
+    } catch (error) {
+      console.error('Error parsing dates with Cloud Function:', error);
+      // Fall back to client-side parsing if Cloud Function fails
+      console.log('Falling back to client-side parsing...');
+      return this.parseClientSide(rawInput);
+    }
+  }
+
+  /**
+   * Basic client-side date parsing as a fallback method
+   * This is used when LLM parsing fails or is not available
    */
   parseClientSide(rawInput: string): ParsedDate[] {
     const dates: ParsedDate[] = [];

@@ -1,12 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatListModule } from '@angular/material/list';
+import { MatListModule, MatSelectionList } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatIconModule } from '@angular/material/icon';
 import { EventService } from '../../../core/services/event.service';
 import { ParticipantService } from '../../../core/services/participant.service';
 import { DateParsingService } from '../../../core/services/date-parsing.service';
@@ -24,12 +25,15 @@ import { ParsedDate } from '../../../core/models/parsed-date.model';
     MatInputModule,
     MatFormFieldModule,
     MatListModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatIconModule
   ],
   templateUrl: './participant-form.component.html',
   styleUrls: ['./participant-form.component.scss']
 })
 export class ParticipantFormComponent implements OnInit {
+  @ViewChild('datesList') datesList!: MatSelectionList;
+  
   participantForm: FormGroup;
   eventId: string;
   event: Event | null = null;
@@ -38,6 +42,7 @@ export class ParticipantFormComponent implements OnInit {
   isParsing = false;
   isLoading = true;
   showParsedDates = false;
+  parsingTitle: string = '';
   
   constructor(
     private fb: FormBuilder,
@@ -85,13 +90,19 @@ export class ParticipantFormComponent implements OnInit {
         this.isParsing = true;
         const rawDateInput = this.participantForm.get('availability')?.value;
         
-        // For now, we'll use the client-side parsing
-        // In a full implementation, we would call the Firebase Function
-        this.parsedDates = this.dateParsingService.parseClientSide(rawDateInput);
+        // Use the LLM-based parsing
+        console.log('Parsing dates using LLM...');
+        this.parsedDates = await this.dateParsingService.parseLlm(rawDateInput);
+        console.log('Parsed dates:', this.parsedDates);
         
         this.showParsedDates = true;
       } catch (error) {
         console.error('Error parsing dates:', error);
+        
+        // Fallback to client-side parsing if LLM fails
+        const rawDateInput = this.participantForm.get('availability')?.value;
+        console.log('Falling back to client-side parsing...');
+        this.parsedDates = this.dateParsingService.parseClientSide(rawDateInput);
       } finally {
         this.isParsing = false;
       }
@@ -133,8 +144,30 @@ export class ParticipantFormComponent implements OnInit {
   }
   
   confirmDates(): void {
-    // In the full implementation, we would update the parsed dates
-    // based on user confirmation/modifications
+    // Get the selected dates from the selection list
+    const selectedOptions = this.datesList.selectedOptions.selected;
+    console.log('Selected options:', selectedOptions);
+    
+    // Filter the parsedDates to include only selected ones
+    const confirmedDates: ParsedDate[] = [];
+    
+    selectedOptions.forEach(option => {
+      // Get the index from the option
+      const index = parseInt(option._elementRef.nativeElement.getAttribute('data-index') || '0');
+      if (!isNaN(index) && index >= 0 && index < this.parsedDates.length) {
+        const date = this.parsedDates[index];
+        // Mark as confirmed
+        date.isConfirmed = true;
+        confirmedDates.push(date);
+      }
+    });
+    
+    console.log('Confirmed dates:', confirmedDates);
+    
+    // Update the parsed dates to only include confirmed ones
+    this.parsedDates = confirmedDates;
+    
+    // Submit the participant
     this.submitParticipant();
   }
   
