@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Firestore, collection, doc, getDoc, setDoc, addDoc, getDocs, Timestamp, DocumentData } from '@angular/fire/firestore';
 import { Functions, httpsCallable } from '@angular/fire/functions';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -13,17 +14,17 @@ export class FirestoreService {
   ) {
     console.log('Initializing Firestore service with Angular Fire...');
     
-    // Only check connection in development mode
-    // Skip in production to avoid unnecessary connections to localhost emulator
-    import('../../../environments/environment').then(env => {
-      if (env.environment.useEmulators) {
-        // Add a listener to check Firestore connection
-        // This helps debug connection issues with the emulator
+    // Don't use dynamic import, access the environment directly
+    // This avoids potential injection context issues
+    if (environment.useEmulators) {
+      // Add a listener to check Firestore connection
+      // This helps debug connection issues with the emulator
+      setTimeout(() => {
         this.checkFirestoreConnection();
-      } else {
-        console.log('Skipping emulator connection check in production mode');
-      }
-    });
+      }, 0);
+    } else {
+      console.log('Skipping emulator connection check in production mode');
+    }
   }
   
   /**
