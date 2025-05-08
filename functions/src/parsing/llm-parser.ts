@@ -6,7 +6,7 @@ import * as functions from 'firebase-functions';
 // Try to get config from Firebase Functions config
 let openRouterKey: string | undefined;
 let openRouterBaseUrl = 'https://openrouter.ai/api/v1';
-let openRouterModel = 'meta-llama/llama-4-maverick:free';
+let openRouterModel = 'meta-llama/llama-4-maverick';
 
 try {
   // Get from Firebase config
@@ -27,6 +27,12 @@ if (!openRouterKey) {
   openRouterKey = process.env.OPENROUTER_API_KEY;
   openRouterBaseUrl = process.env.OPENROUTER_BASE_URL || openRouterBaseUrl;
   openRouterModel = process.env.OPENROUTER_MODEL || openRouterModel;
+  
+  // For testing, always use hardcoded key in emulator mode
+  if (!openRouterKey) {
+    console.log('No API key found in environment or Firebase config, using fallback key');
+    openRouterKey = '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';
+  }
 }
 
 // If environment variables aren't set, attempt to load from config file
@@ -61,13 +67,22 @@ if (openRouterKey) {
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: openRouterKey || 'missing-api-key',
+  apiKey: openRouterKey,
   baseURL: openRouterBaseUrl,
   defaultHeaders: {
-    'HTTP-Referer': 'https://okdates.web.app', // Update with actual domain
-    'X-Title': 'OkDates App'
+    'HTTP-Referer': 'https://okdates.web.app', // Required for OpenRouter
+    'X-Title': 'OkDates App', // Required for OpenRouter
+    'Authorization': `Bearer ${openRouterKey}` // Ensure Bearer token format
   }
 });
+
+// Log initialization for debugging
+console.log(`OpenAI client initialized with baseURL: ${openRouterBaseUrl}`);
+if (!openRouterKey) {
+  console.error('ERROR: OpenRouter API key is missing!');
+} else {
+  console.log('Using OpenRouter API key:', openRouterKey.substring(0, 10) + '...');
+}
 
 /**
  * Parses dates using an LLM
@@ -114,10 +129,62 @@ ${rawInput}`
     ];
     
     // Call the LLM API
+    console.log('Calling OpenRouter API with model:', openRouterModel);
+    console.log('Request payload:', {
+      model: openRouterModel,
+      messages,
+      response_format: { 
+        type: 'json_schema',
+        json_schema: {
+          name: 'date_parser',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              title: {
+                type: 'string',
+                description: 'Title for the available dates'
+              },
+              available_dates: {
+                type: 'array',
+                description: 'Array of dates in ISO format (YYYY-MM-DD)',
+                items: { type: 'string', format: 'date' }
+              }
+            },
+            required: ['title', 'available_dates'],
+            additionalProperties: false
+          }
+        }
+      },
+      temperature: 0.2
+    });
+    
     const response = await openai.chat.completions.create({
       model: openRouterModel,
       messages: messages as any,
-      response_format: { type: 'json_object' },
+      response_format: { 
+        type: 'json_schema',
+        json_schema: {
+          name: 'date_parser',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              title: {
+                type: 'string',
+                description: 'Title for the available dates'
+              },
+              available_dates: {
+                type: 'array',
+                description: 'Array of dates in ISO format (YYYY-MM-DD)',
+                items: { type: 'string', format: 'date' }
+              }
+            },
+            required: ['title', 'available_dates'],
+            additionalProperties: false
+          }
+        }
+      },
       temperature: 0.2, // Lower temperature for more consistent results
       max_tokens: 1000,
     });
