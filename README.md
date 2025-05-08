@@ -1,59 +1,116 @@
-# Okdates
+# OkDates - Find the Perfect Date that Works for Everyone
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.11.
+OkDates is an intelligent event scheduling tool that makes it easy to find dates that work for everyone in your group. Built with Angular and Firebase, it features AI-powered date parsing to handle natural language input, making scheduling effortless.
 
-## Development server
+## 🌟 Features
 
-To start a local development server, run:
+- **Simple Event Creation**: Create events with just a title and optional description
+- **Shareable Links**: Unique links for participants and separate admin access
+- **Natural Language Date Input**: Enter dates any way you want - "next Monday", "June 2-5", "6/15, 6/16", etc.
+- **AI-Powered Date Parsing**: Utilizes LLMs (via OpenRouter API) to intelligently interpret date inputs
+- **Visual Availability Overview**: See which dates work best for the whole group
+- **Responsive Design**: Works great on mobile, tablet, and desktop
+
+## 🚀 Live Demo
+
+Visit [OkDates](https://okdates.web.app) to try it out!
+
+## 🛠️ Technology Stack
+
+- **Frontend**: Angular 19
+- **Backend**: Firebase (Firestore, Cloud Functions, Storage)
+- **AI Integration**: OpenRouter API for LLM-based date parsing
+- **Authentication**: Anonymous authentication for simple user flow
+- **Hosting**: Firebase Hosting
+
+## 🤔 How It Works
+
+1. **Create an Event**: Add a title, description, and generate shareable links
+2. **Share with Participants**: Send the participant link to everyone involved
+3. **Collect Availability**: Participants enter their name and available dates in natural language
+4. **Review Results**: Use the admin link to see which dates work for everyone
+
+## 📋 Date Parsing Capabilities
+
+The AI-powered date parser can handle various formats:
+- Simple dates: "June 15", "6/15/2025"
+- Ranges: "June 1-5", "June 1 to June 5"
+- Days of week: "next Monday", "this weekend"
+- Relative dates: "tomorrow", "next week"
+- Combined formats: "June 15, July 3-5, and next Monday"
+
+## 🔧 Local Development
+
+### Prerequisites
+
+- Node.js 18+
+- Angular CLI
+- Firebase CLI (for emulator and deployment)
+
+### Setup
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/ugubser/okdates.git
+   cd okdates
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   cd functions
+   npm install
+   cd ..
+   ```
+
+3. Set up Firebase:
+   - Create a Firebase project
+   - Enable Firestore and Cloud Functions
+   - Copy your Firebase config to environment files
+
+4. Configure OpenRouter API (for AI features):
+   - Get an API key from [OpenRouter](https://openrouter.ai)
+   - Create a `functions/ai.config.json` using the template from `functions/ai.config.template.json`
+   - Add your API key to the config file
+
+5. Start development server:
+   ```bash
+   npm run start
+   ```
+
+6. Start Firebase emulators:
+   ```bash
+   npm run emulators
+   ```
+
+### Building and Deployment
 
 ```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
+# Build for production
 ng build
+
+# Deploy to Firebase
+firebase deploy
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## 📊 Project Structure
 
-## Running unit tests
+- `src/app/core`: Core models and services
+- `src/app/modules`: Feature modules (event, participant, home)
+- `functions/src`: Cloud Functions for handling server-side operations
+- `functions/src/parsing`: AI-powered date parsing logic
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+## 🤝 Contributing
 
-```bash
-ng test
-```
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-## Running end-to-end tests
+## 📜 License
 
-For end-to-end (e2e) testing, run:
+This project is open source and available under the [MIT License](LICENSE).
 
-```bash
-ng e2e
-```
+## 🙏 Acknowledgements
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- [Angular](https://angular.io/)
+- [Firebase](https://firebase.google.com/)
+- [OpenRouter](https://openrouter.ai)
+- All icons and libraries used in this project
