@@ -1,0 +1,116 @@
+<div class="event-view-container" *ngIf="event && !isLoading">
+  <div class="event-header">
+    <div class="event-info">
+      <h1>{{ event.title || 'Untitled Event' }}</h1>
+      <p *ngIf="event.description" class="event-description">{{ event.description }}</p>
+      <p class="event-created" *ngIf="event.createdAt">
+        Created {{ formatCreatedAt(event.createdAt) }}
+      </p>
+    </div>
+    
+    <div class="event-actions">
+      <button mat-stroked-button (click)="editEvent()">
+        <mat-icon>edit</mat-icon> Edit Event
+      </button>
+      <button mat-raised-button color="primary" (click)="addAvailability()">
+        <mat-icon>calendar_today</mat-icon> Add My Availability
+      </button>
+    </div>
+  </div>
+  
+  <div class="share-section">
+    <h3>Share this event with participants</h3>
+    <p class="share-prompt">Copy and share this link so people can add their availability:</p>
+    <div class="link-container">
+      <span class="event-link">{{ window.location.href }}</span>
+      <button 
+        mat-icon-button 
+        color="primary" 
+        (click)="copyEventLink()"
+        matTooltip="Copy to clipboard">
+        <mat-icon>content_copy</mat-icon>
+      </button>
+    </div>
+    <div class="share-success" *ngIf="linkCopied">
+      <mat-icon color="primary">check_circle</mat-icon> 
+      <span>Link copied to clipboard!</span>
+    </div>
+  </div>
+  
+  <div class="participants-section" *ngIf="participants.length > 0">
+    <h2>Participant Availability</h2>
+    
+    <!-- Date summary cards -->
+    <div class="date-summary" *ngIf="uniqueDates.length > 0">
+      <mat-card *ngFor="let dateInfo of uniqueDates" class="date-card">
+        <mat-card-header>
+          <mat-card-title>{{ dateInfo.formattedDate }}</mat-card-title>
+          <mat-card-subtitle>{{ getAvailableCountForDate(dateInfo.dateString) }} of {{ participants.length }} available</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="availability-percentage">
+            {{ Math.round((getAvailableCountForDate(dateInfo.dateString) / participants.length) * 100) }}%
+          </div>
+          <div class="available-names">
+            <div *ngFor="let participant of participants">
+              <span *ngIf="isParticipantAvailable(participant, dateInfo.dateString)">
+                {{ participant.name }}
+              </span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    
+    <!-- Detailed availability table -->
+    <div class="availability-table">
+      <table mat-table [dataSource]="participants" class="availability-matrix">
+        <!-- Participant Column -->
+        <ng-container matColumnDef="participant">
+          <th mat-header-cell *matHeaderCellDef>Participant</th>
+          <td mat-cell *matCellDef="let participant">{{ participant.name }}</td>
+        </ng-container>
+        
+        <!-- Dynamic Date Columns -->
+        <ng-container *ngFor="let dateInfo of uniqueDates" [matColumnDef]="dateInfo.dateString">
+          <th mat-header-cell *matHeaderCellDef>{{ dateInfo.formattedDate }}</th>
+          <td mat-cell *matCellDef="let participant">
+            <div 
+              class="availability-indicator" 
+              [ngClass]="getAvailabilityClass(isParticipantAvailable(participant, dateInfo.dateString))">
+            </div>
+          </td>
+        </ng-container>
+        
+        <tr mat-header-row *matHeaderRowDef="displayColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayColumns;"></tr>
+      </table>
+    </div>
+    
+    <!-- Raw participant input list -->
+    <div class="raw-input-section">
+      <h3>Raw Availability Input</h3>
+      <div class="participant-list">
+        <div class="participant-item" *ngFor="let participant of participants">
+          <div class="participant-name">{{ participant.name }}</div>
+          <div class="participant-dates">{{ participant.rawDateInput }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="no-participants" *ngIf="participants.length === 0">
+    <div class="empty-state">
+      <mat-icon class="empty-icon">people</mat-icon>
+      <h3>No participants yet</h3>
+      <p>Share the link with people to collect their availability</p>
+      <button mat-raised-button color="primary" (click)="addAvailability()">
+        Add My Availability
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="loading-container" *ngIf="isLoading">
+  <mat-spinner></mat-spinner>
+</div>
