@@ -42,15 +42,23 @@ testem.log
 .DS_Store
 Thumbs.db
 
+# Firebase/Emulator debug files
 **/.claude/settings.local.json
 firebase-debug.log
 firestore-debug.log
 emulator_data/firebase-export-metadata.json
 emulator_data/firestore_export/firestore_export.overall_export_metadata
 emulator_data/storage_export/buckets.json
-firestore-debug.log
-.gitignore
 emulator_data/firestore_export/all_namespaces/all_kinds/output-0
-.gitignore
-firestore-debug.log
 emulator_data/firestore_export/all_namespaces/all_kinds/all_namespaces_all_kinds.export_metadata
+
+# API Keys and Secrets - never commit these to the repository
+/keys
+/secrets
+*.key
+*.secret
+ai.config.local.json
+ai.secrets.json
+functions/.runtimeconfig.json
+**/ai.config.json
+!**/ai.config.template.json

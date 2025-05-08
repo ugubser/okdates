@@ -3,60 +3,120 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as functions from 'firebase-functions';
 
-// Try to get config from Firebase Functions config
+// Default values
 let openRouterKey: string | undefined;
 let openRouterBaseUrl = 'https://openrouter.ai/api/v1';
 let openRouterModel = 'meta-llama/llama-4-maverick';
 
-try {
-  // Get from Firebase config
-  const config = functions.config();
-  if (config.openrouter) {
-    console.log('Found OpenRouter config in Firebase Functions config');
-    openRouterKey = config.openrouter.api_key;
-    openRouterModel = config.openrouter.model || openRouterModel;
-  } else {
-    console.log('No OpenRouter config found in Firebase Functions config');
-  }
-} catch (error) {
-  console.error('Error accessing Firebase Functions config:', error);
-}
-
-// If not found in Firebase config, try process.env
-if (!openRouterKey) {
-  openRouterKey = process.env.OPENROUTER_API_KEY;
-  openRouterBaseUrl = process.env.OPENROUTER_BASE_URL || openRouterBaseUrl;
-  openRouterModel = process.env.OPENROUTER_MODEL || openRouterModel;
+/**
+ * Load API key from various sources in priority order:
+ * 1. Firebase Functions config
+ * 2. Environment variables
+ * 3. External key file
+ * 4. ai.config.json file
+ */
+function loadApiKey(): string | undefined {
+  // Check for key in multiple locations in priority order
+  let key = loadKeyFromFirebaseFunctionsConfig();
+  if (key) return key;
   
-  // For testing, always use hardcoded key in emulator mode
-  if (!openRouterKey) {
-    console.log('No API key found in environment or Firebase config, using fallback key');
-    openRouterKey = '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';
-  }
+  key = loadKeyFromEnvironmentVariables();
+  if (key) return key;
+  
+  key = loadKeyFromExternalFile();
+  if (key) return key;
+  
+  key = loadKeyFromConfigFile();
+  if (key) return key;
+  
+  console.error('Could not find OpenRouter API key in any location!');
+  return undefined;
 }
 
-// If environment variables aren't set, attempt to load from config file
-if (!openRouterKey) {
+// 1. Try to get config from Firebase Functions config
+function loadKeyFromFirebaseFunctionsConfig(): string | undefined {
   try {
-    const configPath = path.resolve(__dirname, '../../ai.config.json');
-    console.log('Attempting to load AI config from:', configPath);
-    if (fs.existsSync(configPath)) {
-      const configData = fs.readFileSync(configPath, 'utf8');
-      const aiConfig = JSON.parse(configData);
-      console.log('AI configuration successfully loaded from file');
-      
-      if (aiConfig.openRouter && aiConfig.openRouter.key) {
-        openRouterKey = aiConfig.openRouter.key;
-        openRouterBaseUrl = aiConfig.openRouter.baseUrl || openRouterBaseUrl;
-        openRouterModel = aiConfig.openRouter.model || openRouterModel;
-      }
+    const config = functions.config();
+    if (config.openrouter && config.openrouter.api_key) {
+      console.log('Found OpenRouter config in Firebase Functions config');
+      openRouterModel = config.openrouter.model || openRouterModel;
+      return config.openrouter.api_key;
     } else {
-      console.warn('AI config file not found:', configPath);
+      console.log('No OpenRouter config found in Firebase Functions config');
     }
+  } catch (error) {
+    console.error('Error accessing Firebase Functions config:', error);
+  }
+  return undefined;
+}
+
+// 2. Check environment variables
+function loadKeyFromEnvironmentVariables(): string | undefined {
+  const key = process.env.OPENROUTER_API_KEY;
+  if (key) {
+    console.log('Using OpenRouter API key from environment variables');
+    openRouterBaseUrl = process.env.OPENROUTER_BASE_URL || openRouterBaseUrl;
+    openRouterModel = process.env.OPENROUTER_MODEL || openRouterModel;
+    return key;
+  }
+  return undefined;
+}
+
+// 3. Try to load from dedicated key file
+function loadKeyFromExternalFile(): string | undefined {
+  try {
+    // Look for key file in project root directory
+    const keyPaths = [
+      path.resolve(__dirname, '../../../keys/openrouter.key'),
+      path.resolve(__dirname, '../../keys/openrouter.key'),
+      path.resolve(__dirname, '../../../openrouter.key')
+    ];
+    
+    for (const keyPath of keyPaths) {
+      if (fs.existsSync(keyPath)) {
+        console.log('Loading API key from key file:', keyPath);
+        const key = fs.readFileSync(keyPath, 'utf8').trim();
+        if (key && key !== 'YOUR_OPENROUTER_API_KEY_HERE') {
+          return key;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error loading API key from key file:', error);
+  }
+  return undefined;
+}
+
+// 4. Try to load from config file
+function loadKeyFromConfigFile(): string | undefined {
+  try {
+    const configPaths = [
+      path.resolve(__dirname, '../../ai.config.json'),
+      path.resolve(__dirname, '../../../ai.config.json')
+    ];
+    
+    for (const configPath of configPaths) {
+      if (fs.existsSync(configPath)) {
+        console.log('Loading AI config from:', configPath);
+        const configData = fs.readFileSync(configPath, 'utf8');
+        const aiConfig = JSON.parse(configData);
+        
+        if (aiConfig.openRouter && aiConfig.openRouter.key) {
+          openRouterBaseUrl = aiConfig.openRouter.baseUrl || openRouterBaseUrl;
+          openRouterModel = aiConfig.openRouter.model || openRouterModel;
+          return aiConfig.openRouter.key;
+        }
+      }
+    }
+    console.warn('No valid AI config file found with API key');
   } catch (error) {
     console.error('Error loading AI config from file:', error);
   }
+  return undefined;
 }
+
+// Load the API key
+openRouterKey = loadApiKey();
 
 // Log API key status (safely without revealing the key)
 if (openRouterKey) {
