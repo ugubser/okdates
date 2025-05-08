@@ -12,44 +12,10 @@ export class FirestoreService {
     private functions: Functions
   ) {
     console.log('Initializing Firestore service with Angular Fire...');
-    console.log('Firebase config:', JSON.stringify(this.firestore.app.options, null, 2));
     
     // Add a listener to check Firestore connection
     // This helps debug connection issues with the emulator
     this.checkFirestoreConnection();
-    
-    // After a short delay, try again to make sure connection is established
-    setTimeout(() => {
-      console.log('Rechecking Firestore connection after delay...');
-      this.checkFirestoreConnection();
-      this.addTestDocument();
-    }, 2000);
-  }
-  
-  // Test method to add a document directly
-  private async addTestDocument() {
-    try {
-      console.log('Creating test document in Firestore...');
-      const testData = {
-        test: true,
-        timestamp: new Date().toISOString(),
-        message: 'This is a test document'
-      };
-      
-      const docRef = doc(this.firestore, 'test-collection/test-doc-' + Date.now());
-      await setDoc(docRef, testData);
-      console.log('Test document created successfully at', docRef.path);
-      
-      // Verify it was created
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        console.log('Test document verified - read successful:', docSnap.data());
-      } else {
-        console.error('Test document not found - read failed!');
-      }
-    } catch (error) {
-      console.error('Error creating test document:', error);
-    }
   }
   
   /**
@@ -61,13 +27,6 @@ export class FirestoreService {
       const colRef = collection(this.firestore, 'events');
       const snapshot = await getDocs(colRef);
       console.log(`Successfully connected to Firestore. Found ${snapshot.size} events`);
-      
-      // List all documents in the events collection
-      console.log('--- LISTING ALL EVENTS ---');
-      snapshot.forEach(doc => {
-        console.log(`Event ID: ${doc.id}, Data:`, doc.data());
-      });
-      console.log('------------------------');
     } catch (error) {
       console.error('Failed to connect to Firestore:', error);
     }
@@ -180,33 +139,4 @@ export class FirestoreService {
     return Timestamp.now();
   }
   
-  // Debug method to list all events and their participants
-  async listAllData(): Promise<void> {
-    try {
-      console.log('--- FULL FIRESTORE DATA LISTING ---');
-      
-      // Get all events
-      const events = await this.getCollection('events');
-      console.log(`Found ${events.length} events:`);
-      
-      // For each event, get its participants
-      for (const event of events) {
-        console.log(`Event: ${event.id}`);
-        console.log('  Title:', event.title);
-        console.log('  Description:', event.description);
-        console.log('  Created:', event.createdAt ? new Date(event.createdAt.seconds * 1000) : 'N/A');
-        
-        const participants = await this.getCollection(`events/${event.id}/participants`);
-        console.log(`  Participants (${participants.length}):`);
-        
-        for (const participant of participants) {
-          console.log(`    - ${participant.name}: ${participant.rawDateInput}`);
-        }
-      }
-      
-      console.log('--- END DATA LISTING ---');
-    } catch (error) {
-      console.error('Error listing all data:', error);
-    }
-  }
 }

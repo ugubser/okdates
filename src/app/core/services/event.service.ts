@@ -103,42 +103,6 @@ export class EventService {
    * Updates an event in Firestore
    */
   async updateEvent(eventId: string, data: Partial<Event>): Promise<void> {
-    console.log(`EventService: Updating event ${eventId} with data:`, data);
-    try {
-      await this.firestoreService.setDocument(this.eventsPath, eventId, data);
-      console.log(`Event ${eventId} successfully updated`);
-    } catch (error) {
-      console.error(`Error updating event ${eventId}:`, error);
-      
-      // Try with direct document reference as a fallback
-      console.log(`Trying alternate update method for event ${eventId}...`);
-      await this.firestoreService.setDocument('events', eventId, data);
-    }
-  }
-  
-  /**
-   * Debug method to test Firestore permissions
-   */
-  async testFirestorePermissions(): Promise<void> {
-    try {
-      console.log('Testing Firestore permissions...');
-      
-      // 1. Create a test event
-      const { eventId } = await this.createEventDirect('Test Event', 'Testing permissions');
-      console.log(`Created test event with ID: ${eventId}`);
-      
-      // 2. Try to update it
-      console.log('Attempting to update the test event...');
-      await this.updateEvent(eventId, { title: 'Updated Test Event' });
-      console.log('Update successful!');
-      
-      // 3. Verify it was updated
-      const updatedEvent = await this.getEventDirect(eventId);
-      console.log('Updated event:', updatedEvent);
-      
-      console.log('Firestore permissions test completed successfully');
-    } catch (error) {
-      console.error('Firestore permissions test failed:', error);
-    }
+    await this.firestoreService.setDocument(this.eventsPath, eventId, data);
   }
 }

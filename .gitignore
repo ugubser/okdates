@@ -47,3 +47,9 @@ firestore-debug.log
 emulator_data/firebase-export-metadata.json
 emulator_data/firestore_export/firestore_export.overall_export_metadata
 emulator_data/storage_export/buckets.json
+firestore-debug.log
+.gitignore
+emulator_data/firestore_export/all_namespaces/all_kinds/output-0
+.gitignore
+firestore-debug.log
+emulator_data/firestore_export/all_namespaces/all_kinds/all_namespaces_all_kinds.export_metadata
