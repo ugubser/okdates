@@ -66,3 +66,4 @@ functions/test-openrouter.js
 functions/.runtimeconfig.json
 functions/ai.config.json
 src/assets/ai.config.json
+functions/ai.config.json
