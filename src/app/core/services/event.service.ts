@@ -71,7 +71,8 @@ export class EventService {
     const timestamp = this.firestoreService.createTimestamp();
     console.log('Created timestamp:', timestamp);
     
-    const eventData: Omit<Event, 'id'> = {
+    // Convert to plain JS object for better Firestore compatibility
+    const eventData = {
       createdAt: timestamp,
       title: title || null,
       description: description || null,
