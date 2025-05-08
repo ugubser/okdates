@@ -27,6 +27,8 @@ export const appConfig: ApplicationConfig = {
         // Force connection to emulator regardless of previous connection
         connectFirestoreEmulator(firestore, 'localhost', 8081);
         console.log('Firestore emulator connection established');
+      } else {
+        console.log('Using production Firestore instance');
       }
       return firestore;
     }),
@@ -39,6 +41,8 @@ export const appConfig: ApplicationConfig = {
       if (environment.useEmulators) {
         console.log('Connecting to Functions emulator...');
         connectFunctionsEmulator(functions, 'localhost', 5001);
+      } else {
+        console.log('Using production Functions instance in europe-west1 region');
       }
       return functions;
     })
