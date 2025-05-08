@@ -62,3 +62,4 @@ ai.secrets.json
 functions/.runtimeconfig.json
 **/ai.config.json
 !**/ai.config.template.json
+functions/test-openrouter.js

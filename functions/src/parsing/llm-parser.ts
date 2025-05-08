@@ -125,14 +125,14 @@ if (openRouterKey) {
   console.error('No OpenRouter API key found in environment variables or config file!');
 }
 
-// Initialize OpenAI client
+// Initialize OpenAI client - OpenRouter API key
+// IMPORTANT: For OpenRouter, set the apiKey directly and do NOT set Authorization in defaultHeaders
 const openai = new OpenAI({
-  apiKey: openRouterKey,
+  apiKey: openRouterKey, // Let the OpenAI library handle authorization
   baseURL: openRouterBaseUrl,
   defaultHeaders: {
     'HTTP-Referer': 'https://okdates.web.app', // Required for OpenRouter
-    'X-Title': 'OkDates App', // Required for OpenRouter
-    'Authorization': `Bearer ${openRouterKey}` // Ensure Bearer token format
+    'X-Title': 'OkDates App' // Required for OpenRouter
   }
 });
 
