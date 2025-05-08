@@ -49,6 +49,13 @@ body {
   width: 100%;
 }
 
+/* Add padding to textareas and inputs */
+textarea, 
+input[type="text"],
+input:not([type]) {
+  padding: 8px !important;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
