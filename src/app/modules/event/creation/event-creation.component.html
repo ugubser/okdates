@@ -35,6 +35,23 @@
       <p class="hint">This link will be available after you save the event</p>
     </div>
     
+    <div class="link-section admin-link-section" *ngIf="event?.adminKey">
+      <h3>Administrator Link</h3>
+      <p class="admin-hint">Use this link to edit the event later. Keep it private!</p>
+      <div class="link-container">
+        <span class="event-link admin-link">{{ window.location.origin }}/event/{{ eventId }}/admin/{{ event.adminKey }}</span>
+        <button 
+          mat-icon-button 
+          color="accent" 
+          type="button"
+          (click)="copyAdminLink()"
+          matTooltip="Copy to clipboard">
+          <mat-icon>content_copy</mat-icon>
+        </button>
+      </div>
+      <p class="warning">Save this link! It's the only way to edit your event later.</p>
+    </div>
+    
     <div class="action-buttons">
       <button 
         mat-raised-button

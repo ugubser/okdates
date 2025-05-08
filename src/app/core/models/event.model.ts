@@ -6,4 +6,5 @@ export interface Event {
   title: string | null;
   description: string | null;
   isActive: boolean;
+  adminKey?: string; // Unique key for admin access
 }

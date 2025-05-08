@@ -62,6 +62,20 @@ export class EventService {
   }
   
   /**
+   * Generates a random string to use as admin key
+   */
+  private generateAdminKey(length: number = 16): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    const randomValues = new Uint8Array(length);
+    window.crypto.getRandomValues(randomValues);
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(randomValues[i] % chars.length);
+    }
+    return result;
+  }
+
+  /**
    * Creates an event directly in Firestore with a unique ID
    */
   async createEventDirect(title: string | null = null, description: string | null = null): Promise<{ eventId: string, event: Event }> {
@@ -71,12 +85,16 @@ export class EventService {
     const timestamp = this.firestoreService.createTimestamp();
     console.log('Created timestamp:', timestamp);
     
+    // Generate admin key for secure editing
+    const adminKey = this.generateAdminKey();
+    
     // Convert to plain JS object for better Firestore compatibility
     const eventData = {
       createdAt: timestamp,
       title: title || null,
       description: description || null,
-      isActive: true
+      isActive: true,
+      adminKey: adminKey
     };
     
     console.log('Event data to save:', eventData);
@@ -104,5 +122,21 @@ export class EventService {
    */
   async updateEvent(eventId: string, data: Partial<Event>): Promise<void> {
     await this.firestoreService.setDocument(this.eventsPath, eventId, data);
+  }
+  
+  /**
+   * Verifies if the provided admin key matches the one stored for the event
+   */
+  async verifyAdminKey(eventId: string, adminKey: string): Promise<boolean> {
+    try {
+      const event = await this.getEventDirect(eventId);
+      if (!event || !event.adminKey) {
+        return false;
+      }
+      return event.adminKey === adminKey;
+    } catch (error) {
+      console.error('Error verifying admin key:', error);
+      return false;
+    }
   }
 }
