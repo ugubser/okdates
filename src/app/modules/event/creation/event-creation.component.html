@@ -61,11 +61,12 @@
         {{ isSaving ? 'Saving...' : 'Save & Continue' }}
       </button>
       
-      <button 
+      <button
         mat-button
         type="button"
-        [routerLink]="['/event', eventId, 'view']">
-        Skip
+        [routerLink]="['/event', eventId, 'view']"
+        *ngIf="!isCreatingNew">
+        Cancel Changes
       </button>
     </div>
   </form>
