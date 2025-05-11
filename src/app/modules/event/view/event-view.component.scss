@@ -242,25 +242,18 @@
     }
 
 
-    /* Percentage row styles */
-    .percentage-row {
+    /* Footer row styles */
+    .mat-mdc-footer-row {
       border-top: 2px solid #e0e0e0;
       background-color: #f5f5f5;
+      font-weight: 500;
+    }
 
-      td {
-        padding: 12px 8px;
-      }
-
-      td:first-child {
-        font-weight: 500;
-      }
-
-      .percentage-cell {
-        text-align: center;
-        color: var(--primary-color);
-        font-weight: bold;
-        font-size: 1rem;
-      }
+    .percentage-cell {
+      text-align: center !important;
+      color: var(--primary-color);
+      font-weight: bold;
+      font-size: 1rem;
     }
   }
 }
