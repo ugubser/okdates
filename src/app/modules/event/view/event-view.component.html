@@ -67,27 +67,6 @@
   <div class="participants-section" *ngIf="participants.length > 0">
     <h2>Participant Availability</h2>
     
-    <!-- Date summary cards -->
-    <div class="date-summary" *ngIf="uniqueDates.length > 0">
-      <mat-card *ngFor="let dateInfo of uniqueDates" class="date-card">
-        <mat-card-header>
-          <mat-card-title>{{ dateInfo.formattedDate }}</mat-card-title>
-          <mat-card-subtitle>{{ getAvailableCountForDate(dateInfo.dateString) }} of {{ participants.length }} available</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="availability-percentage">
-            {{ Math.round((getAvailableCountForDate(dateInfo.dateString) / participants.length) * 100) }}%
-          </div>
-          <div class="available-names">
-            <div *ngFor="let participant of participants">
-              <span *ngIf="isParticipantAvailable(participant, dateInfo.dateString)">
-                {{ participant.name }}
-              </span>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    </div>
     
     <!-- Detailed availability table -->
     <div class="availability-table">
@@ -109,8 +88,17 @@
           </td>
         </ng-container>
         
+        <!-- Header and regular rows -->
         <tr mat-header-row *matHeaderRowDef="displayColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: displayColumns;"></tr>
+
+        <!-- Footer row for percentages -->
+        <tr class="percentage-row">
+          <td class="mat-cell">Available:</td>
+          <td class="mat-cell percentage-cell" *ngFor="let dateInfo of uniqueDates">
+            {{ Math.round((getAvailableCountForDate(dateInfo.dateString) / participants.length) * 100) }}%
+          </td>
+        </tr>
       </table>
     </div>
     
