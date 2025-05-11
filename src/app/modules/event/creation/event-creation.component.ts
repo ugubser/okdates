@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -31,7 +31,23 @@ import { FirestoreService } from '../../../core/services/firestore.service';
     NgxMaterialTimepickerModule
   ],
   templateUrl: './event-creation.component.html',
-  styleUrls: ['./event-creation.component.scss']
+  styleUrls: ['./event-creation.component.scss'],
+  styles: [`
+    .invalid-time {
+      color: #f44336;
+    }
+    .error-state {
+      color: #f44336;
+      caret-color: #f44336;
+    }
+    .time-error-message {
+      color: #f44336;
+      font-size: 12px;
+      margin-top: -16px;
+      margin-bottom: 16px;
+      font-weight: 500;
+    }
+  `]
 })
 export class EventCreationComponent implements OnInit {
   eventForm: FormGroup;
@@ -43,6 +59,8 @@ export class EventCreationComponent implements OnInit {
   adminKey: string = '';
   isAdmin = false;
   
+  timeError: string | null = null;
+
   constructor(
     private fb: FormBuilder,
     private eventService: EventService,
@@ -55,13 +73,87 @@ export class EventCreationComponent implements OnInit {
       description: ['', [Validators.maxLength(500)]],
       startTime: [null],
       endTime: [null]
-    });
-    
+    }, { validators: this.timeValidator });
+
     this.eventId = this.route.snapshot.paramMap.get('id') || '';
     this.isCreatingNew = this.router.url.includes('/event/create');
-    
+
     // Check for admin key in query params (passed from event view)
     this.adminKey = this.route.snapshot.queryParamMap.get('adminKey') || '';
+
+    // Subscribe to form value changes to update validation in real-time
+    this.eventForm.valueChanges.subscribe(() => {
+      this.checkTimeValidity();
+    });
+
+    // Subscribe to start time changes to auto-populate end time
+    this.eventForm.get('startTime')?.valueChanges.subscribe(startTime => {
+      if (startTime && !this.eventForm.get('endTime')?.value) {
+        this.setDefaultEndTime(startTime);
+      }
+    });
+  }
+
+  // Custom validator function for the form
+  timeValidator(control: AbstractControl): ValidationErrors | null {
+    const formGroup = control as FormGroup;
+    const startTime = formGroup.get('startTime')?.value;
+    const endTime = formGroup.get('endTime')?.value;
+
+    if (startTime && endTime) {
+      const [startHours, startMinutes] = startTime.split(':').map(Number);
+      const [endHours, endMinutes] = endTime.split(':').map(Number);
+
+      const startTotalMinutes = startHours * 60 + startMinutes;
+      const endTotalMinutes = endHours * 60 + endMinutes;
+
+      if (endTotalMinutes <= startTotalMinutes) {
+        return { invalidTimeRange: true };
+      }
+    }
+
+    return null;
+  }
+
+  // Method to check time validity and update error message
+  checkTimeValidity(): void {
+    const startTime = this.eventForm.get('startTime')?.value;
+    const endTime = this.eventForm.get('endTime')?.value;
+
+    if (startTime && endTime) {
+      const [startHours, startMinutes] = startTime.split(':').map(Number);
+      const [endHours, endMinutes] = endTime.split(':').map(Number);
+
+      const startTotalMinutes = startHours * 60 + startMinutes;
+      const endTotalMinutes = endHours * 60 + endMinutes;
+
+      if (endTotalMinutes <= startTotalMinutes) {
+        this.timeError = 'End time must be after start time';
+      } else {
+        this.timeError = null;
+      }
+    } else {
+      this.timeError = null;
+    }
+  }
+
+  // Method to set default end time (2 hours after start time)
+  setDefaultEndTime(startTime: string): void {
+    if (!startTime) return;
+
+    // Parse start time (format: "HH:mm")
+    const [hours, minutes] = startTime.split(':').map(Number);
+    let endHours = hours + 2;
+    const endMinutes = minutes;
+
+    // Handle day overflow
+    if (endHours >= 24) {
+      endHours = endHours - 24;
+    }
+
+    // Format end time and set it in the form
+    const endTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+    this.eventForm.get('endTime')?.setValue(endTime);
   }
   
   ngOnInit(): void {
@@ -154,11 +246,15 @@ export class EventCreationComponent implements OnInit {
   }
   
   async saveEvent(): Promise<void> {
-    if (this.eventForm.valid && this.eventId) {
+    // Check time validity before saving
+    this.checkTimeValidity();
+
+    if (this.eventForm.valid && this.eventId && !this.timeError) {
       try {
         this.isSaving = true;
 
         const { title, description, startTime, endTime } = this.eventForm.value;
+        let finalEndTime = endTime;
 
         // Create update object without empty time fields
         const updateData: Partial<Event> = {
@@ -166,17 +262,36 @@ export class EventCreationComponent implements OnInit {
           description: description || null
         };
 
-        // Only add time fields if they have values
+        // If start time exists
         if (startTime) {
           updateData.startTime = startTime;
-        }
 
-        if (endTime) {
+          // If end time is missing, set it to start time + 2 hours
+          if (!endTime) {
+            // Parse start time (format: "HH:mm")
+            const [hours, minutes] = startTime.split(':').map(Number);
+            let endHours = hours + 2;
+            const endMinutes = minutes;
+
+            // Handle day overflow
+            if (endHours >= 24) {
+              endHours = endHours - 24;
+            }
+
+            // Format end time
+            finalEndTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+            updateData.endTime = finalEndTime;
+          } else {
+            // Use end time as is - validation will prevent invalid submissions
+            updateData.endTime = endTime;
+          }
+        } else if (endTime) {
+          // If only end time is provided, add it to the update
           updateData.endTime = endTime;
         }
 
         await this.eventService.updateEvent(this.eventId, updateData);
-        
+
         // Redirect to the event view page after saving
         this.router.navigate(['/event', this.eventId, 'view']);
       } catch (error) {
