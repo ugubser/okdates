@@ -67,3 +67,5 @@ functions/.runtimeconfig.json
 functions/ai.config.json
 src/assets/ai.config.json
 functions/ai.config.json
+src/environments/environment.ts
+src/environments/environment.prod.ts

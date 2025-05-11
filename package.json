@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --configuration development",
-    "serve": "ng serve --configuration development --open",
+    "serve": "rm -rf .angular/cache && ng serve --configuration development --open --poll=2000",
     "build": "ng build --configuration development",
     "build:prod": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
