@@ -57,6 +57,7 @@ export class EventCreationComponent implements OnInit {
     this.eventForm = this.fb.group({
       title: ['', [Validators.maxLength(100)]],
       description: ['', [Validators.maxLength(500)]],
+      location: ['', [Validators.maxLength(200)]],
       startTime: [null],
       endTime: [null]
     }, { validators: this.timeValidator });
@@ -195,6 +196,7 @@ export class EventCreationComponent implements OnInit {
       this.eventForm.patchValue({
         title: '',
         description: '',
+        location: '',
         startTime: null,
         endTime: null
       });
@@ -236,6 +238,7 @@ export class EventCreationComponent implements OnInit {
         this.eventForm.patchValue({
           title: this.event.title || '',
           description: this.event.description || '',
+          location: this.event.location || '',
           startTime: this.event.startTime || null,
           endTime: this.event.endTime || null
         });
@@ -256,7 +259,7 @@ export class EventCreationComponent implements OnInit {
       try {
         this.isSaving = true;
 
-        const { title, description, startTime, endTime } = this.eventForm.value;
+        const { title, description, location, startTime, endTime } = this.eventForm.value;
         let finalStartTime = startTime;
         let finalEndTime = endTime;
 
@@ -265,6 +268,11 @@ export class EventCreationComponent implements OnInit {
           title: title || null,
           description: description || null
         };
+
+        // Only add location if it's not empty
+        if (location) {
+          updateData.location = location;
+        }
 
         // If start time exists
         if (finalStartTime) {

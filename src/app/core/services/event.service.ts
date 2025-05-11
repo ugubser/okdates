@@ -13,11 +13,12 @@ export class EventService {
   /**
    * Creates a new event
    */
-  async createEvent(title?: string, description?: string): Promise<{ eventId: string, event: Event }> {
+  async createEvent(title?: string, description?: string, location?: string): Promise<{ eventId: string, event: Event }> {
     try {
       const response = await this.firestoreService.callFunction('events-createEvent', {
         title,
-        description
+        description,
+        location
       });
       
       if (response.data.success) {
@@ -78,18 +79,18 @@ export class EventService {
   /**
    * Creates an event directly in Firestore with a unique ID
    */
-  async createEventDirect(title: string | null = null, description: string | null = null): Promise<{ eventId: string, event: Event }> {
+  async createEventDirect(title: string | null = null, description: string | null = null, location: string | null = null): Promise<{ eventId: string, event: Event }> {
     console.log('EventService: Creating event directly in Firestore');
-    
+
     // Create timestamp
     const timestamp = this.firestoreService.createTimestamp();
     console.log('Created timestamp:', timestamp);
-    
+
     // Generate admin key for secure editing
     const adminKey = this.generateAdminKey();
-    
+
     // Convert to plain JS object for better Firestore compatibility
-    const eventData = {
+    const eventData: any = {
       createdAt: timestamp,
       title: title || null,
       description: description || null,
@@ -97,6 +98,11 @@ export class EventService {
       adminKey: adminKey
       // Not including time fields by default for backward compatibility
     };
+
+    // Only add location if provided
+    if (location) {
+      eventData.location = location;
+    }
     
     console.log('Event data to save:', eventData);
     

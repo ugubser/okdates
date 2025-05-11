@@ -9,6 +9,10 @@
           {{ event.startTime || '--:--' }} to {{ event.endTime || '--:--' }}
         </span>
       </div>
+      <div class="event-location" *ngIf="event.location">
+        <mat-icon>place</mat-icon>
+        <span>{{ event.location }}</span>
+      </div>
       <p class="event-created" *ngIf="event.createdAt">
         Created {{ formatCreatedAt(event.createdAt) }}
       </p>

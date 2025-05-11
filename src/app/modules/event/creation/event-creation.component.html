@@ -19,6 +19,17 @@
       <mat-hint>Add any additional information participants should know</mat-hint>
     </mat-form-field>
 
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Location (optional)</mat-label>
+      <input
+        matInput
+        formControlName="location"
+        placeholder="e.g., Conference Room A or https://zoom.us/j/..."
+      >
+      <mat-icon matSuffix>place</mat-icon>
+      <mat-hint>Where will this event take place?</mat-hint>
+    </mat-form-field>
+
     <div class="time-fields">
       <h3>Event Time (optional)</h3>
       <p class="time-hint">Set a default time range for your event</p>
