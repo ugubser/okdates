@@ -1,28 +1,29 @@
 // Initialize Firebase Admin
 import * as admin from 'firebase-admin';
-import * as cors from 'cors';
 
 // Initialize Firebase Admin
 admin.initializeApp();
 
-// CORS configuration with allowed origins
-export const corsConfig = cors({
-  origin: [
-    'http://localhost:4200',
-    'http://localhost:5003',
-    'https://okdates.tribecans.com',
-    'https://okdate.vanguardsignals.com'
-  ],
-  methods: ['GET', 'POST', 'OPTIONS'],
-  credentials: true
-});
+// Import AppCheck to ensure it's initialized
+import './config/appcheck';
 
-// Import function modules
-import * as eventFunctions from './events';
-import * as participantFunctions from './participants';
-import * as parsingFunctions from './parsing';
+// Import functions
+import { createEvent, getEvent, getEventHttp } from './events';
+import { addParticipant, getParticipants } from './participants';
+import { parseDates } from './parsing';
 
-// Export all functions
-export const events = eventFunctions;
-export const participants = participantFunctions;
-export const parsing = parsingFunctions;
+// Export functions with the same structure as before
+export const events = {
+  createEvent,
+  getEvent,
+  getEventHttp
+};
+
+export const participants = {
+  addParticipant,
+  getParticipants
+};
+
+export const parsing = {
+  parseDates
+};
