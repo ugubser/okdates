@@ -117,9 +117,11 @@ export class EventViewComponent implements OnInit {
   }
   
   copyEventLink(): void {
-    const eventUrl = window.location.href;
-    navigator.clipboard.writeText(eventUrl);
-    
+    // Generate a non-administrative URL for sharing
+    const baseUrl = window.location.origin;
+    const shareUrl = `${baseUrl}/event/${this.eventId}`;
+    navigator.clipboard.writeText(shareUrl);
+
     // Show feedback that link was copied
     this.linkCopied = true;
     setTimeout(() => {
@@ -289,6 +291,14 @@ export class EventViewComponent implements OnInit {
   // Expose Math object for template
   get Math(): Math {
     return Math;
+  }
+
+  /**
+   * Get shareable non-administrative URL for the event
+   */
+  getShareableUrl(): string {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/event/${this.eventId}`;
   }
   
   /**

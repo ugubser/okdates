@@ -13,7 +13,7 @@
         <mat-icon>admin_panel_settings</mat-icon>
         Administrator
       </div>
-      <button mat-stroked-button (click)="editEvent()">
+      <button mat-stroked-button (click)="editEvent()" *ngIf="isAdmin">
         <mat-icon>edit</mat-icon> Edit Event
       </button>
       <button mat-raised-button color="primary" (click)="addAvailability()">
@@ -49,7 +49,7 @@
     <h3>Share this event with participants</h3>
     <p class="share-prompt">Copy and share this link so people can add their availability:</p>
     <div class="link-container">
-      <span class="event-link">{{ window.location.href }}</span>
+      <span class="event-link">{{ getShareableUrl() }}</span>
       <button 
         mat-icon-button 
         color="primary" 
