@@ -113,4 +113,7 @@ This project is open source and available under the [MIT License](LICENSE).
 - [Angular](https://angular.io/)
 - [Firebase](https://firebase.google.com/)
 - [OpenRouter](https://openrouter.ai)
+- [Claude Code & Anthropic](https://docs.anthropic.com/en/docs/claude-code/overview)
+
+
 - All icons and libraries used in this project
