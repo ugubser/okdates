@@ -34,7 +34,7 @@ export const appConfig: ApplicationConfig = {
     // Firebase AppCheck
     provideAppCheck(() => {
       console.log('Initializing Firebase AppCheck with reCAPTCHA v3...');
-      console.log('Using reCAPTCHA site key:', environment.recaptcha?.siteKey || 'No key provided');
+      //console.log('Using reCAPTCHA site key:', environment.recaptcha?.siteKey || 'No key provided');
 
       const appCheck = initializeAppCheck(undefined, {
         provider: new ReCaptchaV3Provider(environment.recaptcha?.siteKey || ''),
