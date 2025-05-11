@@ -297,6 +297,13 @@ export class EventViewComponent implements OnInit {
   }
 
   /**
+   * Check if event has any time information to display
+   */
+  hasTimeInfo(): boolean {
+    return !!(this.event && (this.event.startTime || this.event.endTime));
+  }
+
+  /**
    * Get shareable non-administrative URL for the event
    */
   getShareableUrl(): string {

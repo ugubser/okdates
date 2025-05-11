@@ -79,6 +79,38 @@
   }
 }
 
+.time-fields {
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+
+  h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: #333;
+  }
+
+  .time-hint {
+    margin-bottom: 1rem;
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 0.9rem;
+  }
+
+  .time-inputs {
+    display: flex;
+    gap: 1rem;
+
+    mat-form-field {
+      flex: 1;
+    }
+
+    @media (max-width: 600px) {
+      flex-direction: column;
+    }
+  }
+}
+
 .action-buttons {
   display: flex;
   justify-content: flex-end;

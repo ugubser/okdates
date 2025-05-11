@@ -7,4 +7,6 @@ export interface Event {
   description: string | null;
   isActive: boolean;
   adminKey?: string; // Unique key for admin access
+  startTime?: string | null; // Optional start time in HH:MM format
+  endTime?: string | null; // Optional end time in HH:MM format
 }
