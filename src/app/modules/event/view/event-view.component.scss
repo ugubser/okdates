@@ -28,10 +28,26 @@
     h1 {
       margin-bottom: 0.5rem;
     }
-    
+
     p {
       color: rgba(0, 0, 0, 0.6);
       white-space: pre-line;
+    }
+
+    .event-time {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      color: rgba(0, 0, 0, 0.7);
+      font-weight: 500;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        margin-right: 6px;
+        opacity: 0.7;
+      }
     }
   }
   

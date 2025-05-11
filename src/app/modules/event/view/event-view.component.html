@@ -3,6 +3,12 @@
     <div class="event-info">
       <h1>{{ event.title || 'Untitled Event' }}</h1>
       <p *ngIf="event.description" class="event-description">{{ event.description }}</p>
+      <div class="event-time" *ngIf="hasTimeInfo()">
+        <mat-icon>access_time</mat-icon>
+        <span>
+          {{ event.startTime || '--:--' }} to {{ event.endTime || '--:--' }}
+        </span>
+      </div>
       <p class="event-created" *ngIf="event.createdAt">
         Created {{ formatCreatedAt(event.createdAt) }}
       </p>

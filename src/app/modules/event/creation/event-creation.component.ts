@@ -8,6 +8,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { NgxMaterialTimepickerModule } from 'ngx-material-timepicker';
 import { EventService } from '../../../core/services/event.service';
 import { Event } from '../../../core/models/event.model';
 import { FirestoreService } from '../../../core/services/firestore.service';
@@ -24,7 +26,9 @@ import { FirestoreService } from '../../../core/services/firestore.service';
     MatInputModule,
     MatFormFieldModule,
     MatTooltipModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatDatepickerModule,
+    NgxMaterialTimepickerModule
   ],
   templateUrl: './event-creation.component.html',
   styleUrls: ['./event-creation.component.scss']
@@ -48,7 +52,9 @@ export class EventCreationComponent implements OnInit {
   ) {
     this.eventForm = this.fb.group({
       title: ['', [Validators.maxLength(100)]],
-      description: ['', [Validators.maxLength(500)]]
+      description: ['', [Validators.maxLength(500)]],
+      startTime: [null],
+      endTime: [null]
     });
     
     this.eventId = this.route.snapshot.paramMap.get('id') || '';
@@ -93,7 +99,9 @@ export class EventCreationComponent implements OnInit {
       // Create an empty form for the user to fill out
       this.eventForm.patchValue({
         title: '',
-        description: ''
+        description: '',
+        startTime: null,
+        endTime: null
       });
       
       // Now the user can edit the empty event
@@ -132,7 +140,9 @@ export class EventCreationComponent implements OnInit {
         // Populate form
         this.eventForm.patchValue({
           title: this.event.title || '',
-          description: this.event.description || ''
+          description: this.event.description || '',
+          startTime: this.event.startTime || null,
+          endTime: this.event.endTime || null
         });
       }
     } catch (error) {
@@ -147,16 +157,25 @@ export class EventCreationComponent implements OnInit {
     if (this.eventForm.valid && this.eventId) {
       try {
         this.isSaving = true;
-        
-        const { title, description } = this.eventForm.value;
-        
-        await this.eventService.updateEvent(
-          this.eventId,
-          {
-            title: title || null,
-            description: description || null
-          }
-        );
+
+        const { title, description, startTime, endTime } = this.eventForm.value;
+
+        // Create update object without empty time fields
+        const updateData: Partial<Event> = {
+          title: title || null,
+          description: description || null
+        };
+
+        // Only add time fields if they have values
+        if (startTime) {
+          updateData.startTime = startTime;
+        }
+
+        if (endTime) {
+          updateData.endTime = endTime;
+        }
+
+        await this.eventService.updateEvent(this.eventId, updateData);
         
         // Redirect to the event view page after saving
         this.router.navigate(['/event', this.eventId, 'view']);

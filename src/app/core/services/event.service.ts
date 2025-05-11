@@ -95,6 +95,7 @@ export class EventService {
       description: description || null,
       isActive: true,
       adminKey: adminKey
+      // Not including time fields by default for backward compatibility
     };
     
     console.log('Event data to save:', eventData);
