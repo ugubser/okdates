@@ -103,6 +103,10 @@
 
     mat-form-field {
       flex: 1;
+
+      input[type="time"] {
+        padding-right: 12px !important;
+      }
     }
 
     @media (max-width: 600px) {

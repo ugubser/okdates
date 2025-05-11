@@ -50,8 +50,9 @@ body {
 }
 
 /* Add padding to textareas and inputs */
-textarea, 
+textarea,
 input[type="text"],
+input[type="time"],
 input:not([type]) {
   padding: 8px !important;
 }
