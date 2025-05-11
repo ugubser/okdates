@@ -120,7 +120,7 @@ export class EventViewComponent implements OnInit {
   copyEventLink(): void {
     // Generate a non-administrative URL for sharing
     const baseUrl = window.location.origin;
-    const shareUrl = `${baseUrl}/event/${this.eventId}`;
+    const shareUrl = `${baseUrl}/event/${this.eventId}/view`;
     navigator.clipboard.writeText(shareUrl);
 
     // Show feedback that link was copied
@@ -308,7 +308,7 @@ export class EventViewComponent implements OnInit {
    */
   getShareableUrl(): string {
     const baseUrl = window.location.origin;
-    return `${baseUrl}/event/${this.eventId}`;
+    return `${baseUrl}/event/${this.eventId}/view`;
   }
   
   /**
