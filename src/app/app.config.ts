@@ -5,6 +5,7 @@ import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { getFirestore, provideFirestore, connectFirestoreEmulator } from '@angular/fire/firestore';
 import { getFunctions, provideFunctions, connectFunctionsEmulator } from '@angular/fire/functions';
+import { initializeAppCheck, provideAppCheck, ReCaptchaV3Provider } from '@angular/fire/app-check';
 
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
@@ -22,13 +23,27 @@ console.log('------------------------------------');
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideZoneChangeDetection({ eventCoalescing: true }), 
+    provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     provideAnimations(),
     provideHttpClient(withFetch()),
-    
+
     // Firebase
     provideFirebaseApp(() => initializeApp(environment.firebase)),
+
+    // Firebase AppCheck
+    provideAppCheck(() => {
+      console.log('Initializing Firebase AppCheck with reCAPTCHA v3...');
+      console.log('Using reCAPTCHA site key:', environment.recaptcha?.siteKey || 'No key provided');
+
+      const appCheck = initializeAppCheck(undefined, {
+        provider: new ReCaptchaV3Provider(environment.recaptcha?.siteKey || ''),
+        isTokenAutoRefreshEnabled: true
+      });
+
+      console.log('Firebase AppCheck initialized successfully');
+      return appCheck;
+    }),
     
     // Firestore
     provideFirestore(() => {

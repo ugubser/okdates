@@ -4,6 +4,7 @@
 KEYS_DIR="./keys"
 OPENROUTER_KEY_FILE="${KEYS_DIR}/openrouter.key"
 FIREBASE_KEY_FILE="${KEYS_DIR}/firebase.keys"
+RECAPTCHA_SITE_KEY_FILE="${KEYS_DIR}/recaptch_site_key"
 CONFIG_TEMPLATE="./functions/.runtimeconfig.template.json"
 CONFIG_OUTPUT="./functions/.runtimeconfig.json"
 
@@ -68,6 +69,17 @@ else
   fi
 fi
 
+# Check if the reCAPTCHA site key file exists
+if [ ! -f "${RECAPTCHA_SITE_KEY_FILE}" ]; then
+  echo "⚠️  reCAPTCHA site key file not found at ${RECAPTCHA_SITE_KEY_FILE}"
+  echo "Please create this file with your reCAPTCHA site key"
+  RECAPTCHA_SITE_KEY="dummy-recaptcha-site-key"
+else
+  # Read the reCAPTCHA site key from file
+  RECAPTCHA_SITE_KEY=$(cat "${RECAPTCHA_SITE_KEY_FILE}" | tr -d '[:space:]')
+  echo "✅ Found reCAPTCHA site key at ${RECAPTCHA_SITE_KEY_FILE}"
+fi
+
 # Check if API key is valid
 if [[ ! "${API_KEY}" =~ ^sk-or-v1- ]]; then
   echo "⚠️  Warning: API key doesn't match expected format (should start with sk-or-v1-)"
@@ -130,7 +142,8 @@ if [[ -n "${FIREBASE_API_KEY}" ]]; then
     sed -i '' "s|something.appspot.com|${FIREBASE_STORAGE_BUCKET}|g" "./src/environments/environment.ts"
     sed -i '' "s|000000000000|${FIREBASE_MESSAGING_SENDER_ID}|g" "./src/environments/environment.ts"
     sed -i '' "s|1:000000000000:web:0000000000000000000000|${FIREBASE_APP_ID}|g" "./src/environments/environment.ts"
-    echo "✅ Updated environment.ts with complete Firebase configuration"
+    sed -i '' "s|abcdefghijklmnopqrstuvwxy-1234567890abcd|${RECAPTCHA_SITE_KEY}|g" "./src/environments/environment.ts"
+    echo "✅ Updated environment.ts with complete Firebase configuration and reCAPTCHA site key"
     # Add cache busting timestamp
     add_cache_busting "./src/environments/environment.ts"
   fi
@@ -144,7 +157,8 @@ if [[ -n "${FIREBASE_API_KEY}" ]]; then
     sed -i '' "s|something.firebasestorage.app|${FIREBASE_STORAGE_BUCKET}|g" "./src/environments/environment.prod.ts"
     sed -i '' "s|234234234|${FIREBASE_MESSAGING_SENDER_ID}|g" "./src/environments/environment.prod.ts"
     sed -i '' "s|23423234234|${FIREBASE_APP_ID}|g" "./src/environments/environment.prod.ts"
-    echo "✅ Updated environment.prod.ts with complete Firebase configuration"
+    sed -i '' "s|abcdefghijklmnopqrstuvwxy-1234567890abcd|${RECAPTCHA_SITE_KEY}|g" "./src/environments/environment.prod.ts"
+    echo "✅ Updated environment.prod.ts with complete Firebase configuration and reCAPTCHA site key"
     # Add cache busting timestamp
     add_cache_busting "./src/environments/environment.prod.ts"
   fi

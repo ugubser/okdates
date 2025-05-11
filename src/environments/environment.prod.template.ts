@@ -8,5 +8,8 @@ export const environment = {
     messagingSenderId: "234234234",
     appId: "23423234234"
   },
-  useEmulators: false
+  useEmulators: false,
+  recaptcha: {
+    siteKey: "abcdefghijklmnopqrstuvwxy-1234567890abcd" // This will be replaced with real key
+  }
 };

@@ -12,5 +12,8 @@ export const environment = {
   emulators: {
     functions: "http://localhost:5001",
     firestore: "localhost:8081"
+  },
+  recaptcha: {
+    siteKey: "abcdefghijklmnopqrstuvwxy-1234567890abcd" // This will be replaced with real key
   }
 };

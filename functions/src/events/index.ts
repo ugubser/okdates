@@ -1,6 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import { corsConfig } from '../index';
+import { corsConfig } from '../config/cors';
 
 /**
  * Creates a new event with a unique identifier

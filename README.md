@@ -22,6 +22,7 @@ Visit [OkDates](https://okdates.web.app) to try it out!
 - **AI Integration**: OpenRouter API for LLM-based date parsing
 - **Authentication**: Anonymous authentication for simple user flow
 - **Hosting**: Firebase Hosting
+- **Security**: Firebase AppCheck with reCAPTCHA v3
 
 ## 🤔 How It Works
 
@@ -67,6 +68,10 @@ The AI-powered date parser can handle various formats:
    - Create a Firebase project
    - Enable Firestore and Cloud Functions
    - Copy your Firebase config to environment files
+   - Set up Firebase AppCheck with reCAPTCHA v3:
+     - Go to Firebase Console > AppCheck
+     - Register a new reCAPTCHA v3 site key
+     - Add the site key to your environment files in the `recaptcha.siteKey` field
 
 4. Configure OpenRouter API (for AI features):
    - Get an API key from [OpenRouter](https://openrouter.ai)
