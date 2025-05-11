@@ -9,7 +9,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { NgxMaterialTimepickerModule } from 'ngx-material-timepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import { EventService } from '../../../core/services/event.service';
 import { Event } from '../../../core/models/event.model';
 import { FirestoreService } from '../../../core/services/firestore.service';
@@ -28,26 +29,11 @@ import { FirestoreService } from '../../../core/services/firestore.service';
     MatTooltipModule,
     MatProgressSpinnerModule,
     MatDatepickerModule,
-    NgxMaterialTimepickerModule
+    MatNativeDateModule
   ],
+  providers: [provideNativeDateAdapter()],
   templateUrl: './event-creation.component.html',
-  styleUrls: ['./event-creation.component.scss'],
-  styles: [`
-    .invalid-time {
-      color: #f44336;
-    }
-    .error-state {
-      color: #f44336;
-      caret-color: #f44336;
-    }
-    .time-error-message {
-      color: #f44336;
-      font-size: 12px;
-      margin-top: -16px;
-      margin-bottom: 16px;
-      font-weight: 500;
-    }
-  `]
+  styleUrls: ['./event-creation.component.scss']
 })
 export class EventCreationComponent implements OnInit {
   eventForm: FormGroup;
@@ -86,12 +72,8 @@ export class EventCreationComponent implements OnInit {
       this.checkTimeValidity();
     });
 
-    // Subscribe to start time changes to auto-populate end time
-    this.eventForm.get('startTime')?.valueChanges.subscribe(startTime => {
-      if (startTime && !this.eventForm.get('endTime')?.value) {
-        this.setDefaultEndTime(startTime);
-      }
-    });
+    // We'll handle start time changes through the change event instead
+    // which works better with the native time input
   }
 
   // Custom validator function for the form
@@ -101,8 +83,16 @@ export class EventCreationComponent implements OnInit {
     const endTime = formGroup.get('endTime')?.value;
 
     if (startTime && endTime) {
-      const [startHours, startMinutes] = startTime.split(':').map(Number);
-      const [endHours, endMinutes] = endTime.split(':').map(Number);
+      let startHours = 0, startMinutes = 0, endHours = 0, endMinutes = 0;
+      
+      // Time inputs will now always be strings in format "HH:MM"
+      if (startTime) {
+        [startHours, startMinutes] = startTime.split(':').map(Number);
+      }
+      
+      if (endTime) {
+        [endHours, endMinutes] = endTime.split(':').map(Number);
+      }
 
       const startTotalMinutes = startHours * 60 + startMinutes;
       const endTotalMinutes = endHours * 60 + endMinutes;
@@ -121,6 +111,7 @@ export class EventCreationComponent implements OnInit {
     const endTime = this.eventForm.get('endTime')?.value;
 
     if (startTime && endTime) {
+      // Time inputs will now always be strings in format "HH:MM"
       const [startHours, startMinutes] = startTime.split(':').map(Number);
       const [endHours, endMinutes] = endTime.split(':').map(Number);
 
@@ -137,22 +128,34 @@ export class EventCreationComponent implements OnInit {
     }
   }
 
+  // Handle start time changes
+  onStartTimeChange(): void {
+    const startTime = this.eventForm.get('startTime')?.value;
+    
+    // Only set end time if start time exists and end time doesn't
+    if (startTime && !this.eventForm.get('endTime')?.value) {
+      this.setDefaultEndTime(startTime);
+    }
+    
+    // Validate times
+    this.checkTimeValidity();
+  }
+  
   // Method to set default end time (2 hours after start time)
   setDefaultEndTime(startTime: string): void {
     if (!startTime) return;
 
-    // Parse start time (format: "HH:mm")
+    // Parse time (format: "HH:MM")
     const [hours, minutes] = startTime.split(':').map(Number);
     let endHours = hours + 2;
-    const endMinutes = minutes;
-
+    
     // Handle day overflow
     if (endHours >= 24) {
       endHours = endHours - 24;
     }
-
+    
     // Format end time and set it in the form
-    const endTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+    const endTime = `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
     this.eventForm.get('endTime')?.setValue(endTime);
   }
   
@@ -254,6 +257,7 @@ export class EventCreationComponent implements OnInit {
         this.isSaving = true;
 
         const { title, description, startTime, endTime } = this.eventForm.value;
+        let finalStartTime = startTime;
         let finalEndTime = endTime;
 
         // Create update object without empty time fields
@@ -263,31 +267,34 @@ export class EventCreationComponent implements OnInit {
         };
 
         // If start time exists
-        if (startTime) {
-          updateData.startTime = startTime;
+        if (finalStartTime) {
+          updateData.startTime = finalStartTime;
 
           // If end time is missing, set it to start time + 2 hours
-          if (!endTime) {
-            // Parse start time (format: "HH:mm")
-            const [hours, minutes] = startTime.split(':').map(Number);
-            let endHours = hours + 2;
-            const endMinutes = minutes;
-
-            // Handle day overflow
-            if (endHours >= 24) {
-              endHours = endHours - 24;
+          if (!finalEndTime) {
+            let hours: number, minutes: number;
+            
+            if (typeof finalStartTime === 'string') {
+              [hours, minutes] = finalStartTime.split(':').map(Number);
+              let endHours = hours + 2;
+              
+              // Handle day overflow
+              if (endHours >= 24) {
+                endHours = endHours - 24;
+              }
+              
+              // Format end time
+              finalEndTime = `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
             }
-
-            // Format end time
-            finalEndTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+            
             updateData.endTime = finalEndTime;
           } else {
             // Use end time as is - validation will prevent invalid submissions
-            updateData.endTime = endTime;
+            updateData.endTime = finalEndTime;
           }
-        } else if (endTime) {
+        } else if (finalEndTime) {
           // If only end time is provided, add it to the update
-          updateData.endTime = endTime;
+          updateData.endTime = finalEndTime;
         }
 
         await this.eventService.updateEvent(this.eventId, updateData);

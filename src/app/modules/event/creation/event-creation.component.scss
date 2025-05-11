@@ -124,3 +124,45 @@
   align-items: center;
   height: 50vh;
 }
+
+.invalid-time {
+      color: #f44336;
+}
+.error-state {
+      color: #f44336;
+      caret-color: #f44336;
+}
+.time-error-message {
+      color: #f44336;
+      font-size: 12px;
+      margin-top: -16px;
+      margin-bottom: 16px;
+      font-weight: 500;
+}
+
+/*
+::ng-deep ngx-material-timepicker-content{
+  --body-background-color: #fff;
+  --primary-font-family: 'Roboto',sans-serif;
+  --primary-font-size: 12px;
+  --primary-font-weight: 400;
+  --primary-font-color: #000;
+  --button-color: hsl(207, 87%, 49%) !important;
+  --dial-active-color: #fff;
+  --dial-inactive-color: rgba(255, 255, 255, .5);
+  --dial-background-color: hsl(207, 87%, 49%) !important;
+  --dial-font-size: 12px;
+  --dial-font-family: 'Roboto',sans-serif;
+  --dial-font-weight: 400;
+  --dial-font-color: #fff;
+  --dial-editable-active-color:hsl(207, 87%, 49%) !important;
+  --dial-editable-background-color: #fff;
+  --clock-face-time-active-color: #fff;
+  --clock-face-time-inactive-color: #6c6c6c;
+  --clock-face-inner-time-inactive-color: #929292;
+  --clock-face-time-disabled-color: #c5c5c5;
+  --clock-face-background-color: #f0f0f0;
+  --clock-hand-color: hsl(207, 87%, 49%) !important;
+}
+
+*/
