@@ -46,6 +46,7 @@ export class EventViewComponent implements OnInit {
   availabilityMap: Map<string, string[]> = new Map();
   uniqueDates: {date: Date, dateString: string, formattedDate: string}[] = [];
   displayColumns: string[] = ['participant'];
+  footerColumns: string[] = ['available'];
   
   constructor(
     private route: ActivatedRoute,
@@ -180,6 +181,7 @@ export class EventViewComponent implements OnInit {
     this.availabilityMap.clear();
     this.uniqueDates = [];
     this.displayColumns = ['participant'];
+    this.footerColumns = ['available'];
     
     // Extract all dates from all participants
     const allDates = new Set<string>();
@@ -206,6 +208,7 @@ export class EventViewComponent implements OnInit {
       const formattedDate = this.formatDateForDisplay(date);
       this.uniqueDates.push({ date, dateString, formattedDate });
       this.displayColumns.push(dateString);
+      this.footerColumns.push(dateString);
     });
     
     // Second pass: populate availability map

@@ -76,15 +76,23 @@
           <th mat-header-cell *matHeaderCellDef>Participant</th>
           <td mat-cell *matCellDef="let participant">{{ participant.name }}</td>
         </ng-container>
-        
+
+        <!-- Available Label Column for Footer -->
+        <ng-container matColumnDef="available">
+          <td mat-footer-cell *matFooterCellDef>Available:</td>
+        </ng-container>
+
         <!-- Dynamic Date Columns -->
         <ng-container *ngFor="let dateInfo of uniqueDates" [matColumnDef]="dateInfo.dateString">
           <th mat-header-cell *matHeaderCellDef>{{ dateInfo.formattedDate }}</th>
           <td mat-cell *matCellDef="let participant">
-            <div 
-              class="availability-indicator" 
+            <div
+              class="availability-indicator"
               [ngClass]="getAvailabilityClass(isParticipantAvailable(participant, dateInfo.dateString))">
             </div>
+          </td>
+          <td mat-footer-cell *matFooterCellDef class="percentage-cell">
+            {{ Math.round((getAvailableCountForDate(dateInfo.dateString) / participants.length) * 100) }}%
           </td>
         </ng-container>
         
@@ -92,13 +100,8 @@
         <tr mat-header-row *matHeaderRowDef="displayColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: displayColumns;"></tr>
 
-        <!-- Footer row for percentages -->
-        <tr class="percentage-row">
-          <td class="mat-cell">Available:</td>
-          <td class="mat-cell percentage-cell" *ngFor="let dateInfo of uniqueDates">
-            {{ Math.round((getAvailableCountForDate(dateInfo.dateString) / participants.length) * 100) }}%
-          </td>
-        </tr>
+        <!-- Footer row with availability percentages -->
+        <tr mat-footer-row *matFooterRowDef="footerColumns; sticky: true"></tr>
       </table>
     </div>
     
