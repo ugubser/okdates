@@ -13,7 +13,11 @@ import { environment } from '../environments/environment';
 console.log('----- ENVIRONMENT CONFIGURATION -----');
 console.log('Production mode:', environment.production);
 console.log('Use emulators:', environment.useEmulators);
+
+if (!environment.production ) {
 console.log('Firebase config:', environment.firebase);
+}
+
 console.log('------------------------------------');
 
 export const appConfig: ApplicationConfig = {
