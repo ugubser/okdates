@@ -30,18 +30,11 @@
             matInput
             placeholder="12:00"
             formControlName="startTime"
-            [ngxTimepicker]="startPicker"
-            [format]="24"
-            readonly
+            type="time"
+            (input)="onStartTimeChange()"
           >
-          <button
-            mat-icon-button
-            matSuffix
-            (click)="startPicker.open()"
-            type="button">
-            <mat-icon>access_time</mat-icon>
-          </button>
-          <ngx-material-timepicker #startPicker [format]="24"></ngx-material-timepicker>
+          <mat-icon matSuffix>access_time</mat-icon>
+          <mat-hint>Enter time in 24-hour format</mat-hint>
         </mat-form-field>
 
         <mat-form-field appearance="outline" [class.error-state]="timeError">
@@ -50,21 +43,13 @@
             matInput
             placeholder="14:00"
             formControlName="endTime"
-            [ngxTimepicker]="endPicker"
-            [format]="24"
-            readonly
+            type="time"
             [class.invalid-time]="timeError"
           >
-          <button
-            mat-icon-button
-            matSuffix
-            (click)="endPicker.open()"
-            type="button">
-            <mat-icon>access_time</mat-icon>
-          </button>
-          <ngx-material-timepicker #endPicker [format]="24"></ngx-material-timepicker>
+          <mat-icon matSuffix>access_time</mat-icon>
+          <mat-hint *ngIf="!timeError">Enter time in 24-hour format</mat-hint>
+          <mat-error *ngIf="timeError">{{ timeError }}</mat-error>
         </mat-form-field>
-        <div *ngIf="timeError" class="time-error-message">{{ timeError }}</div>
       </div>
     </div>
     
