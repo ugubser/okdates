@@ -12,6 +12,7 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { EventService } from '../../../core/services/event.service';
 import { ParticipantService } from '../../../core/services/participant.service';
 import { ParticipantStorageService } from '../../../core/services/participant-storage.service';
+import { ICalendarService } from '../../../core/services/ical.service';
 import { Event } from '../../../core/models/event.model';
 import { Participant } from '../../../core/models/participant.model';
 import { ParsedDate } from '../../../core/models/parsed-date.model';
@@ -54,6 +55,7 @@ export class EventViewComponent implements OnInit {
     private eventService: EventService,
     private participantService: ParticipantService,
     private participantStorageService: ParticipantStorageService,
+    private iCalendarService: ICalendarService,
     private dialog: MatDialog
   ) {
     this.eventId = this.route.snapshot.paramMap.get('id') || '';
@@ -301,6 +303,27 @@ export class EventViewComponent implements OnInit {
    */
   hasTimeInfo(): boolean {
     return !!(this.event && (this.event.startTime || this.event.endTime));
+  }
+
+  /**
+   * Generate and download an iCalendar file for a specific date
+   */
+  downloadICalForDate(dateInfo: {date: Date, dateString: string, formattedDate: string}): void {
+    if (!this.event) return;
+
+    // Generate the iCalendar content
+    const icalContent = this.iCalendarService.generateICalendarFile(
+      this.event,
+      dateInfo.date,
+      dateInfo.formattedDate
+    );
+
+    // Create a filename with the event title and date
+    const safeTitle = (this.event.title || 'Event').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const fileName = `${safeTitle}_${dateInfo.dateString}.ics`;
+
+    // Trigger the download
+    this.iCalendarService.downloadICalFile(icalContent, fileName);
   }
 
   /**

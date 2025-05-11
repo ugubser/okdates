@@ -94,7 +94,20 @@
 
         <!-- Dynamic Date Columns -->
         <ng-container *ngFor="let dateInfo of uniqueDates" [matColumnDef]="dateInfo.dateString">
-          <th mat-header-cell *matHeaderCellDef>{{ dateInfo.formattedDate }}</th>
+          <th mat-header-cell *matHeaderCellDef>
+            <div class="date-header">
+              <span>{{ dateInfo.formattedDate }}</span>
+              <button
+                *ngIf="isAdmin"
+                mat-icon-button
+                color="primary"
+                class="download-cal-button"
+                (click)="downloadICalForDate(dateInfo); $event.stopPropagation();"
+                matTooltip="Download iCalendar file">
+                <mat-icon>calendar_today</mat-icon>
+              </button>
+            </div>
+          </th>
           <td mat-cell *matCellDef="let participant">
             <div
               class="availability-indicator"
@@ -102,7 +115,18 @@
             </div>
           </td>
           <td mat-footer-cell *matFooterCellDef class="percentage-cell">
-            {{ Math.round((getAvailableCountForDate(dateInfo.dateString) / participants.length) * 100) }}%
+            <div class="footer-cell-content">
+              <span>{{ Math.round((getAvailableCountForDate(dateInfo.dateString) / participants.length) * 100) }}%</span>
+              <button
+                *ngIf="isAdmin"
+                mat-icon-button
+                color="primary"
+                class="download-cal-button-footer"
+                (click)="downloadICalForDate(dateInfo); $event.stopPropagation();"
+                matTooltip="Download iCalendar file">
+                <mat-icon>calendar_today</mat-icon>
+              </button>
+            </div>
           </td>
         </ng-container>
         
