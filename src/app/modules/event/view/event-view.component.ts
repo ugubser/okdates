@@ -385,29 +385,42 @@ export class EventViewComponent implements OnInit {
       if (participant.parsedDates && participant.parsedDates.length > 0) {
         participant.parsedDates.forEach(dateData => {
           if (dateData.startTimestamp && dateData.endTimestamp) {
-            const startTime = dateData.startTimestamp.seconds * 1000;
-            const endTime = dateData.endTimestamp.seconds * 1000;
+            // Convert timestamps to milliseconds
+            const startTimeMs = dateData.startTimestamp.seconds * 1000;
+            const endTimeMs = dateData.endTimestamp.seconds * 1000;
 
-            // Log the timezone information when available
-            if (dateData.timezone) {
-              console.log(`Meeting time using timezone from dateData: ${dateData.timezone}`);
-              console.log(`Original times: Start=${new Date(startTime).toISOString()}, End=${new Date(endTime).toISOString()}`);
-            } else if (participant.timezone) {
-              console.log(`Meeting time using timezone from participant: ${participant.timezone}`);
-            }
+            // Extract the original hours without timezone conversion
+            const startDate = new Date(startTimeMs);
+            const endDate = new Date(endTimeMs);
 
-            // Check which slots this time range overlaps with
+            // Extract the original hour values directly
+            const timezone = dateData.timezone || participant.timezone;
+            console.log(`Processing time range with timezone: ${timezone}`);
+            console.log(`Original start time: ${startDate.toISOString()}`);
+            console.log(`Original end time: ${endDate.toISOString()}`);
+
+            // Extract the raw hours directly (this avoids timezone conversion)
+            const startHour = startDate.getUTCHours();
+            const endHour = endDate.getUTCHours();
+
+            console.log(`Extracted hours: Start=${startHour}, End=${endHour}`);
+
+            // Match slots based on raw hour value rather than timestamp comparison
             this.uniqueDates.forEach((slot, index) => {
               if (slot.slotStart && slot.slotEnd) {
-                const slotStartTime = slot.slotStart.getTime();
-                const slotEndTime = slot.slotEnd.getTime();
+                // Extract the slot hour
+                const slotHour = slot.slotStart.getHours();
+                // Extract the date string to see if it's the same day
+                const slotDateStr = this.formatDateKey(slot.date);
+                const itemDateStr = this.formatDateKey(startDate);
 
-                // Check for overlap
-                // The time range overlaps the slot if:
-                // 1. Start time is before slot end AND
-                // 2. End time is after slot start
-                if (startTime < slotEndTime && endTime > slotStartTime) {
-                  participantAvailability[index] = 'available';
+                // Only consider slots for the same date
+                if (slotDateStr === itemDateStr) {
+                  // Check if this hour falls within the time range
+                  if (slotHour >= startHour && slotHour < endHour) {
+                    participantAvailability[index] = 'available';
+                    console.log(`Marking slot ${slotHour}:00 as available`);
+                  }
                 }
               }
             });
@@ -416,21 +429,27 @@ export class EventViewComponent implements OnInit {
             const timestampMs = dateData.timestamp.seconds * 1000;
             const date = new Date(timestampMs);
 
+            // Get timezone info
+            const timezone = dateData.timezone || participant.timezone;
+
             // Log timezone information if available
-            if (dateData.timezone) {
-              console.log(`Using fallback with timezone from dateData: ${dateData.timezone}`);
+            if (timezone) {
+              console.log(`Using fallback with timezone: ${timezone}`);
               console.log(`Original time: ${date.toISOString()}`);
-            } else if (participant.timezone) {
-              console.log(`Using fallback with timezone from participant: ${participant.timezone}`);
             }
 
+            // Use the UTC hour to avoid conversion
             const dateString = this.formatDateKey(date);
-            const hour = date.getHours();
+            const hour = date.getUTCHours(); // Use UTC hour instead of local hour
+            console.log(`Extracted hour from timestamp: ${hour}`);
+
             const slotKey = `${dateString}-${hour}`;
+            console.log(`Looking for slot key: ${slotKey}`);
 
             const slotIndex = this.uniqueDates.findIndex(slot => slot.dateString === slotKey);
             if (slotIndex !== -1) {
               participantAvailability[slotIndex] = 'available';
+              console.log(`Marking fallback slot ${hour}:00 as available`);
             }
           }
         });
