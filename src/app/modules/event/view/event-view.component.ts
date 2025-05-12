@@ -115,7 +115,7 @@ export class EventViewComponent implements OnInit {
           console.warn('Invalid admin key provided');
           // Still show the event, but without admin privileges
         } else {
-          console.log('Admin access verified');
+          // console.log('Admin access verified');
         }
       }
       
@@ -260,9 +260,9 @@ export class EventViewComponent implements OnInit {
 
             // If timezone info is available, create date that respects it
             if (timestamp.timezone) {
-              console.log(`Using timezone from date: ${timestamp.timezone}`);
+              // console.log(`Using timezone from date: ${timestamp.timezone}`);
             } else if (participant.timezone) {
-              console.log(`Using timezone from participant: ${participant.timezone}`);
+              // console.log(`Using timezone from participant: ${participant.timezone}`);
             }
 
             const dateString = this.formatDateKey(date);
