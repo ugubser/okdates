@@ -94,7 +94,7 @@
 
         <!-- Dynamic Date Columns -->
         <ng-container *ngFor="let dateInfo of uniqueDates" [matColumnDef]="dateInfo.dateString">
-          <th mat-header-cell *matHeaderCellDef>
+          <th mat-header-cell *matHeaderCellDef [ngClass]="getParticipationClass(dateInfo.dateString)">
             <div class="date-header">
               <span>{{ dateInfo.formattedDate }}</span>
               <button
@@ -108,13 +108,13 @@
               </button>
             </div>
           </th>
-          <td mat-cell *matCellDef="let participant">
+          <td mat-cell *matCellDef="let participant" [ngClass]="getParticipationClass(dateInfo.dateString)">
             <div
               class="availability-indicator"
               [ngClass]="getAvailabilityClass(isParticipantAvailable(participant, dateInfo.dateString))">
             </div>
           </td>
-          <td mat-footer-cell *matFooterCellDef class="percentage-cell">
+          <td mat-footer-cell *matFooterCellDef class="percentage-cell" [ngClass]="getParticipationClass(dateInfo.dateString)">
             <div class="footer-cell-content">
               <span>{{ Math.round((getAvailableCountForDate(dateInfo.dateString) / participants.length) * 100) }}%</span>
               <button

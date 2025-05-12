@@ -287,7 +287,24 @@ export class EventViewComponent implements OnInit {
   getAvailabilityClass(available: boolean): string {
     return available ? 'available' : 'unavailable';
   }
-  
+
+  /**
+   * Get class for participation percentage
+   */
+  getParticipationClass(dateString: string): string {
+    if (!this.participants.length) return '';
+
+    const percentage = (this.getAvailableCountForDate(dateString) / this.participants.length) * 100;
+
+    if (percentage <= 50) {
+      return 'participation-low';
+    } else if (percentage <= 75) {
+      return 'participation-medium';
+    } else {
+      return 'participation-high';
+    }
+  }
+
   // Expose window object for template
   get window(): Window {
     return window;
