@@ -13,17 +13,19 @@ export class ParticipantService {
    * Adds a new participant to an event
    */
   async addParticipant(
-    eventId: string, 
+    eventId: string,
     name: string,
     rawDateInput: string,
-    parsedDates: any[]
+    parsedDates: any[],
+    timezone: string = Intl.DateTimeFormat().resolvedOptions().timeZone
   ): Promise<{ participantId: string, participant: Participant }> {
     try {
       const response = await this.firestoreService.callFunction('participants-addParticipant', {
         eventId,
         name,
         rawDateInput,
-        parsedDates
+        parsedDates,
+        timezone
       });
       
       if (response.data.success) {
@@ -64,16 +66,18 @@ export class ParticipantService {
    * Alternative implementation using direct Firestore access
    */
   async addParticipantDirect(
-    eventId: string, 
+    eventId: string,
     name: string,
     rawDateInput: string,
-    parsedDates: any[]
+    parsedDates: any[],
+    timezone: string = Intl.DateTimeFormat().resolvedOptions().timeZone
   ): Promise<{ participantId: string, participant: Participant }> {
     const participantData: Omit<Participant, 'id'> = {
       eventId,
       name,
       rawDateInput,
       parsedDates,
+      timezone,
       submittedAt: { seconds: Date.now() / 1000, nanoseconds: 0 }
     };
     

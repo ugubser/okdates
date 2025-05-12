@@ -30,7 +30,8 @@ export const parseDates = functions.region('europe-west1').https.onCall(async (d
           rawDateInput,
           parsedDates: llmResult.dates,
           title: llmResult.title,
-          isMeeting
+          isMeeting,
+          timezone
         }
       };
     } catch (llmError) {
@@ -44,7 +45,8 @@ export const parseDates = functions.region('europe-west1').https.onCall(async (d
           rawDateInput,
           parsedDates,
           title: isMeeting ? 'Available Times (Basic Parsing)' : 'Available Dates (Basic Parsing)',
-          isMeeting
+          isMeeting,
+          timezone
         }
       };
     }
@@ -80,7 +82,8 @@ function basicDateParsing(rawInput: string, isMeeting: boolean = false, timezone
           (yearPart.length === 2 ? 2000 + parseInt(yearPart) : parseInt(yearPart)) :
           currentYear;
 
-        // Create start and end dates
+        // Instead of using Date.UTC, which converts to UTC time,
+        // store the original time components as provided by the user
         const startDate = new Date(year, parseInt(month) - 1, parseInt(day), parseInt(startHour), parseInt(startMin));
         const endDate = new Date(year, parseInt(month) - 1, parseInt(day), parseInt(endHour), parseInt(endMin));
 
@@ -99,6 +102,7 @@ function basicDateParsing(rawInput: string, isMeeting: boolean = false, timezone
             seconds: Math.floor(endDate.getTime() / 1000),
             nanoseconds: 0
           },
+          timezone: timezone,
           isConfirmed: false
         });
         continue;
@@ -117,7 +121,7 @@ function basicDateParsing(rawInput: string, isMeeting: boolean = false, timezone
           const daysToAdd = (dowIndex + 7 - today.getDay()) % 7;
           targetDate.setDate(today.getDate() + daysToAdd);
 
-          // Create start and end dates
+          // Create start and end dates using original time components
           const startDate = new Date(
             targetDate.getFullYear(),
             targetDate.getMonth(),
@@ -149,6 +153,7 @@ function basicDateParsing(rawInput: string, isMeeting: boolean = false, timezone
               seconds: Math.floor(endDate.getTime() / 1000),
               nanoseconds: 0
             },
+            timezone: timezone,
             isConfirmed: false
           });
           continue;
@@ -163,6 +168,7 @@ function basicDateParsing(rawInput: string, isMeeting: boolean = false, timezone
           seconds: Math.floor(Date.now() / 1000),
           nanoseconds: 0
         },
+        timezone: timezone,
         isConfirmed: false,
         needsLlmParsing: true
       });
@@ -178,7 +184,7 @@ function basicDateParsing(rawInput: string, isMeeting: boolean = false, timezone
           (yearPart.length === 2 ? 2000 + parseInt(yearPart) : parseInt(yearPart)) :
           currentYear;
 
-        // Create date (month is 0-indexed in JS Date)
+        // Create date using original date components (month is 0-indexed in JS Date)
         const date = new Date(year, parseInt(month) - 1, parseInt(day));
         dates.push({
           originalText: part,
@@ -186,6 +192,7 @@ function basicDateParsing(rawInput: string, isMeeting: boolean = false, timezone
             seconds: Math.floor(date.getTime() / 1000),
             nanoseconds: 0
           },
+          timezone: timezone,
           isConfirmed: false
         });
         continue;
@@ -205,6 +212,7 @@ function basicDateParsing(rawInput: string, isMeeting: boolean = false, timezone
               seconds: Math.floor(date.getTime() / 1000),
               nanoseconds: 0
             },
+            timezone: timezone,
             isConfirmed: false
           });
         }

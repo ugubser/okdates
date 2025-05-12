@@ -109,6 +109,7 @@ export class DateParsingService {
               seconds: Math.floor(endDate.getTime() / 1000),
               nanoseconds: 0
             },
+            timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
             isConfirmed: false
           });
           continue;
@@ -159,6 +160,7 @@ export class DateParsingService {
                 seconds: Math.floor(endDate.getTime() / 1000),
                 nanoseconds: 0
               },
+              timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
               isConfirmed: false
             });
             continue;
@@ -172,6 +174,7 @@ export class DateParsingService {
             seconds: Math.floor(Date.now() / 1000),
             nanoseconds: 0
           },
+          timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
           isConfirmed: false,
           needsLlmParsing: true
         });
@@ -191,6 +194,7 @@ export class DateParsingService {
           dates.push({
             originalText: part,
             timestamp: { seconds: Math.floor(date.getTime() / 1000), nanoseconds: 0 },
+            timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
             isConfirmed: false
           });
           continue;
@@ -207,6 +211,7 @@ export class DateParsingService {
             dates.push({
               originalText: part,
               timestamp: { seconds: Math.floor(date.getTime() / 1000), nanoseconds: 0 },
+              timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
               isConfirmed: false
             });
           }

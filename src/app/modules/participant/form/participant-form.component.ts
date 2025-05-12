@@ -225,23 +225,31 @@ export class ParticipantFormComponent implements OnInit {
         // For regular events, we need just timestamp
         const isMeeting = this.event?.isMeeting || false;
 
+        // Get the timezone from the form
+        const timezone = isMeeting ?
+          this.participantForm.get('timezone')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone :
+          undefined;
+
         const parsedDates = this.parsedDates.map(d => {
           if (isMeeting && d.startTimestamp && d.endTimestamp) {
-            // For meeting time ranges
+            // For meeting time ranges - include timezone
             return {
               startTimestamp: d.startTimestamp,
-              endTimestamp: d.endTimestamp
+              endTimestamp: d.endTimestamp,
+              timezone: timezone // Store timezone with each date
             };
           } else if (d.timestamp) {
-            // For regular event dates
+            // For regular event dates - include timezone
             return {
-              timestamp: d.timestamp
+              timestamp: d.timestamp,
+              timezone: timezone // Store timezone with each date
             };
           } else {
             console.error('Invalid date format:', d);
             // Return a placeholder to avoid undefined values
             return {
               timestamp: { seconds: Date.now() / 1000, nanoseconds: 0 },
+              timezone: timezone,
               note: 'Invalid date format'
             };
           }
@@ -256,6 +264,12 @@ export class ParticipantFormComponent implements OnInit {
 
         if (this.isEditMode && this.participantId && this.existingParticipant) {
           // Update existing participant
+          // Update existing participant with timezone info
+          const isMeeting = this.event?.isMeeting || false;
+          const timezone = isMeeting ?
+            this.participantForm.get('timezone')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone :
+            undefined;
+
           await this.participantService.updateParticipantDirect(
             this.eventId,
             this.participantId,
@@ -263,18 +277,25 @@ export class ParticipantFormComponent implements OnInit {
               name,
               rawDateInput,
               parsedDates: cleanDates,
+              timezone, // Include timezone info
               submittedAt: { seconds: Date.now() / 1000, nanoseconds: 0 }
             }
           );
           
           console.log('Updated participant:', this.participantId);
         } else {
-          // Add new participant
+          // Add new participant with timezone info
+          const isMeeting = this.event?.isMeeting || false;
+          const timezone = isMeeting ?
+            this.participantForm.get('timezone')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone :
+            undefined;
+
           const result = await this.participantService.addParticipantDirect(
             this.eventId,
             name,
             rawDateInput,
-            cleanDates
+            cleanDates,
+            timezone
           );
           
           // Store participant ID in localStorage for future editing
@@ -344,36 +365,35 @@ export class ParticipantFormComponent implements OnInit {
       const startDate = new Date(startTimestamp.seconds * 1000);
       const endDate = new Date(endTimestamp.seconds * 1000);
 
-      // Format the date part
-      const dateFormatter = new Intl.DateTimeFormat(undefined, {
+      // Extract hours and minutes directly from the Date objects
+      // This avoids timezone conversion when displaying
+      const startHour = startDate.getUTCHours();
+      const startMinute = startDate.getUTCMinutes();
+      const endHour = endDate.getUTCHours();
+      const endMinute = endDate.getUTCMinutes();
+
+      // Format the date part (this is still timezone-dependent)
+      const dateFormatter = new Intl.DateTimeFormat('en-US', {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
-        year: 'numeric',
-        timeZone: timezone
+        year: 'numeric'
       });
 
-      // Format the time part
-      const timeFormatter = new Intl.DateTimeFormat(undefined, {
-        hour: 'numeric',
-        minute: 'numeric',
-        timeZone: timezone
-      });
+      // Format the time directly using the extracted hours and minutes
+      const formatTime = (hour: number, minute: number) => {
+        return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      };
 
-      // If the dates are on the same day, just show one date with time range
-      const startDateStr = startDate.toLocaleDateString(undefined, { timeZone: timezone });
-      const endDateStr = endDate.toLocaleDateString(undefined, { timeZone: timezone });
+      const startTime = formatTime(startHour, startMinute);
+      const endTime = formatTime(endHour, endMinute);
 
-      if (startDateStr === endDateStr) {
-        return `${dateFormatter.format(startDate)} from ${timeFormatter.format(startDate)} to ${timeFormatter.format(endDate)} (${timezone})`;
-      } else {
-        // If dates are different, show full range
-        return `${dateFormatter.format(startDate)} ${timeFormatter.format(startDate)} to ${dateFormatter.format(endDate)} ${timeFormatter.format(endDate)} (${timezone})`;
-      }
+      // Show date with original time values and timezone
+      return `${dateFormatter.format(startDate)} from ${startTime} to ${endTime} (${timezone})`;
     } else if (timestamp) {
       // Format a single date
       const date = new Date(timestamp.seconds * 1000);
-      return date.toLocaleDateString(undefined, {
+      return date.toLocaleDateString('en-US', {
         weekday: 'short',
         month: 'short',
         day: 'numeric',

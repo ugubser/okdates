@@ -106,6 +106,7 @@
                   {{ formatDayOnly(dateInfo.date) }}
                 </span>
                 <span class="time-display">{{ dateInfo.formattedDate | slice:dateInfo.formattedDate.lastIndexOf(' ') + 1 }}</span>
+                <span class="timezone-display" *ngIf="dateInfo.timezone">{{ dateInfo.timezone }}</span>
               </div>
               <button
                 *ngIf="isAdmin"
