@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatListModule, MatSelectionList } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
 import { EventService } from '../../../core/services/event.service';
 import { ParticipantService } from '../../../core/services/participant.service';
 import { DateParsingService } from '../../../core/services/date-parsing.service';
@@ -28,14 +29,15 @@ import { Participant } from '../../../core/models/participant.model';
     MatFormFieldModule,
     MatListModule,
     MatProgressSpinnerModule,
-    MatIconModule
+    MatIconModule,
+    MatSelectModule
   ],
   templateUrl: './participant-form.component.html',
   styleUrls: ['./participant-form.component.scss']
 })
 export class ParticipantFormComponent implements OnInit {
   @ViewChild('datesList') datesList!: MatSelectionList;
-  
+
   participantForm: FormGroup;
   eventId: string;
   event: Event | null = null;
@@ -50,6 +52,10 @@ export class ParticipantFormComponent implements OnInit {
   existingParticipant: Participant | null = null;
   isAdmin = false;
   adminKey = '';
+
+  // Timezone handling
+  timezones: {value: string, label: string}[] = [];
+  userTimezone: string = Intl.DateTimeFormat().resolvedOptions().timeZone;
   
   constructor(
     private fb: FormBuilder,
@@ -62,8 +68,12 @@ export class ParticipantFormComponent implements OnInit {
   ) {
     this.participantForm = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(100)]],
-      availability: ['', [Validators.required, Validators.maxLength(500)]]
+      availability: ['', [Validators.required, Validators.maxLength(500)]],
+      timezone: [this.userTimezone, Validators.required]
     });
+
+    // Populate timezone list
+    this.populateTimezones();
     
     this.eventId = this.route.snapshot.paramMap.get('id') || '';
   }
@@ -165,20 +175,29 @@ export class ParticipantFormComponent implements OnInit {
       try {
         this.isParsing = true;
         const rawDateInput = this.participantForm.get('availability')?.value;
-        
+
+        // Check if this is a meeting event or a regular event
+        const isMeeting = this.event?.isMeeting || false;
+
+        // Get the selected timezone (only relevant for meetings)
+        const timezone = isMeeting ? this.participantForm.get('timezone')?.value : null;
+        console.log(`Using timezone: ${timezone || 'default'}`);
+
         // Use the LLM-based parsing
-        console.log('Parsing dates using LLM...');
-        this.parsedDates = await this.dateParsingService.parseLlm(rawDateInput);
+        console.log(`Parsing ${isMeeting ? 'meeting times' : 'dates'} using LLM...`);
+        this.parsedDates = await this.dateParsingService.parseLlm(rawDateInput, isMeeting, timezone);
         console.log('Parsed dates:', this.parsedDates);
-        
+
         this.showParsedDates = true;
       } catch (error) {
         console.error('Error parsing dates:', error);
-        
+
         // Fallback to client-side parsing if LLM fails
         const rawDateInput = this.participantForm.get('availability')?.value;
+        const isMeeting = this.event?.isMeeting || false;
+        const timezone = isMeeting ? this.participantForm.get('timezone')?.value : null;
         console.log('Falling back to client-side parsing...');
-        this.parsedDates = this.dateParsingService.parseClientSide(rawDateInput);
+        this.parsedDates = this.dateParsingService.parseClientSide(rawDateInput, isMeeting, timezone);
       } finally {
         this.isParsing = false;
       }
@@ -189,18 +208,52 @@ export class ParticipantFormComponent implements OnInit {
     if (this.participantForm.valid && this.eventId) {
       try {
         this.isSubmitting = true;
-        
+
         const name = this.participantForm.get('name')?.value;
         const rawDateInput = this.participantForm.get('availability')?.value;
-        
+
         // If we haven't parsed dates yet, do it now
         if (!this.showParsedDates) {
           await this.parseDates();
         }
+
+        // Debug: log parsed dates before processing
+        console.log('Raw parsed dates before processing:', JSON.stringify(this.parsedDates));
         
         // Extract the timestamps for storage
-        const parsedDates = this.parsedDates.map(d => d.timestamp);
-        
+        // For meetings, we need both startTimestamp and endTimestamp
+        // For regular events, we need just timestamp
+        const isMeeting = this.event?.isMeeting || false;
+
+        const parsedDates = this.parsedDates.map(d => {
+          if (isMeeting && d.startTimestamp && d.endTimestamp) {
+            // For meeting time ranges
+            return {
+              startTimestamp: d.startTimestamp,
+              endTimestamp: d.endTimestamp
+            };
+          } else if (d.timestamp) {
+            // For regular event dates
+            return {
+              timestamp: d.timestamp
+            };
+          } else {
+            console.error('Invalid date format:', d);
+            // Return a placeholder to avoid undefined values
+            return {
+              timestamp: { seconds: Date.now() / 1000, nanoseconds: 0 },
+              note: 'Invalid date format'
+            };
+          }
+        });
+
+        // Debug: log processed dates
+        console.log('Processed parsed dates:', JSON.stringify(parsedDates));
+
+        // Clean the timestamps to remove any undefined values
+        const cleanDates = this.cleanTimestampsForStorage(parsedDates);
+        console.log('Cleaned dates for storage:', JSON.stringify(cleanDates));
+
         if (this.isEditMode && this.participantId && this.existingParticipant) {
           // Update existing participant
           await this.participantService.updateParticipantDirect(
@@ -209,7 +262,7 @@ export class ParticipantFormComponent implements OnInit {
             {
               name,
               rawDateInput,
-              parsedDates,
+              parsedDates: cleanDates,
               submittedAt: { seconds: Date.now() / 1000, nanoseconds: 0 }
             }
           );
@@ -221,7 +274,7 @@ export class ParticipantFormComponent implements OnInit {
             this.eventId,
             name,
             rawDateInput,
-            parsedDates
+            cleanDates
           );
           
           // Store participant ID in localStorage for future editing
@@ -243,26 +296,26 @@ export class ParticipantFormComponent implements OnInit {
     // Get the selected dates from the selection list
     const selectedOptions = this.datesList.selectedOptions.selected;
     console.log('Selected options:', selectedOptions);
-    
+
     // Filter the parsedDates to include only selected ones
     const confirmedDates: ParsedDate[] = [];
-    
+
     selectedOptions.forEach(option => {
       // Get the index from the option
       const index = parseInt(option._elementRef.nativeElement.getAttribute('data-index') || '0');
       if (!isNaN(index) && index >= 0 && index < this.parsedDates.length) {
-        const date = this.parsedDates[index];
+        const date = {...this.parsedDates[index]};  // Make a copy to avoid references
         // Mark as confirmed
         date.isConfirmed = true;
         confirmedDates.push(date);
       }
     });
-    
+
     console.log('Confirmed dates:', confirmedDates);
-    
+
     // Update the parsed dates to only include confirmed ones
     this.parsedDates = confirmedDates;
-    
+
     // Submit the participant
     this.submitParticipant();
   }
@@ -270,16 +323,97 @@ export class ParticipantFormComponent implements OnInit {
   backToDateInput(): void {
     this.showParsedDates = false;
   }
+
+  /**
+   * Helper method to clean timestamps for storage
+   * This removes any undefined fields which Firestore doesn't accept
+   */
+  cleanTimestampsForStorage(dates: any[]): any[] {
+    // First stringify and then parse to remove undefined values
+    const cleanString = JSON.stringify(dates);
+    return JSON.parse(cleanString);
+  }
   
-  formatDate(timestamp: any): string {
-    if (!timestamp) return '';
-    
-    const date = new Date(timestamp.seconds * 1000);
-    return date.toLocaleDateString(undefined, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+  formatDate(timestamp: any, startTimestamp?: any, endTimestamp?: any): string {
+    const timezone = this.event?.isMeeting ?
+      this.participantForm.get('timezone')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone :
+      undefined;
+
+    if (startTimestamp && endTimestamp) {
+      // Format a time range
+      const startDate = new Date(startTimestamp.seconds * 1000);
+      const endDate = new Date(endTimestamp.seconds * 1000);
+
+      // Format the date part
+      const dateFormatter = new Intl.DateTimeFormat(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: timezone
+      });
+
+      // Format the time part
+      const timeFormatter = new Intl.DateTimeFormat(undefined, {
+        hour: 'numeric',
+        minute: 'numeric',
+        timeZone: timezone
+      });
+
+      // If the dates are on the same day, just show one date with time range
+      const startDateStr = startDate.toLocaleDateString(undefined, { timeZone: timezone });
+      const endDateStr = endDate.toLocaleDateString(undefined, { timeZone: timezone });
+
+      if (startDateStr === endDateStr) {
+        return `${dateFormatter.format(startDate)} from ${timeFormatter.format(startDate)} to ${timeFormatter.format(endDate)} (${timezone})`;
+      } else {
+        // If dates are different, show full range
+        return `${dateFormatter.format(startDate)} ${timeFormatter.format(startDate)} to ${dateFormatter.format(endDate)} ${timeFormatter.format(endDate)} (${timezone})`;
+      }
+    } else if (timestamp) {
+      // Format a single date
+      const date = new Date(timestamp.seconds * 1000);
+      return date.toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }
+
+    return '';
+  }
+
+  /**
+   * Populates the timezone dropdown with common options
+   */
+  populateTimezones(): void {
+    // Start with the user's current timezone
+    this.timezones = [
+      { value: this.userTimezone, label: `Current (${this.userTimezone})` },
+    ];
+
+    // Add common timezones
+    const commonTimezones = [
+      { value: 'UTC', label: 'UTC' },
+      { value: 'America/New_York', label: 'Eastern Time (ET)' },
+      { value: 'America/Chicago', label: 'Central Time (CT)' },
+      { value: 'America/Denver', label: 'Mountain Time (MT)' },
+      { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+      { value: 'Europe/London', label: 'London (GMT)' },
+      { value: 'Europe/Paris', label: 'Central Europe (CET)' },
+      { value: 'Europe/Helsinki', label: 'Eastern Europe (EET)' },
+      { value: 'Asia/Dubai', label: 'Dubai (GST)' },
+      { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
+      { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
+      { value: 'Australia/Sydney', label: 'Sydney (AEST)' }
+    ];
+
+    // Only add common timezones that aren't already the user's timezone
+    commonTimezones.forEach(tz => {
+      if (tz.value !== this.userTimezone) {
+        this.timezones.push(tz);
+      }
     });
   }
 }

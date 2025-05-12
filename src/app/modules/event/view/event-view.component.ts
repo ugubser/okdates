@@ -45,7 +45,13 @@ export class EventViewComponent implements OnInit {
   
   // For date visualization
   availabilityMap: Map<string, string[]> = new Map();
-  uniqueDates: {date: Date, dateString: string, formattedDate: string}[] = [];
+  uniqueDates: {
+    date: Date,
+    dateString: string,
+    formattedDate: string,
+    slotStart?: Date,
+    slotEnd?: Date
+  }[] = [];
   displayColumns: string[] = ['participant'];
   footerColumns: string[] = ['available'];
   
@@ -184,10 +190,25 @@ export class EventViewComponent implements OnInit {
     this.uniqueDates = [];
     this.displayColumns = ['participant'];
     this.footerColumns = ['available'];
-    
+
+    const isMeeting = this.event?.isMeeting || false;
+
+    if (isMeeting) {
+      // For meetings - we need a different approach with time slots
+      this.processMeetingAvailability();
+    } else {
+      // For regular events - use the original date-based approach
+      this.processDateAvailability();
+    }
+  }
+
+  /**
+   * Process availability data for regular date-based events
+   */
+  processDateAvailability(): void {
     // Extract all dates from all participants
     const allDates = new Set<string>();
-    
+
     // First pass: collect all unique dates
     this.participants.forEach(participant => {
       if (participant.parsedDates && participant.parsedDates.length > 0) {
@@ -198,12 +219,12 @@ export class EventViewComponent implements OnInit {
         });
       }
     });
-    
+
     // Sort dates chronologically
     const sortedDates = Array.from(allDates).sort((a, b) => {
       return new Date(a).getTime() - new Date(b).getTime();
     });
-    
+
     // Create displayColumns and uniqueDates
     sortedDates.forEach(dateString => {
       const date = new Date(dateString);
@@ -212,29 +233,153 @@ export class EventViewComponent implements OnInit {
       this.displayColumns.push(dateString);
       this.footerColumns.push(dateString);
     });
-    
+
     // Second pass: populate availability map
     this.participants.forEach(participant => {
       const participantDates: string[] = [];
-      
+
       // Initialize with all dates as unavailable
       sortedDates.forEach(() => {
         participantDates.push('unavailable');
       });
-      
+
       // Mark participant's available dates
       if (participant.parsedDates && participant.parsedDates.length > 0) {
         participant.parsedDates.forEach(timestamp => {
-          const date = new Date(timestamp.seconds * 1000);
-          const dateString = this.formatDateKey(date);
-          const dateIndex = sortedDates.indexOf(dateString);
-          if (dateIndex !== -1) {
-            participantDates[dateIndex] = 'available';
+          if (timestamp.seconds) { // Check if it's a regular timestamp
+            const date = new Date(timestamp.seconds * 1000);
+            const dateString = this.formatDateKey(date);
+            const dateIndex = sortedDates.indexOf(dateString);
+            if (dateIndex !== -1) {
+              participantDates[dateIndex] = 'available';
+            }
           }
         });
       }
-      
+
       this.availabilityMap.set(participant.id || participant.name, participantDates);
+    });
+  }
+
+  /**
+   * Process availability data for time-based meetings
+   */
+  processMeetingAvailability(): void {
+    // For meetings, we'll create a grid of date-time slots
+    // The time slots will be 1-hour intervals from 9am to 9pm
+
+    // Extract all unique dates from time ranges
+    const allDates = new Set<string>();
+
+    // First pass: collect all unique dates from time ranges
+    this.participants.forEach(participant => {
+      if (participant.parsedDates && participant.parsedDates.length > 0) {
+        participant.parsedDates.forEach(dateData => {
+          if (dateData.startTimestamp && dateData.endTimestamp) {
+            // This is a time range - extract the date part
+            const startDate = new Date(dateData.startTimestamp.seconds * 1000);
+            const endDate = new Date(dateData.endTimestamp.seconds * 1000);
+
+            // Add the date(s) to our set
+            const startDateString = this.formatDateKey(startDate);
+            allDates.add(startDateString);
+
+            // If the end date is different from start date, add it too
+            const endDateString = this.formatDateKey(endDate);
+            if (endDateString !== startDateString) {
+              allDates.add(endDateString);
+            }
+          } else if (dateData.timestamp) {
+            // Fallback for regular timestamps
+            const date = new Date(dateData.timestamp.seconds * 1000);
+            const dateString = this.formatDateKey(date);
+            allDates.add(dateString);
+          }
+        });
+      }
+    });
+
+    // Sort dates chronologically
+    const sortedDates = Array.from(allDates).sort((a, b) => {
+      return new Date(a).getTime() - new Date(b).getTime();
+    });
+
+    // Create time slots for each date
+    // For simplicity, we'll use 1-hour intervals from 9am to 9pm
+    sortedDates.forEach(dateString => {
+      const date = new Date(dateString);
+
+      // Create slots for each hour from 9am to 9pm (12 hours)
+      for (let hour = 9; hour < 21; hour++) {
+        const slotDate = new Date(date);
+        slotDate.setHours(hour, 0, 0, 0);
+
+        const slotEndDate = new Date(slotDate);
+        slotEndDate.setHours(hour + 1, 0, 0, 0);
+
+        const slotKey = `${dateString}-${hour}`;
+        const formattedDate = `${this.formatDateForDisplay(date)} ${hour}:00-${hour+1}:00`;
+
+        this.uniqueDates.push({
+          date: slotDate,
+          dateString: slotKey,
+          formattedDate,
+          slotStart: slotDate,
+          slotEnd: slotEndDate
+        });
+
+        this.displayColumns.push(slotKey);
+        this.footerColumns.push(slotKey);
+      }
+    });
+
+    // Second pass: populate availability map for time slots
+    this.participants.forEach(participant => {
+      const participantAvailability: string[] = [];
+
+      // Initialize with all slots as unavailable
+      this.uniqueDates.forEach(() => {
+        participantAvailability.push('unavailable');
+      });
+
+      // Mark participant's available time slots
+      if (participant.parsedDates && participant.parsedDates.length > 0) {
+        participant.parsedDates.forEach(dateData => {
+          if (dateData.startTimestamp && dateData.endTimestamp) {
+            const startTime = dateData.startTimestamp.seconds * 1000;
+            const endTime = dateData.endTimestamp.seconds * 1000;
+
+            // Check which slots this time range overlaps with
+            this.uniqueDates.forEach((slot, index) => {
+              if (slot.slotStart && slot.slotEnd) {
+                const slotStartTime = slot.slotStart.getTime();
+                const slotEndTime = slot.slotEnd.getTime();
+
+                // Check for overlap
+                // The time range overlaps the slot if:
+                // 1. Start time is before slot end AND
+                // 2. End time is after slot start
+                if (startTime < slotEndTime && endTime > slotStartTime) {
+                  participantAvailability[index] = 'available';
+                }
+              }
+            });
+          } else if (dateData.timestamp) {
+            // Fallback for regular timestamps (unlikely in meeting mode)
+            const date = new Date(dateData.timestamp.seconds * 1000);
+            const dateString = this.formatDateKey(date);
+            const hour = date.getHours();
+            const slotKey = `${dateString}-${hour}`;
+
+            const slotIndex = this.uniqueDates.findIndex(slot => slot.dateString === slotKey);
+            if (slotIndex !== -1) {
+              participantAvailability[slotIndex] = 'available';
+            }
+          }
+        });
+      }
+
+      this.availabilityMap.set(participant.id || participant.name, participantAvailability);
     });
   }
   
@@ -249,11 +394,53 @@ export class EventViewComponent implements OnInit {
    * Format a date for display in the UI
    */
   formatDateForDisplay(date: Date): string {
+    if (this.event?.isMeeting) {
+      // For meetings, include the time
+      return `${date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      })} ${date.getHours()}:00-${date.getHours() + 1}:00`;
+    } else {
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+  }
+
+  /**
+   * Format just the day part of a date
+   */
+  formatDayOnly(date: Date): string {
     return date.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric'
     });
+  }
+
+  /**
+   * Check if this is the first time slot of a day
+   */
+  isFirstTimeSlotOfDay(dateInfo: {date: Date, dateString: string, formattedDate: string, slotStart?: Date, slotEnd?: Date}): boolean {
+    if (!this.event?.isMeeting || !dateInfo.slotStart) return false;
+
+    // Extract the date part from the dateString (format is YYYY-MM-DD-HH)
+    const datePart = dateInfo.dateString.split('-').slice(0, 3).join('-');
+
+    // Get the index of this time slot
+    const index = this.uniqueDates.findIndex(d => d.dateString === dateInfo.dateString);
+
+    // If it's the first in the array, it's the first time slot
+    if (index === 0) return true;
+
+    // Otherwise, check if the previous slot has a different date part
+    const prevDateInfo = this.uniqueDates[index - 1];
+    const prevDatePart = prevDateInfo.dateString.split('-').slice(0, 3).join('-');
+
+    return datePart !== prevDatePart;
   }
   
   /**
@@ -319,7 +506,9 @@ export class EventViewComponent implements OnInit {
    * Check if event has any time information to display
    */
   hasTimeInfo(): boolean {
-    return !!(this.event && (this.event.startTime || this.event.endTime));
+    return !!(this.event &&
+      (this.event.startTime || this.event.endTime ||
+       (this.event.isMeeting && this.event.meetingDuration)));
   }
 
   /**

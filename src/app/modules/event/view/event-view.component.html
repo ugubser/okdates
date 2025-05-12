@@ -5,8 +5,11 @@
       <p *ngIf="event.description" class="event-description">{{ event.description }}</p>
       <div class="event-time" *ngIf="hasTimeInfo()">
         <mat-icon>access_time</mat-icon>
-        <span>
+        <span *ngIf="!event.isMeeting">
           {{ event.startTime || '--:--' }} to {{ event.endTime || '--:--' }}
+        </span>
+        <span *ngIf="event.isMeeting">
+          Duration: {{ event.meetingDuration || 60 }} minutes
         </span>
       </div>
       <div class="event-location" *ngIf="event.location">
@@ -75,7 +78,7 @@
   </div>
   
   <div class="participants-section" *ngIf="participants.length > 0">
-    <h2>Participant Availability</h2>
+    <h2>{{ event.isMeeting ? 'Participant Time Slot Availability' : 'Participant Date Availability' }}</h2>
     
     
     <!-- Detailed availability table -->
@@ -94,9 +97,16 @@
 
         <!-- Dynamic Date Columns -->
         <ng-container *ngFor="let dateInfo of uniqueDates" [matColumnDef]="dateInfo.dateString">
-          <th mat-header-cell *matHeaderCellDef [ngClass]="getParticipationClass(dateInfo.dateString)">
+          <th mat-header-cell *matHeaderCellDef [ngClass]="[getParticipationClass(dateInfo.dateString), event.isMeeting ? 'time-slot' : '']">
             <div class="date-header">
-              <span>{{ dateInfo.formattedDate }}</span>
+              <span *ngIf="!event.isMeeting">{{ dateInfo.formattedDate }}</span>
+              <div *ngIf="event.isMeeting" class="time-slot-container">
+                <!-- For the first time slot of each day, show the day -->
+                <span class="day-display" *ngIf="isFirstTimeSlotOfDay(dateInfo)">
+                  {{ formatDayOnly(dateInfo.date) }}
+                </span>
+                <span class="time-display">{{ dateInfo.formattedDate | slice:dateInfo.formattedDate.lastIndexOf(' ') + 1 }}</span>
+              </div>
               <button
                 *ngIf="isAdmin"
                 mat-icon-button

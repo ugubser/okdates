@@ -44,7 +44,8 @@ export class EventCreationComponent implements OnInit {
   isLoading = false;
   adminKey: string = '';
   isAdmin = false;
-  
+  isMeeting = false;
+
   timeError: string | null = null;
 
   constructor(
@@ -59,7 +60,8 @@ export class EventCreationComponent implements OnInit {
       description: ['', [Validators.maxLength(500)]],
       location: ['', [Validators.maxLength(200)]],
       startTime: [null],
-      endTime: [null]
+      endTime: [null],
+      meetingDuration: [120, [Validators.min(15), Validators.max(720)]] // Default to 2 hours (120 minutes)
     }, { validators: this.timeValidator });
 
     this.eventId = this.route.snapshot.paramMap.get('id') || '';
@@ -164,7 +166,12 @@ export class EventCreationComponent implements OnInit {
     console.log('Event creation component initialized');
     console.log('isCreatingNew:', this.isCreatingNew);
     console.log('eventId:', this.eventId);
-    
+
+    // Check if this is a meeting creation
+    const isMeetingParam = this.route.snapshot.queryParamMap.get('isMeeting');
+    this.isMeeting = isMeetingParam === 'true';
+    console.log('isMeeting:', this.isMeeting);
+
     if (this.isCreatingNew) {
       // Initialize a new empty event
       console.log('Creating new event...');
@@ -184,23 +191,24 @@ export class EventCreationComponent implements OnInit {
     try {
       this.isLoading = true;
       console.log('Creating event in Firestore...');
-      
+
       // Initialize with empty title and description
-      const { eventId, event } = await this.eventService.createEventDirect(null, null);
+      const { eventId, event } = await this.eventService.createEventDirect(null, null, null, this.isMeeting);
       console.log('Event created with ID:', eventId);
-      
+
       this.eventId = eventId;
       this.event = event;
-      
+
       // Create an empty form for the user to fill out
       this.eventForm.patchValue({
         title: '',
         description: '',
         location: '',
         startTime: null,
-        endTime: null
+        endTime: null,
+        meetingDuration: this.isMeeting ? 120 : null // Default to 2 hours for meetings
       });
-      
+
       // Now the user can edit the empty event
       console.log('New event ready for editing:', this.event);
     } catch (error) {
@@ -216,12 +224,15 @@ export class EventCreationComponent implements OnInit {
     try {
       this.isLoading = true;
       this.event = await this.eventService.getEventDirect(this.eventId);
-      
+
       if (this.event) {
+        // Check if this is a meeting
+        this.isMeeting = this.event.isMeeting || false;
+
         // Verify admin key if not creating new event
         if (this.adminKey && !this.isCreatingNew) {
           this.isAdmin = await this.eventService.verifyAdminKey(this.eventId, this.adminKey);
-          
+
           if (!this.isAdmin) {
             console.warn('Invalid admin key provided - redirecting to view');
             this.router.navigate(['/event', this.eventId, 'view']);
@@ -233,14 +244,15 @@ export class EventCreationComponent implements OnInit {
           this.router.navigate(['/event', this.eventId, 'view']);
           return;
         }
-        
+
         // Populate form
         this.eventForm.patchValue({
           title: this.event.title || '',
           description: this.event.description || '',
           location: this.event.location || '',
           startTime: this.event.startTime || null,
-          endTime: this.event.endTime || null
+          endTime: this.event.endTime || null,
+          meetingDuration: this.event.meetingDuration || (this.isMeeting ? 120 : null) // Default to 2 hours if it's a meeting
         });
       }
     } catch (error) {
@@ -259,19 +271,25 @@ export class EventCreationComponent implements OnInit {
       try {
         this.isSaving = true;
 
-        const { title, description, location, startTime, endTime } = this.eventForm.value;
+        const { title, description, location, startTime, endTime, meetingDuration } = this.eventForm.value;
         let finalStartTime = startTime;
         let finalEndTime = endTime;
 
         // Create update object without empty time fields
         const updateData: Partial<Event> = {
           title: title || null,
-          description: description || null
+          description: description || null,
+          isMeeting: this.isMeeting
         };
 
         // Only add location if it's not empty
         if (location) {
           updateData.location = location;
+        }
+
+        // Add meeting duration if this is a meeting
+        if (this.isMeeting && meetingDuration) {
+          updateData.meetingDuration = meetingDuration;
         }
 
         // If start time exists
@@ -281,20 +299,20 @@ export class EventCreationComponent implements OnInit {
           // If end time is missing, set it to start time + 2 hours
           if (!finalEndTime) {
             let hours: number, minutes: number;
-            
+
             if (typeof finalStartTime === 'string') {
               [hours, minutes] = finalStartTime.split(':').map(Number);
               let endHours = hours + 2;
-              
+
               // Handle day overflow
               if (endHours >= 24) {
                 endHours = endHours - 24;
               }
-              
+
               // Format end time
               finalEndTime = `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
             }
-            
+
             updateData.endTime = finalEndTime;
           } else {
             // Use end time as is - validation will prevent invalid submissions
