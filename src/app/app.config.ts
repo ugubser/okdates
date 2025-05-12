@@ -6,6 +6,7 @@ import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { getFirestore, provideFirestore, connectFirestoreEmulator } from '@angular/fire/firestore';
 import { getFunctions, provideFunctions, connectFunctionsEmulator } from '@angular/fire/functions';
 import { initializeAppCheck, provideAppCheck, ReCaptchaV3Provider } from '@angular/fire/app-check';
+import { getAuth, provideAuth, connectAuthEmulator, signInAnonymously } from '@angular/fire/auth';
 
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
@@ -86,10 +87,10 @@ export const appConfig: ApplicationConfig = {
           console.warn('Failed to clear Functions emulator settings:', e);
         }
       }
-      
+
       // Initialize functions with europe-west1 region
       const functions = getFunctions(undefined, 'europe-west1');
-      
+
       if (environment.useEmulators) {
         console.log('Connecting to Functions emulator...');
         connectFunctionsEmulator(functions, 'localhost', 5001);
@@ -97,6 +98,40 @@ export const appConfig: ApplicationConfig = {
         console.log('Using production Functions instance in europe-west1 region - NO EMULATOR');
       }
       return functions;
+    }),
+
+    // Auth
+    provideAuth(() => {
+      // Clear any persisted auth emulator settings
+      if (environment.production) {
+        try {
+          window.localStorage.removeItem('firebase:host:auth');
+          window.localStorage.removeItem('auth:emulator');
+          console.log('Cleared Auth emulator settings from browser storage');
+        } catch (e) {
+          console.warn('Failed to clear Auth emulator settings:', e);
+        }
+      }
+
+      const auth = getAuth();
+
+      if (environment.useEmulators) {
+        console.log('Connecting to Auth emulator...');
+        connectAuthEmulator(auth, 'http://localhost:9099');
+      } else {
+        console.log('Using production Auth instance - NO EMULATOR');
+      }
+
+      // Sign in anonymously
+      signInAnonymously(auth)
+        .then(() => {
+          console.log('Anonymous authentication successful');
+        })
+        .catch((error) => {
+          console.error('Anonymous authentication failed:', error);
+        });
+
+      return auth;
     })
   ]
 };
