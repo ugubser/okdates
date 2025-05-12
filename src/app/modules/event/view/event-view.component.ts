@@ -16,6 +16,7 @@ import { ICalendarService } from '../../../core/services/ical.service';
 import { Event } from '../../../core/models/event.model';
 import { Participant } from '../../../core/models/participant.model';
 import { ParsedDate } from '../../../core/models/parsed-date.model';
+import { DateTime } from 'luxon';
 
 @Component({
   selector: 'app-event-view',
@@ -53,6 +54,10 @@ export class EventViewComponent implements OnInit {
     slotEnd?: Date,
     timezone?: string // Add timezone field
   }[] = [];
+
+  // Store viewer's timezone from Luxon
+  viewerTimezone: string = DateTime.local().zoneName;
+
   displayColumns: string[] = ['participant'];
   footerColumns: string[] = ['available'];
   
@@ -389,67 +394,187 @@ export class EventViewComponent implements OnInit {
             const startTimeMs = dateData.startTimestamp.seconds * 1000;
             const endTimeMs = dateData.endTimestamp.seconds * 1000;
 
-            // Extract the original hours without timezone conversion
-            const startDate = new Date(startTimeMs);
-            const endDate = new Date(endTimeMs);
+            // Get the participant's timezone directly from the data
+            console.log(`DEBUG Timezone Info - dateData.timezone: ${dateData.timezone}, participant.timezone: ${participant.timezone}`);
 
-            // Extract the original hour values directly
-            const timezone = dateData.timezone || participant.timezone;
-            console.log(`Processing time range with timezone: ${timezone}`);
-            console.log(`Original start time: ${startDate.toISOString()}`);
-            console.log(`Original end time: ${endDate.toISOString()}`);
+            // We should never fallback to UTC - always use a specific timezone
+            // If both are undefined, use the viewer's timezone as a last resort
+            const participantTimezone = dateData.timezone || participant.timezone || this.viewerTimezone;
+            console.log(`Processing time range with timezone: ${participantTimezone}`);
+            console.log(`Viewer timezone: ${this.viewerTimezone}`);
 
-            // Extract the raw hours directly (this avoids timezone conversion)
-            const startHour = startDate.getUTCHours();
-            const endHour = endDate.getUTCHours();
+            // IMPORTANT: The timestamps in Firestore are Unix timestamps (seconds since epoch in UTC)
+            // But the original date components (like 9:00 AM) came from the user's input
+            // We need to recreate the original date components in the participant's timezone
 
-            console.log(`Extracted hours: Start=${startHour}, End=${endHour}`);
+            // Let's try a different approach - first get a UTC DateTime
+            const utcStartDate = DateTime.fromSeconds(dateData.startTimestamp.seconds, { zone: 'UTC' });
+            const utcEndDate = DateTime.fromSeconds(dateData.endTimestamp.seconds, { zone: 'UTC' });
 
-            // Match slots based on raw hour value rather than timestamp comparison
+            // Look at the originalText to get the real time that was intended
+            const originalText = dateData.originalText || '';
+            console.log(`Original text from LLM: ${originalText}`);
+
+            // Parse out the hours from the original text if available
+            let originalStartHour = 0;
+            let originalEndHour = 0;
+
+            if (originalText) {
+              const matches = originalText.match(/T(\d{2}):.*\/.*T(\d{2}):/);
+              if (matches && matches.length >= 3) {
+                originalStartHour = parseInt(matches[1]);
+                originalEndHour = parseInt(matches[2]);
+                console.log(`Extracted original hours from text: Start=${originalStartHour}, End=${originalEndHour}`);
+              }
+            }
+
+            // Create DateTime objects with the original hour but in the participant's timezone
+            // We need to rebuild the DateTime from its components
+            const luxonStartDate = DateTime.fromObject({
+              year: utcStartDate.year,
+              month: utcStartDate.month,
+              day: utcStartDate.day,
+              hour: originalStartHour || utcStartDate.hour,
+              minute: utcStartDate.minute,
+              second: utcStartDate.second,
+            }, { zone: participantTimezone });
+
+            const luxonEndDate = DateTime.fromObject({
+              year: utcEndDate.year,
+              month: utcEndDate.month,
+              day: utcEndDate.day,
+              hour: originalEndHour || utcEndDate.hour,
+              minute: utcEndDate.minute,
+              second: utcEndDate.second,
+            }, { zone: participantTimezone });
+
+            console.log(`Source timestamps - Start seconds: ${dateData.startTimestamp.seconds}, End seconds: ${dateData.endTimestamp.seconds}`);
+            console.log(`Date in UTC: ${DateTime.fromSeconds(dateData.startTimestamp.seconds, { zone: 'UTC' }).toISO()}`);
+            console.log(`Date in GMT: ${DateTime.fromSeconds(dateData.startTimestamp.seconds, { zone: 'GMT' }).toISO()}`);
+            console.log(`Date with no timezone specified: ${DateTime.fromSeconds(dateData.startTimestamp.seconds).toISO()}`);
+            console.log(`Original times in participant timezone: ${luxonStartDate.toISO()} to ${luxonEndDate.toISO()}`);
+            console.log(`Original times formatted for debug:
+              - Start hours:minutes: ${luxonStartDate.hour}:${luxonStartDate.minute}
+              - End hours:minutes: ${luxonEndDate.hour}:${luxonEndDate.minute}`);
+
+            // Try creating JS Date objects for comparison
+            const jsStartDate = new Date(dateData.startTimestamp.seconds * 1000);
+            console.log(`JS Date comparison -
+              Start JS Date: ${jsStartDate.toString()}
+              Start JS Local Time (hours:min): ${jsStartDate.getHours()}:${jsStartDate.getMinutes()}
+              Start JS UTC Time (hours:min): ${jsStartDate.getUTCHours()}:${jsStartDate.getUTCMinutes()}
+            `);
+
+            console.log(`Luxon start in participant timezone: ${luxonStartDate.toISO()} (${participantTimezone})`);
+            console.log(`Luxon end in participant timezone: ${luxonEndDate.toISO()} (${participantTimezone})`);
+
+            // Convert to viewer's timezone for slot matching
+            const startInViewerTZ = luxonStartDate.setZone(this.viewerTimezone);
+            const endInViewerTZ = luxonEndDate.setZone(this.viewerTimezone);
+
+            console.log(`Luxon start in viewer timezone: ${startInViewerTZ.toISO()} (${this.viewerTimezone})`);
+            console.log(`Luxon end in viewer timezone: ${endInViewerTZ.toISO()} (${this.viewerTimezone})`);
+
+            // Extract hours in the viewer's timezone
+            const viewerStartHour = startInViewerTZ.hour;
+            const viewerEndHour = endInViewerTZ.hour;
+
+            console.log(`Hours in viewer timezone: Start=${viewerStartHour}, End=${viewerEndHour}`);
+
+            // Match slots based on times converted to viewer's timezone
             this.uniqueDates.forEach((slot, index) => {
               if (slot.slotStart && slot.slotEnd) {
                 // Extract the slot hour
                 const slotHour = slot.slotStart.getHours();
-                // Extract the date string to see if it's the same day
-                const slotDateStr = this.formatDateKey(slot.date);
-                const itemDateStr = this.formatDateKey(startDate);
 
-                // Only consider slots for the same date
-                if (slotDateStr === itemDateStr) {
-                  // Check if this hour falls within the time range
-                  if (slotHour >= startHour && slotHour < endHour) {
-                    participantAvailability[index] = 'available';
-                    console.log(`Marking slot ${slotHour}:00 as available`);
+                // Format dates for comparison
+                const slotDateStr = this.formatDateKey(slot.date);
+
+                // Create date strings for start and end in viewer's timezone
+                const startDateStr = startInViewerTZ.toISODate();
+                const endDateStr = endInViewerTZ.toISODate();
+
+                // Check if slot date matches either start or end date
+                const isMatchingDay = (slotDateStr === startDateStr || slotDateStr === endDateStr);
+
+                if (isMatchingDay) {
+                  // For same-day time ranges
+                  if (startDateStr === endDateStr) {
+                    if (slotHour >= viewerStartHour && slotHour < viewerEndHour) {
+                      participantAvailability[index] = 'available';
+                      console.log(`Marking slot ${slotHour}:00 on ${slotDateStr} as available (same day)`);
+                    }
+                  }
+                  // For time ranges that span multiple days
+                  else {
+                    // If slot is on start date, check if at or after start hour
+                    if (slotDateStr === startDateStr && slotHour >= viewerStartHour) {
+                      participantAvailability[index] = 'available';
+                      console.log(`Marking slot ${slotHour}:00 on start date ${slotDateStr} as available`);
+                    }
+                    // If slot is on end date, check if before end hour
+                    else if (slotDateStr === endDateStr && slotHour < viewerEndHour) {
+                      participantAvailability[index] = 'available';
+                      console.log(`Marking slot ${slotHour}:00 on end date ${slotDateStr} as available`);
+                    }
                   }
                 }
               }
             });
           } else if (dateData.timestamp) {
             // Fallback for regular timestamps (unlikely in meeting mode)
-            const timestampMs = dateData.timestamp.seconds * 1000;
-            const date = new Date(timestampMs);
 
-            // Get timezone info
-            const timezone = dateData.timezone || participant.timezone;
+            // Get participant's timezone
+            const participantTimezone = dateData.timezone || participant.timezone || 'UTC';
 
-            // Log timezone information if available
-            if (timezone) {
-              console.log(`Using fallback with timezone: ${timezone}`);
-              console.log(`Original time: ${date.toISOString()}`);
+            console.log(`Using fallback with timezone: ${participantTimezone}`);
+
+            // For regular timestamps, try to extract the original hour from originalText if available
+            const originalText = dateData.originalText || '';
+            console.log(`Original text from LLM: ${originalText}`);
+
+            // Get a UTC date first
+            const utcDate = DateTime.fromSeconds(dateData.timestamp.seconds, { zone: 'UTC' });
+
+            // Try to extract the original hour
+            let originalHour = 0;
+            if (originalText) {
+              const matches = originalText.match(/T(\d{2}):/);
+              if (matches && matches.length >= 2) {
+                originalHour = parseInt(matches[1]);
+                console.log(`Extracted original hour from text: ${originalHour}`);
+              }
             }
 
-            // Use the UTC hour to avoid conversion
-            const dateString = this.formatDateKey(date);
-            const hour = date.getUTCHours(); // Use UTC hour instead of local hour
-            console.log(`Extracted hour from timestamp: ${hour}`);
+            // Create a DateTime with the original hour in the participant's timezone
+            const luxonDate = DateTime.fromObject({
+              year: utcDate.year,
+              month: utcDate.month,
+              day: utcDate.day,
+              hour: originalHour || utcDate.hour,
+              minute: utcDate.minute,
+              second: utcDate.second,
+            }, { zone: participantTimezone });
 
-            const slotKey = `${dateString}-${hour}`;
+            console.log(`Luxon date in participant timezone: ${luxonDate.toISO()} (${participantTimezone})`);
+
+            // Convert to viewer's timezone
+            const dateInViewerTZ = luxonDate.setZone(this.viewerTimezone);
+            console.log(`Luxon date in viewer timezone: ${dateInViewerTZ.toISO()} (${this.viewerTimezone})`);
+
+            // Get the hour in viewer's timezone
+            const viewerHour = dateInViewerTZ.hour;
+            console.log(`Hour in viewer timezone: ${viewerHour}`);
+
+            // Create the date string and slot key
+            const dateString = dateInViewerTZ.toISODate();
+            const slotKey = `${dateString}-${viewerHour}`;
             console.log(`Looking for slot key: ${slotKey}`);
 
             const slotIndex = this.uniqueDates.findIndex(slot => slot.dateString === slotKey);
             if (slotIndex !== -1) {
               participantAvailability[slotIndex] = 'available';
-              console.log(`Marking fallback slot ${hour}:00 as available`);
+              console.log(`Marking fallback slot ${viewerHour}:00 as available`);
             }
           }
         });
@@ -461,29 +586,46 @@ export class EventViewComponent implements OnInit {
   
   /**
    * Format a date as YYYY-MM-DD for map keys
+   * This method works with both JavaScript Date and Luxon DateTime objects
    */
-  formatDateKey(date: Date): string {
-    return date.toISOString().split('T')[0];
+  formatDateKey(date: Date | DateTime): string {
+    if (date instanceof DateTime) {
+      return date.toISODate() || '';
+    } else {
+      return date.toISOString().split('T')[0];
+    }
   }
   
   /**
    * Format a date for display in the UI
+   * This method works with both JavaScript Date and Luxon DateTime objects
    */
-  formatDateForDisplay(date: Date, timezone?: string): string {
+  formatDateForDisplay(date: Date | DateTime, timezone?: string): string {
+    // Convert Date to Luxon DateTime if needed
+    const luxonDate = date instanceof DateTime
+      ? date
+      : DateTime.fromJSDate(date).setZone(timezone || this.viewerTimezone);
+
     if (this.event?.isMeeting) {
       // For meetings, include the time
-      const formattedTime = `${date.getHours()}:00-${date.getHours() + 1}:00`;
+      const hour = luxonDate.hour;
+      const formattedTime = `${hour}:00-${hour + 1}:00`;
 
       // Include timezone abbreviation if available
-      const timezoneInfo = timezone ? ` (${timezone})` : '';
+      const displayTimezone = timezone || luxonDate.zoneName;
+      const timezoneInfo = displayTimezone ? ` (${displayTimezone})` : '';
 
-      return `${date.toLocaleDateString('en-US', {
+      // Format the date part
+      const formattedDate = luxonDate.toLocaleString({
         weekday: 'short',
         month: 'short',
         day: 'numeric'
-      })} ${formattedTime}${timezoneInfo}`;
+      });
+
+      return `${formattedDate} ${formattedTime}${timezoneInfo}`;
     } else {
-      return date.toLocaleDateString('en-US', {
+      // For regular events, just show the date
+      return luxonDate.toLocaleString({
         weekday: 'short',
         month: 'short',
         day: 'numeric'
@@ -493,9 +635,15 @@ export class EventViewComponent implements OnInit {
 
   /**
    * Format just the day part of a date
+   * This method works with both JavaScript Date and Luxon DateTime objects
    */
-  formatDayOnly(date: Date): string {
-    return date.toLocaleDateString('en-US', {
+  formatDayOnly(date: Date | DateTime): string {
+    // Convert Date to Luxon DateTime if needed
+    const luxonDate = date instanceof DateTime
+      ? date
+      : DateTime.fromJSDate(date).setZone(this.viewerTimezone);
+
+    return luxonDate.toLocaleString({
       weekday: 'short',
       month: 'short',
       day: 'numeric'
