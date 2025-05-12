@@ -321,13 +321,38 @@ export class EventViewComponent implements OnInit {
       return new Date(a).getTime() - new Date(b).getTime();
     });
 
-    // Create time slots for each date
-    // For simplicity, we'll use 1-hour intervals from 9am to 9pm
+    // Find earliest start hour and latest end hour from all participants
+    let earliestHour = 23; // Default to late
+    let latestHour = 0;   // Default to early
+
+    // Scan through all participants' time ranges to find min/max hours
+    this.participants.forEach(participant => {
+      if (participant.parsedDates && participant.parsedDates.length > 0) {
+        participant.parsedDates.forEach(dateData => {
+          if (dateData.startTimestamp && dateData.endTimestamp) {
+            // Get timezone and create proper DateTime objects
+            const participantTimezone = dateData.timezone || participant.timezone || 'Europe/Zurich';
+            const startDate = DateTime.fromSeconds(dateData.startTimestamp.seconds, { zone: 'UTC' }).setZone(participantTimezone);
+            const endDate = DateTime.fromSeconds(dateData.endTimestamp.seconds, { zone: 'UTC' }).setZone(participantTimezone);
+
+            // Update earliest/latest hours
+            earliestHour = Math.min(earliestHour, startDate.hour);
+            latestHour = Math.max(latestHour, endDate.hour);
+          }
+        });
+      }
+    });
+
+    // Apply some reasonable bounds (e.g., 6am to 11pm) if we don't have enough data
+    earliestHour = Math.max(6, Math.min(earliestHour, 9));  // Between 6am and 9am
+    latestHour = Math.min(23, Math.max(latestHour, 21));   // Between 9pm and 11pm
+
+    // Create time slots for each date with dynamic hours
     sortedDates.forEach(dateString => {
       const date = new Date(dateString);
 
-      // Create slots for each hour from 9am to 9pm (12 hours)
-      for (let hour = 9; hour < 21; hour++) {
+      // Create slots for each hour from earliest to latest
+      for (let hour = earliestHour; hour < latestHour; hour++) {
         const slotDate = new Date(date);
         slotDate.setHours(hour, 0, 0, 0);
 
