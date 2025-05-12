@@ -202,8 +202,6 @@ For the time ranges, interpret common time phrases:
 - "afternoons" = 1:00 PM to 5:00 PM
 - "evenings" = 6:00 PM to 9:00 PM
 
-IMPORTANT: DO NOT convert the times to any other timezone. Keep all times in their original form as the user specified them. The timezone "${timezone}" is being provided only for informational purposes.
-
 Today's date is: ${new Date().toISOString().split('T')[0]}.
 
 Here is the raw input:
