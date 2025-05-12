@@ -343,7 +343,8 @@ export class EventViewComponent implements OnInit {
         const luxonSlotDate = DateTime.fromJSDate(slotDate).setZone(this.viewerTimezone);
 
         // Format time display for this slot in the viewer's timezone
-        const formattedDate = `${this.formatDateForDisplay(date)} ${hour}:00-${hour+1}:00 (${this.viewerTimezone})`;
+        // Don't include timezone in the string since we display it separately
+        const formattedDate = `${this.formatDateForDisplay(date)} ${hour}:00-${hour+1}:00`;
 
         this.uniqueDates.push({
           date: slotDate,
@@ -594,9 +595,8 @@ export class EventViewComponent implements OnInit {
       const hour = luxonDate.hour;
       const formattedTime = `${hour}:00-${hour + 1}:00`;
 
-      // Include timezone abbreviation if available
-      const displayTimezone = timezone || luxonDate.zoneName;
-      const timezoneInfo = displayTimezone ? ` (${displayTimezone})` : '';
+      // Don't include timezone in the formatted date string because it's displayed separately
+      const timezoneInfo = '';
 
       // Format the date part
       const formattedDate = luxonDate.toLocaleString({
