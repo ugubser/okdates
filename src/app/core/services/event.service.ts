@@ -79,7 +79,12 @@ export class EventService {
   /**
    * Creates an event directly in Firestore with a unique ID
    */
-  async createEventDirect(title: string | null = null, description: string | null = null, location: string | null = null): Promise<{ eventId: string, event: Event }> {
+  async createEventDirect(
+    title: string | null = null,
+    description: string | null = null,
+    location: string | null = null,
+    isMeeting: boolean = false
+  ): Promise<{ eventId: string, event: Event }> {
     console.log('EventService: Creating event directly in Firestore');
 
     // Create timestamp
@@ -95,7 +100,9 @@ export class EventService {
       title: title || null,
       description: description || null,
       isActive: true,
-      adminKey: adminKey
+      adminKey: adminKey,
+      isMeeting: isMeeting,
+      // For meetings, we'll add meeting duration when saving
       // Not including time fields by default for backward compatibility
     };
 
@@ -103,21 +110,21 @@ export class EventService {
     if (location) {
       eventData.location = location;
     }
-    
+
     console.log('Event data to save:', eventData);
-    
+
     // Generate a unique event ID
     console.log('Adding document to Firestore...');
     const eventId = await this.firestoreService.addDocument(this.eventsPath, eventData);
     console.log('Document added with ID:', eventId);
-    
+
     const event: Event = {
       id: eventId,
       ...eventData
     };
-    
+
     console.log('Event created successfully:', event);
-    
+
     return {
       eventId,
       event

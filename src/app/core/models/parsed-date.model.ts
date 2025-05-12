@@ -1,5 +1,8 @@
 export interface ParsedDate {
   originalText: string;
-  timestamp: any; // Using any for timestamp to avoid Firebase dependency issues
+  timestamp?: any; // Using any for timestamp to avoid Firebase dependency issues
+  startTimestamp?: any; // Start time for meeting time ranges
+  endTimestamp?: any; // End time for meeting time ranges
   isConfirmed: boolean;
+  needsLlmParsing?: boolean; // Flag to indicate this needs LLM parsing
 }

@@ -147,31 +147,100 @@ if (!openRouterKey) {
 /**
  * Parses dates using an LLM
  * @param rawInput The raw text input containing dates
- * @returns Array of parsed dates
+ * @param isMeeting Whether this is for a meeting (with time ranges) or just a date
+ * @param timezone The user's timezone (only relevant for meetings)
+ * @returns Array of parsed dates or time ranges
  */
-export async function parseDatesWithLLM(rawInput: string): Promise<{
+export async function parseDatesWithLLM(rawInput: string, isMeeting: boolean = false, timezone: string = 'UTC'): Promise<{
   title: string;
-  dates: {
+  dates: Array<{
     originalText: string;
-    timestamp: {
+    timestamp?: {
+      seconds: number;
+      nanoseconds: number;
+    };
+    startTimestamp?: {
+      seconds: number;
+      nanoseconds: number;
+    };
+    endTimestamp?: {
       seconds: number;
       nanoseconds: number;
     };
     isConfirmed: boolean;
-  }[];
+  }>;
 }> {
-  console.log('Parsing dates with LLM:', rawInput);
-  
+  console.log(`Parsing ${isMeeting ? 'meeting times' : 'dates'} with LLM:`, rawInput);
+
   try {
-    // Prepare the prompt
-    const messages = [
-      {
-        role: 'system',
-        content: 'You are a helpful executive assistant that knows all about schedules and dates.'
-      },
-      {
-        role: 'user',
-        content: `Interpret the raw input from the user and determine which dates are relevant.
+    let messages;
+    let jsonSchema;
+
+    if (isMeeting) {
+      // For meetings, we need time ranges in ISO 8601 format
+      messages = [
+        {
+          role: 'system',
+          content: 'You are a helpful executive assistant that knows all about schedules and dates.'
+        },
+        {
+          role: 'user',
+          content: `Interpret the raw input from the user and determine which dates and times are relevant.
+Your response MUST be in valid JSON format with this exact structure and the array elements for "availability" should be formatted in ISO 8601 Time intervals:
+
+{
+  "title": "Available Times for User",
+  "availability": ["YYYY-MM-DDThh:mm:ssZ/YYYY-MM-DDThh:mm:ssZ", "YYYY-MM-DDThh:mm:ssZ/YYYY-MM-DDThh:mm:ssZ"]
+}
+
+Important: Format all ranges in ISO 8601 format YYYY-MM-DDThh:mm:ssZ/YYYY-MM-DDThh:mm:ssZ.
+Be flexible with date interpretations. For example, "next Monday" should resolve to the actual date.
+Handle time ranges like "Monday from 15:00 to 17:00" as YYYY-MM-DDT15:00:00Z/YYYY-MM-DDT17:00:00Z.
+If a year is not specified, assume the current year.
+For the time ranges, interpret common time phrases:
+- "mornings" = 9:00 AM to 12:00 PM
+- "afternoons" = 1:00 PM to 5:00 PM
+- "evenings" = 6:00 PM to 9:00 PM
+
+IMPORTANT: The user's input is in timezone "${timezone}". Please interpret all time references in this timezone, then convert to UTC for the ISO output.
+
+Today's date is: ${new Date().toISOString().split('T')[0]}.
+
+Here is the raw input:
+${rawInput}`
+        }
+      ];
+
+      jsonSchema = {
+        name: 'time_parser',
+        strict: true,
+        schema: {
+          type: 'object',
+          properties: {
+            title: {
+              type: 'string',
+              description: 'Title for the available times'
+            },
+            availability: {
+              type: 'array',
+              description: 'Array of time ranges in ISO format (YYYY-MM-DDThh:mm:ssZ/YYYY-MM-DDThh:mm:ssZ)',
+              items: { type: 'string' }
+            }
+          },
+          required: ['title', 'availability'],
+          additionalProperties: false
+        }
+      };
+    } else {
+      // For regular events, just use dates
+      messages = [
+        {
+          role: 'system',
+          content: 'You are a helpful executive assistant that knows all about schedules and dates.'
+        },
+        {
+          role: 'user',
+          content: `Interpret the raw input from the user and determine which dates are relevant.
 Your response MUST be in valid JSON format with this exact structure:
 {
   "title": "Available Dates for User",
@@ -183,99 +252,113 @@ Be flexible with date interpretations. For example, "next Monday" should resolve
 Handle ranges like "June 2-4" as individual dates (June 2, June 3, June 4).
 If a year is not specified, assume the current year. Today's date is: ${new Date().toISOString().split('T')[0]}.
 
-Here is the raw input: 
+Here is the raw input:
 ${rawInput}`
-      }
-    ];
-    
+        }
+      ];
+
+      jsonSchema = {
+        name: 'date_parser',
+        strict: true,
+        schema: {
+          type: 'object',
+          properties: {
+            title: {
+              type: 'string',
+              description: 'Title for the available dates'
+            },
+            available_dates: {
+              type: 'array',
+              description: 'Array of dates in ISO format (YYYY-MM-DD)',
+              items: { type: 'string', format: 'date' }
+            }
+          },
+          required: ['title', 'available_dates'],
+          additionalProperties: false
+        }
+      };
+    }
+
     // Call the LLM API
     console.log('Calling OpenRouter API with model:', openRouterModel);
     console.log('Request payload:', {
       model: openRouterModel,
       messages,
-      response_format: { 
+      response_format: {
         type: 'json_schema',
-        json_schema: {
-          name: 'date_parser',
-          strict: true,
-          schema: {
-            type: 'object',
-            properties: {
-              title: {
-                type: 'string',
-                description: 'Title for the available dates'
-              },
-              available_dates: {
-                type: 'array',
-                description: 'Array of dates in ISO format (YYYY-MM-DD)',
-                items: { type: 'string', format: 'date' }
-              }
-            },
-            required: ['title', 'available_dates'],
-            additionalProperties: false
-          }
-        }
+        json_schema: jsonSchema
       },
       temperature: 0.2
     });
-    
+
     const response = await openai.chat.completions.create({
       model: openRouterModel,
       messages: messages as any,
-      response_format: { 
+      response_format: {
         type: 'json_schema',
-        json_schema: {
-          name: 'date_parser',
-          strict: true,
-          schema: {
-            type: 'object',
-            properties: {
-              title: {
-                type: 'string',
-                description: 'Title for the available dates'
-              },
-              available_dates: {
-                type: 'array',
-                description: 'Array of dates in ISO format (YYYY-MM-DD)',
-                items: { type: 'string', format: 'date' }
-              }
-            },
-            required: ['title', 'available_dates'],
-            additionalProperties: false
-          }
-        }
+        json_schema: jsonSchema
       },
       temperature: 0.2, // Lower temperature for more consistent results
       max_tokens: 1000,
     });
-    
+
     console.log('LLM response received');
-    
+
     // Parse the JSON response
     const content = response.choices[0]?.message?.content || '';
     console.log('Raw content:', content);
-    
+
     try {
       const parsedContent = JSON.parse(content);
       console.log('Parsed content:', parsedContent);
-      
-      // Transform the dates into the expected format
-      const dates = parsedContent.available_dates?.map((dateStr: string) => {
-        const date = new Date(dateStr);
+
+      if (isMeeting) {
+        // For meetings, transform the time ranges into start/end timestamps
+        const dates = parsedContent.availability?.map((timeRange: string) => {
+          const [startStr, endStr] = timeRange.split('/');
+          const startDate = new Date(startStr);
+          const endDate = new Date(endStr);
+
+          return {
+            originalText: timeRange,
+            startTimestamp: {
+              seconds: Math.floor(startDate.getTime() / 1000),
+              nanoseconds: 0
+            },
+            endTimestamp: {
+              seconds: Math.floor(endDate.getTime() / 1000),
+              nanoseconds: 0
+            },
+            isConfirmed: false
+          };
+        }) || [];
+
         return {
-          originalText: dateStr,
-          timestamp: {
-            seconds: Math.floor(date.getTime() / 1000),
-            nanoseconds: 0
-          },
-          isConfirmed: false
+          title: parsedContent.title || 'Available Times',
+          dates: dates.filter((date: any) =>
+            !isNaN(date.startTimestamp?.seconds) &&
+            !isNaN(date.endTimestamp?.seconds)
+          )
         };
-      }) || [];
-      
-      return {
-        title: parsedContent.title || 'Available Dates',
-        dates: dates.filter((date: any) => !isNaN(date.timestamp.seconds))
-      };
+      } else {
+        // For regular events, transform the dates into timestamps
+        const dates = parsedContent.available_dates?.map((dateStr: string) => {
+          const date = new Date(dateStr);
+          return {
+            originalText: dateStr,
+            timestamp: {
+              seconds: Math.floor(date.getTime() / 1000),
+              nanoseconds: 0
+            },
+            isConfirmed: false
+          };
+        }) || [];
+
+        return {
+          title: parsedContent.title || 'Available Dates',
+          dates: dates.filter((date: any) => !isNaN(date.timestamp?.seconds))
+        };
+      }
     } catch (parseError) {
       console.error('Error parsing LLM response:', parseError);
       throw new Error('Invalid response format from LLM');

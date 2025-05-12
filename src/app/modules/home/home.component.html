@@ -4,12 +4,27 @@
     <p>Find the perfect date that works for everyone</p>
     
     <div class="action-container">
-      <button 
-        mat-raised-button 
-        color="primary" 
-        (click)="createNewEvent()">
-        Create New Event
-      </button>
+      <div class="action-buttons">
+        <div class="action-button-container">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="createNewEvent(false)">
+            Create New Event
+          </button>
+          <p class="button-description">Plan a casual event with just dates</p>
+        </div>
+
+        <div class="action-button-container">
+          <button
+            mat-raised-button
+            color="accent"
+            (click)="createNewEvent(true)">
+            Create New Meeting
+          </button>
+          <p class="button-description">Schedule a specific meeting time</p>
+        </div>
+      </div>
     </div>
   </div>
   

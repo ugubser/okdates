@@ -24,9 +24,9 @@ export class HomeComponent implements OnInit {
     this.listEvents();
   }
 
-  createNewEvent(): void {
-    console.log('Creating new event - navigating to create page');
-    this.router.navigate(['/event/create']);
+  createNewEvent(isMeeting: boolean = false): void {
+    console.log(`Creating new ${isMeeting ? 'meeting' : 'event'} - navigating to create page`);
+    this.router.navigate(['/event/create'], { queryParams: { isMeeting } });
   }
   
 

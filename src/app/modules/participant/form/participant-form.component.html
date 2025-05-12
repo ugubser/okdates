@@ -17,21 +17,37 @@
       </mat-form-field>
       
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Available Dates</mat-label>
-        <textarea 
-          matInput 
-          formControlName="availability" 
-          placeholder="e.g., June 2-4, July 5"
+        <mat-label>{{ event.isMeeting ? 'Available Time Slots' : 'Available Dates' }}</mat-label>
+        <textarea
+          matInput
+          formControlName="availability"
+          [placeholder]="event.isMeeting ? 'e.g., Monday from 15:00-17:00, Wednesday afternoons' : 'e.g., June 2-4, July 5'"
           rows="4">
         </textarea>
-        <mat-hint>
+        <mat-hint *ngIf="!event.isMeeting">
           Enter dates in any format: "June 2,3,4", "06/02, 06/03", "June 2-4", etc.
+        </mat-hint>
+        <mat-hint *ngIf="event.isMeeting">
+          Enter time slots: "Monday from 15:00-17:00", "Wed afternoons", "Tuesday all day", etc.
         </mat-hint>
         <mat-error *ngIf="participantForm.get('availability')?.hasError('required')">
           Availability is required
         </mat-error>
       </mat-form-field>
-      
+
+      <!-- Timezone selector (for meetings only) -->
+      <mat-form-field *ngIf="event.isMeeting" appearance="outline" class="full-width timezone-field">
+        <mat-label>Your Timezone</mat-label>
+        <mat-select formControlName="timezone">
+          <mat-option *ngFor="let tz of timezones" [value]="tz.value">
+            {{ tz.label }}
+          </mat-option>
+        </mat-select>
+        <mat-hint>
+          Times will be interpreted in this timezone
+        </mat-hint>
+      </mat-form-field>
+
       <div class="form-actions">
         <button 
           mat-raised-button
@@ -52,14 +68,14 @@
   </div>
   
   <div *ngIf="showParsedDates">
-    <h2>Confirm Your Dates</h2>
-    
+    <h2>{{ event.isMeeting ? 'Confirm Your Time Slots' : 'Confirm Your Dates' }}</h2>
+
     <div class="parsed-dates-section">
       <div class="ai-powered-badge">
-        <mat-icon>smart_toy</mat-icon> AI-Powered Date Recognition
+        <mat-icon>smart_toy</mat-icon> AI-Powered {{ event.isMeeting ? 'Time' : 'Date' }} Recognition
       </div>
-      
-      <p>We identified the following dates from your input:</p>
+
+      <p>We identified the following {{ event.isMeeting ? 'time slots' : 'dates' }} from your input:</p>
       
       <div class="parsed-dates-list">
         <mat-selection-list #datesList>
@@ -71,7 +87,12 @@
             <div class="date-option-content">
               <div class="date-display">
                 <span class="date-number">{{ i + 1 }}.</span>
-                <span class="date-value">{{ formatDate(date.timestamp) }}</span>
+                <span class="date-value">
+                  {{ date.startTimestamp && date.endTimestamp ?
+                      formatDate(null, date.startTimestamp, date.endTimestamp) :
+                      formatDate(date.timestamp)
+                  }}
+                </span>
               </div>
               <small class="original-text">From: "{{ date.originalText }}"</small>
             </div>
