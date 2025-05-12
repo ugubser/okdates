@@ -16,6 +16,8 @@ import { ICalendarService } from '../../../core/services/ical.service';
 import { Event } from '../../../core/models/event.model';
 import { Participant } from '../../../core/models/participant.model';
 import { ParsedDate } from '../../../core/models/parsed-date.model';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { getHours, getDay, getDate } from 'date-fns';
 
 @Component({
   selector: 'app-event-view',
@@ -51,8 +53,12 @@ export class EventViewComponent implements OnInit {
     formattedDate: string,
     slotStart?: Date,
     slotEnd?: Date,
-    timezone?: string // Add timezone field
+    timezone?: string, // Timezone field
+    originalHour?: number // Original hour in source timezone
   }[] = [];
+
+  // Store viewer's timezone
+  viewerTimezone: string = Intl.DateTimeFormat().resolvedOptions().timeZone;
   displayColumns: string[] = ['participant'];
   footerColumns: string[] = ['available'];
   
@@ -316,13 +322,15 @@ export class EventViewComponent implements OnInit {
       return new Date(a).getTime() - new Date(b).getTime();
     });
 
-    // Create time slots for each date
+    // Create time slots for each date in viewer's timezone
     // For simplicity, we'll use 1-hour intervals from 9am to 9pm
     sortedDates.forEach(dateString => {
       const date = new Date(dateString);
+      console.log(`Creating time slots for date: ${dateString} in viewer timezone: ${this.viewerTimezone}`);
 
-      // Create slots for each hour from 9am to 9pm (12 hours)
+      // Create slots for each hour from 9am to 9pm (12 hours) in viewer's timezone
       for (let hour = 9; hour < 21; hour++) {
+        // Create the slot date in viewer's timezone
         const slotDate = new Date(date);
         slotDate.setHours(hour, 0, 0, 0);
 
@@ -330,33 +338,13 @@ export class EventViewComponent implements OnInit {
         slotEndDate.setHours(hour + 1, 0, 0, 0);
 
         const slotKey = `${dateString}-${hour}`;
+        console.log(`Creating slot with key: ${slotKey} for hour: ${hour}:00-${hour+1}:00 in ${this.viewerTimezone}`);
 
-        // Get timezone information from the first participant that has this data
-        let timezoneInfo = '';
-        for (const participant of this.participants) {
-          if (participant.timezone) {
-            timezoneInfo = participant.timezone;
-            break;
-          }
-
-          // If participant level timezone isn't available, check individual date entries
-          if (participant.parsedDates) {
-            for (const dateData of participant.parsedDates) {
-              if (dateData.timezone) {
-                timezoneInfo = dateData.timezone;
-                break;
-              }
-            }
-          }
-
-          if (timezoneInfo) break;
-        }
-
-        // Format time display without overriding time with timezone
+        // Format time display in viewer's timezone
         const formattedDate = `${this.formatDateForDisplay(date)} ${hour}:00-${hour+1}:00`;
 
-        // Store timezone separately instead of appending to the formatted date
-        const timezoneName = timezoneInfo;
+        // We'll display the viewer's timezone with all slots
+        const timezoneName = this.viewerTimezone;
 
         this.uniqueDates.push({
           date: slotDate,
@@ -389,37 +377,82 @@ export class EventViewComponent implements OnInit {
             const startTimeMs = dateData.startTimestamp.seconds * 1000;
             const endTimeMs = dateData.endTimestamp.seconds * 1000;
 
-            // Extract the original hours without timezone conversion
+            // Get the participant's timezone
+            const participantTimezone = dateData.timezone || participant.timezone || 'UTC';
+            console.log(`Processing time range with participant timezone: ${participantTimezone}`);
+            console.log(`Viewer timezone: ${this.viewerTimezone}`);
+
+            // IMPORTANT: Firestore timestamps are stored in UTC seconds since epoch
+            // When creating a Date object, it's automatically converted to local timezone
+            // But we need to treat it as if it's in the participant's timezone
+
+            // Create Date objects with the original timestamps
+            // These represent the LOCAL time the participant entered (e.g., "9-11")
             const startDate = new Date(startTimeMs);
             const endDate = new Date(endTimeMs);
 
-            // Extract the original hour values directly
-            const timezone = dateData.timezone || participant.timezone;
-            console.log(`Processing time range with timezone: ${timezone}`);
-            console.log(`Original start time: ${startDate.toISOString()}`);
-            console.log(`Original end time: ${endDate.toISOString()}`);
+            console.log(`Original Date objects: ${startDate.toString()} to ${endDate.toString()}`);
 
-            // Extract the raw hours directly (this avoids timezone conversion)
-            const startHour = startDate.getUTCHours();
-            const endHour = endDate.getUTCHours();
+            // Extract the time components directly without timezone conversion
+            const startHour = startDate.getHours();
+            const startMinutes = startDate.getMinutes();
+            const endHour = endDate.getHours();
+            const endMinutes = endDate.getMinutes();
 
-            console.log(`Extracted hours: Start=${startHour}, End=${endHour}`);
+            console.log(`Original time values: ${startHour}:${startMinutes} to ${endHour}:${endMinutes}`);
 
-            // Match slots based on raw hour value rather than timestamp comparison
+            // For viewer timezone conversion, we need to:
+            // 1. Create a date object in the participant's timezone
+            // 2. Convert it to the viewer's timezone
+
+            // First create dates in viewer timezone (initial approximation)
+            const viewerStartDate = new Date(startDate);
+            const viewerEndDate = new Date(endDate);
+
+            // Extract hours for slot checking
+            const viewerStartHour = startDate.getHours();
+            const viewerEndHour = endDate.getHours();
+
+            // Use the directly extracted hours without timezone conversion
+            // This is the original time as entered by the participant
+            console.log(`Original hours in viewer timezone: Start=${viewerStartHour}, End=${viewerEndHour}`);
+
+            // Match slots based on the converted hour values in viewer's timezone
             this.uniqueDates.forEach((slot, index) => {
               if (slot.slotStart && slot.slotEnd) {
-                // Extract the slot hour
+                // Get the slot hour in the viewer's timezone (which is how the slots were created)
                 const slotHour = slot.slotStart.getHours();
-                // Extract the date string to see if it's the same day
-                const slotDateStr = this.formatDateKey(slot.date);
-                const itemDateStr = this.formatDateKey(startDate);
 
-                // Only consider slots for the same date
-                if (slotDateStr === itemDateStr) {
-                  // Check if this hour falls within the time range
-                  if (slotHour >= startHour && slotHour < endHour) {
-                    participantAvailability[index] = 'available';
-                    console.log(`Marking slot ${slotHour}:00 as available`);
+                // Extract date strings for comparison
+                const slotDateStr = this.formatDateKey(slot.date);
+                const startDateStr = this.formatDateKey(viewerStartDate);
+                const endDateStr = this.formatDateKey(viewerEndDate);
+
+                // Check if the current slot's date matches either the start or end date in viewer's timezone
+                const isMatchingDay = (slotDateStr === startDateStr || slotDateStr === endDateStr);
+
+                // Check if the slot falls within the time range in viewer's timezone
+                if (isMatchingDay) {
+                  // For same-day events (most common case)
+                  if (startDateStr === endDateStr) {
+                    // Check if slot hour falls within the time range
+                    if (slotHour >= viewerStartHour && slotHour < viewerEndHour) {
+                      participantAvailability[index] = 'available';
+                      console.log(`Marking slot ${slotHour}:00 on ${slotDateStr} as available (same day)`);
+                    }
+                  }
+                  // For events that span multiple days (less common)
+                  else {
+                    // If slot is on start date, check if after start hour
+                    if (slotDateStr === startDateStr && slotHour >= viewerStartHour) {
+                      participantAvailability[index] = 'available';
+                      console.log(`Marking slot ${slotHour}:00 on start date ${slotDateStr} as available`);
+                    }
+                    // If slot is on end date, check if before end hour
+                    else if (slotDateStr === endDateStr && slotHour < viewerEndHour) {
+                      participantAvailability[index] = 'available';
+                      console.log(`Marking slot ${slotHour}:00 on end date ${slotDateStr} as available`);
+                    }
                   }
                 }
               }
@@ -438,11 +471,15 @@ export class EventViewComponent implements OnInit {
               console.log(`Original time: ${date.toISOString()}`);
             }
 
-            // Use the UTC hour to avoid conversion
-            const dateString = this.formatDateKey(date);
-            const hour = date.getUTCHours(); // Use UTC hour instead of local hour
-            console.log(`Extracted hour from timestamp: ${hour}`);
+            // Extract the hour directly without timezone conversion
+            // This preserves the original hour as entered by the participant
+            const hour = date.getHours();
 
+            console.log(`Original hour from timestamp: ${hour}`);
+            console.log(`Date in participant timezone (${timezone || 'local'}): ${date.toString()}`);
+
+            // Use the date to create the key for slot lookup
+            const dateString = this.formatDateKey(date);
             const slotKey = `${dateString}-${hour}`;
             console.log(`Looking for slot key: ${slotKey}`);
 
