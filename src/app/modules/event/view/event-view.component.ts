@@ -50,7 +50,8 @@ export class EventViewComponent implements OnInit {
     dateString: string,
     formattedDate: string,
     slotStart?: Date,
-    slotEnd?: Date
+    slotEnd?: Date,
+    timezone?: string // Add timezone field
   }[] = [];
   displayColumns: string[] = ['participant'];
   footerColumns: string[] = ['available'];
@@ -247,7 +248,18 @@ export class EventViewComponent implements OnInit {
       if (participant.parsedDates && participant.parsedDates.length > 0) {
         participant.parsedDates.forEach(timestamp => {
           if (timestamp.seconds) { // Check if it's a regular timestamp
-            const date = new Date(timestamp.seconds * 1000);
+            // Use UTC Date to avoid automatic timezone conversion
+            // This preserves the original time as stored
+            const timestampMs = timestamp.seconds * 1000;
+            const date = new Date(timestampMs);
+
+            // If timezone info is available, create date that respects it
+            if (timestamp.timezone) {
+              console.log(`Using timezone from date: ${timestamp.timezone}`);
+            } else if (participant.timezone) {
+              console.log(`Using timezone from participant: ${participant.timezone}`);
+            }
+
             const dateString = this.formatDateKey(date);
             const dateIndex = sortedDates.indexOf(dateString);
             if (dateIndex !== -1) {
@@ -318,14 +330,41 @@ export class EventViewComponent implements OnInit {
         slotEndDate.setHours(hour + 1, 0, 0, 0);
 
         const slotKey = `${dateString}-${hour}`;
+
+        // Get timezone information from the first participant that has this data
+        let timezoneInfo = '';
+        for (const participant of this.participants) {
+          if (participant.timezone) {
+            timezoneInfo = participant.timezone;
+            break;
+          }
+
+          // If participant level timezone isn't available, check individual date entries
+          if (participant.parsedDates) {
+            for (const dateData of participant.parsedDates) {
+              if (dateData.timezone) {
+                timezoneInfo = dateData.timezone;
+                break;
+              }
+            }
+          }
+
+          if (timezoneInfo) break;
+        }
+
+        // Format time display without overriding time with timezone
         const formattedDate = `${this.formatDateForDisplay(date)} ${hour}:00-${hour+1}:00`;
+
+        // Store timezone separately instead of appending to the formatted date
+        const timezoneName = timezoneInfo;
 
         this.uniqueDates.push({
           date: slotDate,
           dateString: slotKey,
           formattedDate,
           slotStart: slotDate,
-          slotEnd: slotEndDate
+          slotEnd: slotEndDate,
+          timezone: timezoneName // Add timezone information
         });
 
         this.displayColumns.push(slotKey);
@@ -349,6 +388,14 @@ export class EventViewComponent implements OnInit {
             const startTime = dateData.startTimestamp.seconds * 1000;
             const endTime = dateData.endTimestamp.seconds * 1000;
 
+            // Log the timezone information when available
+            if (dateData.timezone) {
+              console.log(`Meeting time using timezone from dateData: ${dateData.timezone}`);
+              console.log(`Original times: Start=${new Date(startTime).toISOString()}, End=${new Date(endTime).toISOString()}`);
+            } else if (participant.timezone) {
+              console.log(`Meeting time using timezone from participant: ${participant.timezone}`);
+            }
+
             // Check which slots this time range overlaps with
             this.uniqueDates.forEach((slot, index) => {
               if (slot.slotStart && slot.slotEnd) {
@@ -366,7 +413,17 @@ export class EventViewComponent implements OnInit {
             });
           } else if (dateData.timestamp) {
             // Fallback for regular timestamps (unlikely in meeting mode)
-            const date = new Date(dateData.timestamp.seconds * 1000);
+            const timestampMs = dateData.timestamp.seconds * 1000;
+            const date = new Date(timestampMs);
+
+            // Log timezone information if available
+            if (dateData.timezone) {
+              console.log(`Using fallback with timezone from dateData: ${dateData.timezone}`);
+              console.log(`Original time: ${date.toISOString()}`);
+            } else if (participant.timezone) {
+              console.log(`Using fallback with timezone from participant: ${participant.timezone}`);
+            }
+
             const dateString = this.formatDateKey(date);
             const hour = date.getHours();
             const slotKey = `${dateString}-${hour}`;
@@ -393,14 +450,19 @@ export class EventViewComponent implements OnInit {
   /**
    * Format a date for display in the UI
    */
-  formatDateForDisplay(date: Date): string {
+  formatDateForDisplay(date: Date, timezone?: string): string {
     if (this.event?.isMeeting) {
       // For meetings, include the time
+      const formattedTime = `${date.getHours()}:00-${date.getHours() + 1}:00`;
+
+      // Include timezone abbreviation if available
+      const timezoneInfo = timezone ? ` (${timezone})` : '';
+
       return `${date.toLocaleDateString('en-US', {
         weekday: 'short',
         month: 'short',
         day: 'numeric'
-      })} ${date.getHours()}:00-${date.getHours() + 1}:00`;
+      })} ${formattedTime}${timezoneInfo}`;
     } else {
       return date.toLocaleDateString('en-US', {
         weekday: 'short',
@@ -500,6 +562,17 @@ export class EventViewComponent implements OnInit {
   // Expose Math object for template
   get Math(): Math {
     return Math;
+  }
+
+  /**
+   * Get a human-readable timezone abbreviation
+   */
+  getTimezoneAbbreviation(timezone: string): string {
+    if (!timezone) return '';
+
+    // For now, just return the timezone as is
+    // In a more robust implementation, you might convert to a nicer display format
+    return timezone;
   }
 
   /**

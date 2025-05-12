@@ -7,8 +7,8 @@ import * as admin from 'firebase-admin';
 export const addParticipant = functions.region('europe-west1').https.onCall(async (data, context) => {
   // CORS headers are automatically handled for us in HTTP Callable functions
   try {
-    const { eventId, name, rawDateInput, parsedDates } = data;
-    
+    const { eventId, name, rawDateInput, parsedDates, timezone = 'UTC' } = data;
+
     if (!eventId || !name || !rawDateInput) {
       return {
         success: false,
@@ -38,6 +38,7 @@ export const addParticipant = functions.region('europe-west1').https.onCall(asyn
       name,
       rawDateInput,
       parsedDates: parsedDates || [],
+      timezone,
       submittedAt: admin.firestore.FieldValue.serverTimestamp()
     };
     

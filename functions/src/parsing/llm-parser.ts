@@ -148,8 +148,8 @@ if (!openRouterKey) {
  * Parses dates using an LLM
  * @param rawInput The raw text input containing dates
  * @param isMeeting Whether this is for a meeting (with time ranges) or just a date
- * @param timezone The user's timezone (only relevant for meetings)
- * @returns Array of parsed dates or time ranges
+ * @param timezone The user's timezone (stored with the parsed dates, not used for conversion)
+ * @returns Array of parsed dates or time ranges with timezone information
  */
 export async function parseDatesWithLLM(rawInput: string, isMeeting: boolean = false, timezone: string = 'UTC'): Promise<{
   title: string;
@@ -190,19 +190,19 @@ Your response MUST be in valid JSON format with this exact structure and the arr
 
 {
   "title": "Available Times for User",
-  "availability": ["YYYY-MM-DDThh:mm:ssZ/YYYY-MM-DDThh:mm:ssZ", "YYYY-MM-DDThh:mm:ssZ/YYYY-MM-DDThh:mm:ssZ"]
+  "availability": ["YYYY-MM-DDThh:mm:ss/YYYY-MM-DDThh:mm:ss", "YYYY-MM-DDThh:mm:ss/YYYY-MM-DDThh:mm:ss"]
 }
 
-Important: Format all ranges in ISO 8601 format YYYY-MM-DDThh:mm:ssZ/YYYY-MM-DDThh:mm:ssZ.
+Important: Format all ranges in ISO 8601 format YYYY-MM-DDThh:mm:ss/YYYY-MM-DDThh:mm:ss.
 Be flexible with date interpretations. For example, "next Monday" should resolve to the actual date.
-Handle time ranges like "Monday from 15:00 to 17:00" as YYYY-MM-DDT15:00:00Z/YYYY-MM-DDT17:00:00Z.
+Handle time ranges like "Monday from 15:00 to 17:00" as YYYY-MM-DDT15:00:00/YYYY-MM-DDT17:00:00.
 If a year is not specified, assume the current year.
 For the time ranges, interpret common time phrases:
 - "mornings" = 9:00 AM to 12:00 PM
 - "afternoons" = 1:00 PM to 5:00 PM
 - "evenings" = 6:00 PM to 9:00 PM
 
-IMPORTANT: The user's input is in timezone "${timezone}". Please interpret all time references in this timezone, then convert to UTC for the ISO output.
+IMPORTANT: DO NOT convert the times to any other timezone. Keep all times in their original form as the user specified them. The timezone "${timezone}" is being provided only for informational purposes.
 
 Today's date is: ${new Date().toISOString().split('T')[0]}.
 
@@ -223,7 +223,7 @@ ${rawInput}`
             },
             availability: {
               type: 'array',
-              description: 'Array of time ranges in ISO format (YYYY-MM-DDThh:mm:ssZ/YYYY-MM-DDThh:mm:ssZ)',
+              description: 'Array of time ranges in ISO format (YYYY-MM-DDThh:mm:ss/YYYY-MM-DDThh:mm:ss)',
               items: { type: 'string' }
             }
           },
@@ -316,8 +316,44 @@ ${rawInput}`
         // For meetings, transform the time ranges into start/end timestamps
         const dates = parsedContent.availability?.map((timeRange: string) => {
           const [startStr, endStr] = timeRange.split('/');
-          const startDate = new Date(startStr);
-          const endDate = new Date(endStr);
+          // Store the original strings for timestamp values to avoid timezone conversion
+          const startTimeParts = startStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+          const endTimeParts = endStr.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+
+          let startDate, endDate;
+
+          if (startTimeParts && endTimeParts) {
+            // Extract the time components directly instead of using Date constructor
+            // This avoids automatic timezone conversion by JavaScript
+            const [_, startYear, startMonth, startDay, startHour, startMinute, startSecond] = startTimeParts;
+            const [__, endYear, endMonth, endDay, endHour, endMinute, endSecond] = endTimeParts;
+
+            // Instead of using Date.UTC, which converts to UTC time,
+            // just store the original time components as provided by the user
+            // JavaScript months are 0-indexed
+            startDate = new Date(
+              parseInt(startYear),
+              parseInt(startMonth) - 1,
+              parseInt(startDay),
+              parseInt(startHour),
+              parseInt(startMinute),
+              parseInt(startSecond)
+            );
+
+            endDate = new Date(
+              parseInt(endYear),
+              parseInt(endMonth) - 1,
+              parseInt(endDay),
+              parseInt(endHour),
+              parseInt(endMinute),
+              parseInt(endSecond)
+            );
+          } else {
+            // Fallback to the original method if parsing fails
+            console.warn('Could not parse date parts directly, falling back to Date constructor');
+            startDate = new Date(startStr);
+            endDate = new Date(endStr);
+          }
 
           return {
             originalText: timeRange,
@@ -329,6 +365,7 @@ ${rawInput}`
               seconds: Math.floor(endDate.getTime() / 1000),
               nanoseconds: 0
             },
+            timezone: timezone,
             isConfirmed: false
           };
         }) || [];
@@ -343,13 +380,36 @@ ${rawInput}`
       } else {
         // For regular events, transform the dates into timestamps
         const dates = parsedContent.available_dates?.map((dateStr: string) => {
-          const date = new Date(dateStr);
+          // Parse date directly to avoid timezone conversion
+          const dateParts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+          let date;
+
+          if (dateParts) {
+            // Extract date components directly instead of using Date constructor
+            const [_, year, month, day] = dateParts;
+
+            // Instead of using Date.UTC, which converts to UTC time,
+            // just store the original date components as provided by the user
+            // JavaScript months are 0-indexed
+            date = new Date(
+              parseInt(year),
+              parseInt(month) - 1,
+              parseInt(day),
+              0, 0, 0
+            );
+          } else {
+            // Fallback to the original method if parsing fails
+            console.warn('Could not parse date parts directly, falling back to Date constructor');
+            date = new Date(dateStr);
+          }
+
           return {
             originalText: dateStr,
             timestamp: {
               seconds: Math.floor(date.getTime() / 1000),
               nanoseconds: 0
             },
+            timezone: timezone,
             isConfirmed: false
           };
         }) || [];
