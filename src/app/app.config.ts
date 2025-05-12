@@ -1,4 +1,4 @@
-import { ApplicationConfig, provideZoneChangeDetection, isDevMode } from '@angular/core';
+import { ApplicationConfig, provideZoneChangeDetection, isDevMode, APP_INITIALIZER } from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient, withFetch } from '@angular/common/http';
@@ -6,7 +6,7 @@ import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { getFirestore, provideFirestore, connectFirestoreEmulator } from '@angular/fire/firestore';
 import { getFunctions, provideFunctions, connectFunctionsEmulator } from '@angular/fire/functions';
 import { initializeAppCheck, provideAppCheck, ReCaptchaV3Provider } from '@angular/fire/app-check';
-import { getAuth, provideAuth, connectAuthEmulator, signInAnonymously } from '@angular/fire/auth';
+import { getAuth, provideAuth, connectAuthEmulator, signInAnonymously, Auth } from '@angular/fire/auth';
 import { inject } from '@angular/core';
 
 import { routes } from './app.routes';
@@ -23,6 +23,48 @@ console.log('Firebase config:', environment.firebase);
 
 console.log('------------------------------------');
 
+// Capture initial URL immediately before any initialization happens
+const initialRequestUrl = window.location.pathname + window.location.search;
+console.log('Initial URL captured:', initialRequestUrl);
+
+// App Initialization Factory - centralized initialization process
+function appInitializerFactory() {
+  return () => {
+    const router = inject(Router);
+    const auth = inject(Auth);
+
+    // Return a promise that completes when auth is ready
+    return new Promise<void>((resolve) => {
+      console.log('Starting app initialization sequence...');
+
+      // 1. First handle authentication
+      signInAnonymously(auth)
+        .then(() => {
+          console.log('Anonymous authentication successful');
+
+          // 2. Wait a moment for all Firebase services to initialize
+          setTimeout(() => {
+            // 3. Redirect to initial URL if not on home page
+            if (initialRequestUrl !== '/' && initialRequestUrl !== '/index.html') {
+              console.log(`Redirecting to captured initial URL: ${initialRequestUrl}`);
+              // Use router.navigate instead of navigateByUrl to handle query params better
+              router.navigateByUrl(initialRequestUrl).then(() => {
+                console.log('Navigation completed');
+                resolve();
+              });
+            } else {
+              resolve();
+            }
+          }, 300); // Allow time for Firebase services to initialize
+        })
+        .catch((error) => {
+          console.error('Anonymous authentication failed:', error);
+          resolve(); // Still resolve to not block app startup
+        });
+    });
+  };
+}
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
@@ -30,10 +72,17 @@ export const appConfig: ApplicationConfig = {
     provideAnimations(),
     provideHttpClient(withFetch()),
 
+    // Add App Initializer to manage startup sequence
+    {
+      provide: APP_INITIALIZER,
+      useFactory: appInitializerFactory,
+      multi: true
+    },
+
     // Firebase
     provideFirebaseApp(() => initializeApp(environment.firebase)),
 
-    // Auth - moved up to be initialized right after Firebase App
+    // Auth setup
     provideAuth(() => {
       // Clear any persisted auth emulator settings
       if (environment.production) {
@@ -54,27 +103,6 @@ export const appConfig: ApplicationConfig = {
       } else {
         console.log('Using production Auth instance - NO EMULATOR');
       }
-
-      // Store the initial URL before authentication
-      const initialUrl = window.location.pathname + window.location.search;
-      const router = inject(Router);
-
-      // Sign in anonymously
-      signInAnonymously(auth)
-        .then(() => {
-          console.log('Anonymous authentication successful');
-
-          // Only redirect if not on the home page
-          if (initialUrl !== '/' && initialUrl !== '/index.html') {
-            console.log(`Redirecting to initial URL: ${initialUrl}`);
-            setTimeout(() => {
-              router.navigateByUrl(initialUrl);
-            }, 100); // Small delay to ensure app is ready
-          }
-        })
-        .catch((error) => {
-          console.error('Anonymous authentication failed:', error);
-        });
 
       return auth;
     }),
