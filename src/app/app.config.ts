@@ -1,5 +1,5 @@
 import { ApplicationConfig, provideZoneChangeDetection, isDevMode } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
@@ -7,6 +7,7 @@ import { getFirestore, provideFirestore, connectFirestoreEmulator } from '@angul
 import { getFunctions, provideFunctions, connectFunctionsEmulator } from '@angular/fire/functions';
 import { initializeAppCheck, provideAppCheck, ReCaptchaV3Provider } from '@angular/fire/app-check';
 import { getAuth, provideAuth, connectAuthEmulator, signInAnonymously } from '@angular/fire/auth';
+import { inject } from '@angular/core';
 
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
@@ -54,10 +55,22 @@ export const appConfig: ApplicationConfig = {
         console.log('Using production Auth instance - NO EMULATOR');
       }
 
+      // Store the initial URL before authentication
+      const initialUrl = window.location.pathname + window.location.search;
+      const router = inject(Router);
+
       // Sign in anonymously
       signInAnonymously(auth)
         .then(() => {
           console.log('Anonymous authentication successful');
+
+          // Only redirect if not on the home page
+          if (initialUrl !== '/' && initialUrl !== '/index.html') {
+            console.log(`Redirecting to initial URL: ${initialUrl}`);
+            setTimeout(() => {
+              router.navigateByUrl(initialUrl);
+            }, 100); // Small delay to ensure app is ready
+          }
         })
         .catch((error) => {
           console.error('Anonymous authentication failed:', error);
@@ -66,17 +79,48 @@ export const appConfig: ApplicationConfig = {
       return auth;
     }),
 
-    // Firebase AppCheck
+    // Firebase AppCheck with improved error handling
     provideAppCheck(() => {
       console.log('Initializing Firebase AppCheck with reCAPTCHA v3...');
-      //console.log('Using reCAPTCHA site key:', environment.recaptcha?.siteKey || 'No key provided');
 
-      const appCheck = initializeAppCheck(undefined, {
-        provider: new ReCaptchaV3Provider(environment.recaptcha?.siteKey || ''),
-        isTokenAutoRefreshEnabled: true
-      });
+      // Clear AppCheck storage if there was a previous error
+      try {
+        const hasAppCheckError = localStorage.getItem('appcheck_init_error');
+        if (hasAppCheckError) {
+          console.log('Previous AppCheck error detected, clearing indexed DB...');
+          // Try to delete the problematic IndexedDB database
+          indexedDB.deleteDatabase('firebase-app-check-database');
+          localStorage.removeItem('appcheck_init_error');
+        }
+      } catch (e) {
+        console.warn('Error handling AppCheck storage cleanup:', e);
+      }
 
-      console.log('Firebase AppCheck initialized successfully');
+      let appCheck;
+
+      // Initialize AppCheck with error handling in a way that always returns a valid AppCheck object
+      try {
+        appCheck = initializeAppCheck(undefined, {
+          provider: new ReCaptchaV3Provider(environment.recaptcha?.siteKey || ''),
+          isTokenAutoRefreshEnabled: true
+        });
+        console.log('Firebase AppCheck initialized successfully');
+      } catch (error) {
+        console.error('AppCheck initialization failed:', error);
+        // Mark that we had an error so we can try to fix it on next load
+        try {
+          localStorage.setItem('appcheck_init_error', 'true');
+        } catch (e) {
+          console.warn('Could not set error flag:', e);
+        }
+
+        // Create a basic implementation that won't break the app
+        appCheck = initializeAppCheck(undefined, {
+          provider: new ReCaptchaV3Provider(environment.recaptcha?.siteKey || ''),
+          isTokenAutoRefreshEnabled: false
+        });
+      }
+
       return appCheck;
     }),
 
