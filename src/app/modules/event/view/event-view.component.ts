@@ -336,32 +336,14 @@ export class EventViewComponent implements OnInit {
 
         const slotKey = `${dateString}-${hour}`;
 
-        // Get timezone information from the first participant that has this data
-        let timezoneInfo = '';
-        for (const participant of this.participants) {
-          if (participant.timezone) {
-            timezoneInfo = participant.timezone;
-            break;
-          }
+        // Always use the viewer's timezone for display
+        const timezoneName = this.viewerTimezone;
 
-          // If participant level timezone isn't available, check individual date entries
-          if (participant.parsedDates) {
-            for (const dateData of participant.parsedDates) {
-              if (dateData.timezone) {
-                timezoneInfo = dateData.timezone;
-                break;
-              }
-            }
-          }
+        // Create a Luxon DateTime for this slot in the viewer's timezone
+        const luxonSlotDate = DateTime.fromJSDate(slotDate).setZone(this.viewerTimezone);
 
-          if (timezoneInfo) break;
-        }
-
-        // Format time display without overriding time with timezone
-        const formattedDate = `${this.formatDateForDisplay(date)} ${hour}:00-${hour+1}:00`;
-
-        // Store timezone separately instead of appending to the formatted date
-        const timezoneName = timezoneInfo;
+        // Format time display for this slot in the viewer's timezone
+        const formattedDate = `${this.formatDateForDisplay(date)} ${hour}:00-${hour+1}:00 (${this.viewerTimezone})`;
 
         this.uniqueDates.push({
           date: slotDate,
@@ -397,9 +379,9 @@ export class EventViewComponent implements OnInit {
             // Get the participant's timezone directly from the data
             console.log(`DEBUG Timezone Info - dateData.timezone: ${dateData.timezone}, participant.timezone: ${participant.timezone}`);
 
-            // We should never fallback to UTC - always use a specific timezone
-            // If both are undefined, use the viewer's timezone as a last resort
-            const participantTimezone = dateData.timezone || participant.timezone || this.viewerTimezone;
+            // For data interpretation, we need to use the participant's original timezone
+            // Fall back to Europe/Zurich if not specified - this is for interpreting the input data correctly
+            const participantTimezone = dateData.timezone || participant.timezone || 'Europe/Zurich';
             console.log(`Processing time range with timezone: ${participantTimezone}`);
             console.log(`Viewer timezone: ${this.viewerTimezone}`);
 
@@ -524,8 +506,9 @@ export class EventViewComponent implements OnInit {
           } else if (dateData.timestamp) {
             // Fallback for regular timestamps (unlikely in meeting mode)
 
-            // Get participant's timezone
-            const participantTimezone = dateData.timezone || participant.timezone || 'UTC';
+            // For data interpretation, we need to use the participant's original timezone
+            // Fall back to Europe/Zurich if not specified - this is for interpreting the input data correctly
+            const participantTimezone = dateData.timezone || participant.timezone || 'Europe/Zurich';
 
             console.log(`Using fallback with timezone: ${participantTimezone}`);
 
