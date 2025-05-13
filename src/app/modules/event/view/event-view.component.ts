@@ -282,11 +282,11 @@ export class EventViewComponent implements OnInit {
    * Process availability data for time-based meetings
    */
   processMeetingAvailability(): void {
-    // For meetings, we'll create a grid of date-time slots
-    // The time slots will be 1-hour intervals from 9am to 9pm
-
     // Extract all unique dates from time ranges
     const allDates = new Set<string>();
+
+    // Get meeting duration from event or default to 60 minutes
+    const meetingDuration = this.event?.meetingDuration || 60;
 
     // First pass: collect all unique dates from time ranges
     this.participants.forEach(participant => {
@@ -321,11 +321,11 @@ export class EventViewComponent implements OnInit {
       return new Date(a).getTime() - new Date(b).getTime();
     });
 
-    // Find earliest start hour and latest end hour from all participants
-    let earliestHour = 23; // Default to late
-    let latestHour = 0;   // Default to early
+    // Find earliest start time and latest end time from all participants with minute precision
+    let earliestMinuteOfDay = 23 * 60; // Default to late (23:00)
+    let latestMinuteOfDay = 9 * 60;    // Default to early (09:00)
 
-    // Scan through all participants' time ranges to find min/max hours
+    // Scan through all participants' time ranges to find min/max times
     this.participants.forEach(participant => {
       if (participant.parsedDates && participant.parsedDates.length > 0) {
         participant.parsedDates.forEach(dateData => {
@@ -335,53 +335,74 @@ export class EventViewComponent implements OnInit {
             const startDate = DateTime.fromSeconds(dateData.startTimestamp.seconds, { zone: 'UTC' }).setZone(participantTimezone);
             const endDate = DateTime.fromSeconds(dateData.endTimestamp.seconds, { zone: 'UTC' }).setZone(participantTimezone);
 
-            // Update earliest/latest hours
-            earliestHour = Math.min(earliestHour, startDate.hour);
-            latestHour = Math.max(latestHour, endDate.hour);
+            // Update earliest/latest times in minutes of day
+            const startMinutes = startDate.hour * 60 + startDate.minute;
+            const endMinutes = endDate.hour * 60 + endDate.minute;
+            
+            earliestMinuteOfDay = Math.min(earliestMinuteOfDay, startMinutes);
+            latestMinuteOfDay = Math.max(latestMinuteOfDay, endMinutes);
           }
         });
       }
     });
 
-    // Apply some reasonable bounds (e.g., 6am to 11pm) if we don't have enough data
-    earliestHour = Math.max(6, Math.min(earliestHour, 9));  // Between 6am and 9am
-    latestHour = Math.min(23, Math.max(latestHour, 21));   // Between 9pm and 11pm
+    // Apply some reasonable bounds if we don't have enough data
+    earliestMinuteOfDay = Math.max(6 * 60, Math.min(earliestMinuteOfDay, 9 * 60));  // Between 6am and 9am
+    latestMinuteOfDay = Math.min(23 * 60, Math.max(latestMinuteOfDay, 21 * 60));   // Between 9pm and 11pm
 
-    // Create time slots for each date with dynamic hours
+    // Round down earliest time to nearest 15-minute interval
+    earliestMinuteOfDay = Math.floor(earliestMinuteOfDay / 15) * 15;
+    
+    // Round up latest time to nearest 15-minute interval
+    latestMinuteOfDay = Math.ceil(latestMinuteOfDay / 15) * 15;
+
+    // Create time slots for each date with dynamic times based on meeting duration
     sortedDates.forEach(dateString => {
       const date = new Date(dateString);
 
-      // Create slots for each hour from earliest to latest
-      for (let hour = earliestHour; hour < latestHour; hour++) {
-        const slotDate = new Date(date);
-        slotDate.setHours(hour, 0, 0, 0);
+      // Create slots using the meeting duration as the interval
+      for (let minuteOfDay = earliestMinuteOfDay; minuteOfDay < latestMinuteOfDay; minuteOfDay += meetingDuration) {
+        // Only create slots that can fit the full meeting duration
+        if (minuteOfDay + meetingDuration <= latestMinuteOfDay) {
+          const hours = Math.floor(minuteOfDay / 60);
+          const minutes = minuteOfDay % 60;
+          
+          const endHours = Math.floor((minuteOfDay + meetingDuration) / 60);
+          const endMinutes = (minuteOfDay + meetingDuration) % 60;
+          
+          const slotDate = new Date(date);
+          slotDate.setHours(hours, minutes, 0, 0);
 
-        const slotEndDate = new Date(slotDate);
-        slotEndDate.setHours(hour + 1, 0, 0, 0);
+          const slotEndDate = new Date(date);
+          slotEndDate.setHours(endHours, endMinutes, 0, 0);
 
-        const slotKey = `${dateString}-${hour}`;
+          const slotKey = `${dateString}-${hours}-${minutes}`;
 
-        // Always use the viewer's timezone for display
-        const timezoneName = this.viewerTimezone;
+          // Always use the viewer's timezone for display
+          const timezoneName = this.viewerTimezone;
 
-        // Create a Luxon DateTime for this slot in the viewer's timezone
-        const luxonSlotDate = DateTime.fromJSDate(slotDate).setZone(this.viewerTimezone);
+          // Create a Luxon DateTime for this slot in the viewer's timezone
+          const luxonSlotDate = DateTime.fromJSDate(slotDate).setZone(this.viewerTimezone);
+          
+          // Format hours and minutes with padding
+          const formattedStartTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+          const formattedEndTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+          
+          // Format time display for this slot in the viewer's timezone
+          const formattedDate = `${this.formatDateForDisplay(date)} ${formattedStartTime}-${formattedEndTime}`;
 
-        // Format time display for this slot in the viewer's timezone
-        // Don't include timezone in the string since we display it separately
-        const formattedDate = `${this.formatDateForDisplay(date)} ${hour}:00-${hour+1}:00`;
+          this.uniqueDates.push({
+            date: slotDate,
+            dateString: slotKey,
+            formattedDate,
+            slotStart: slotDate,
+            slotEnd: slotEndDate,
+            timezone: timezoneName // Add timezone information
+          });
 
-        this.uniqueDates.push({
-          date: slotDate,
-          dateString: slotKey,
-          formattedDate,
-          slotStart: slotDate,
-          slotEnd: slotEndDate,
-          timezone: timezoneName // Add timezone information
-        });
-
-        this.displayColumns.push(slotKey);
-        this.footerColumns.push(slotKey);
+          this.displayColumns.push(slotKey);
+          this.footerColumns.push(slotKey);
+        }
       }
     });
 
@@ -398,18 +419,9 @@ export class EventViewComponent implements OnInit {
       if (participant.parsedDates && participant.parsedDates.length > 0) {
         participant.parsedDates.forEach(dateData => {
           if (dateData.startTimestamp && dateData.endTimestamp) {
-            // Convert timestamps to milliseconds
-            const startTimeMs = dateData.startTimestamp.seconds * 1000;
-            const endTimeMs = dateData.endTimestamp.seconds * 1000;
-
             // Get the participant's timezone directly from the data
-            console.log(`DEBUG Timezone Info - dateData.timezone: ${dateData.timezone}, participant.timezone: ${participant.timezone}`);
-
-            // For data interpretation, we need to use the participant's original timezone
             // Fall back to Europe/Zurich if not specified - this is for interpreting the input data correctly
             const participantTimezone = dateData.timezone || participant.timezone || 'Europe/Zurich';
-            console.log(`Processing time range with timezone: ${participantTimezone}`);
-            console.log(`Viewer timezone: ${this.viewerTimezone}`);
 
             // IMPORTANT: The timestamps in Firestore are Unix timestamps (seconds since epoch in UTC)
             // But the original date components (like 9:00 AM) came from the user's input
@@ -421,29 +433,31 @@ export class EventViewComponent implements OnInit {
 
             // Look at the originalText to get the real time that was intended
             const originalText = dateData.originalText || '';
-            console.log(`Original text from LLM: ${originalText}`);
 
             // Parse out the hours from the original text if available
             let originalStartHour = 0;
+            let originalStartMinute = 0;
             let originalEndHour = 0;
+            let originalEndMinute = 0;
 
             if (originalText) {
-              const matches = originalText.match(/T(\d{2}):.*\/.*T(\d{2}):/);
-              if (matches && matches.length >= 3) {
+              const matches = originalText.match(/T(\d{2}):(\d{2}).*\/.*T(\d{2}):(\d{2})/);
+              if (matches && matches.length >= 5) {
                 originalStartHour = parseInt(matches[1]);
-                originalEndHour = parseInt(matches[2]);
-                console.log(`Extracted original hours from text: Start=${originalStartHour}, End=${originalEndHour}`);
+                originalStartMinute = parseInt(matches[2]);
+                originalEndHour = parseInt(matches[3]);
+                originalEndMinute = parseInt(matches[4]);
               }
             }
 
-            // Create DateTime objects with the original hour but in the participant's timezone
+            // Create DateTime objects with the original hour/minute but in the participant's timezone
             // We need to rebuild the DateTime from its components
             const luxonStartDate = DateTime.fromObject({
               year: utcStartDate.year,
               month: utcStartDate.month,
               day: utcStartDate.day,
               hour: originalStartHour || utcStartDate.hour,
-              minute: utcStartDate.minute,
+              minute: originalStartMinute || utcStartDate.minute,
               second: utcStartDate.second,
             }, { zone: participantTimezone });
 
@@ -452,106 +466,70 @@ export class EventViewComponent implements OnInit {
               month: utcEndDate.month,
               day: utcEndDate.day,
               hour: originalEndHour || utcEndDate.hour,
-              minute: utcEndDate.minute,
+              minute: originalEndMinute || utcEndDate.minute,
               second: utcEndDate.second,
             }, { zone: participantTimezone });
-
-            console.log(`Source timestamps - Start seconds: ${dateData.startTimestamp.seconds}, End seconds: ${dateData.endTimestamp.seconds}`);
-            console.log(`Date in UTC: ${DateTime.fromSeconds(dateData.startTimestamp.seconds, { zone: 'UTC' }).toISO()}`);
-            console.log(`Date in GMT: ${DateTime.fromSeconds(dateData.startTimestamp.seconds, { zone: 'GMT' }).toISO()}`);
-            console.log(`Date with no timezone specified: ${DateTime.fromSeconds(dateData.startTimestamp.seconds).toISO()}`);
-            console.log(`Original times in participant timezone: ${luxonStartDate.toISO()} to ${luxonEndDate.toISO()}`);
-            console.log(`Original times formatted for debug:
-              - Start hours:minutes: ${luxonStartDate.hour}:${luxonStartDate.minute}
-              - End hours:minutes: ${luxonEndDate.hour}:${luxonEndDate.minute}`);
-
-            // Try creating JS Date objects for comparison
-            const jsStartDate = new Date(dateData.startTimestamp.seconds * 1000);
-            console.log(`JS Date comparison -
-              Start JS Date: ${jsStartDate.toString()}
-              Start JS Local Time (hours:min): ${jsStartDate.getHours()}:${jsStartDate.getMinutes()}
-              Start JS UTC Time (hours:min): ${jsStartDate.getUTCHours()}:${jsStartDate.getUTCMinutes()}
-            `);
-
-            console.log(`Luxon start in participant timezone: ${luxonStartDate.toISO()} (${participantTimezone})`);
-            console.log(`Luxon end in participant timezone: ${luxonEndDate.toISO()} (${participantTimezone})`);
 
             // Convert to viewer's timezone for slot matching
             const startInViewerTZ = luxonStartDate.setZone(this.viewerTimezone);
             const endInViewerTZ = luxonEndDate.setZone(this.viewerTimezone);
 
-            console.log(`Luxon start in viewer timezone: ${startInViewerTZ.toISO()} (${this.viewerTimezone})`);
-            console.log(`Luxon end in viewer timezone: ${endInViewerTZ.toISO()} (${this.viewerTimezone})`);
-
-            // Extract hours in the viewer's timezone
-            const viewerStartHour = startInViewerTZ.hour;
-            const viewerEndHour = endInViewerTZ.hour;
-
-            console.log(`Hours in viewer timezone: Start=${viewerStartHour}, End=${viewerEndHour}`);
-
             // Match slots based on times converted to viewer's timezone
             this.uniqueDates.forEach((slot, index) => {
               if (slot.slotStart && slot.slotEnd) {
-                // Extract the slot hour
-                const slotHour = slot.slotStart.getHours();
-
+                // Get the slot start and end as DateTime objects
+                const slotStartDateTime = DateTime.fromJSDate(slot.slotStart).setZone(this.viewerTimezone);
+                const slotEndDateTime = DateTime.fromJSDate(slot.slotEnd).setZone(this.viewerTimezone);
+                
                 // Format dates for comparison
                 const slotDateStr = this.formatDateKey(slot.date);
-
-                // Create date strings for start and end in viewer's timezone
                 const startDateStr = startInViewerTZ.toISODate();
                 const endDateStr = endInViewerTZ.toISODate();
-
-                // Check if slot date matches either start or end date
-                const isMatchingDay = (slotDateStr === startDateStr || slotDateStr === endDateStr);
-
-                if (isMatchingDay) {
-                  // For same-day time ranges
-                  if (startDateStr === endDateStr) {
-                    if (slotHour >= viewerStartHour && slotHour < viewerEndHour) {
-                      participantAvailability[index] = 'available';
-                      console.log(`Marking slot ${slotHour}:00 on ${slotDateStr} as available (same day)`);
-                    }
+                
+                // Get timestamp values for comparison (milliseconds)
+                const slotStartTs = slotStartDateTime.toMillis();
+                const slotEndTs = slotEndDateTime.toMillis();
+                const participantStartTs = startInViewerTZ.toMillis();
+                const participantEndTs = endInViewerTZ.toMillis();
+                
+                // For time slots that fit entirely within the participant's available time
+                if (slotStartTs >= participantStartTs && slotEndTs <= participantEndTs) {
+                  participantAvailability[index] = 'available';
+                }
+                // Handle cases where the time slot spans multiple days
+                else if (startDateStr !== endDateStr) {
+                  // If slot is on start date and starts after participant's start time
+                  if (slotDateStr === startDateStr && slotStartTs >= participantStartTs) {
+                    participantAvailability[index] = 'available';
                   }
-                  // For time ranges that span multiple days
-                  else {
-                    // If slot is on start date, check if at or after start hour
-                    if (slotDateStr === startDateStr && slotHour >= viewerStartHour) {
-                      participantAvailability[index] = 'available';
-                      console.log(`Marking slot ${slotHour}:00 on start date ${slotDateStr} as available`);
-                    }
-                    // If slot is on end date, check if before end hour
-                    else if (slotDateStr === endDateStr && slotHour < viewerEndHour) {
-                      participantAvailability[index] = 'available';
-                      console.log(`Marking slot ${slotHour}:00 on end date ${slotDateStr} as available`);
-                    }
+                  // If slot is on end date and ends before participant's end time
+                  else if (slotDateStr === endDateStr && slotEndTs <= participantEndTs) {
+                    participantAvailability[index] = 'available';
+                  }
+                  // If slot date is between start and end dates
+                  else if (startDateStr && endDateStr && slotDateStr > startDateStr && slotDateStr < endDateStr) {
+                    participantAvailability[index] = 'available';
                   }
                 }
               }
             });
           } else if (dateData.timestamp) {
             // Fallback for regular timestamps (unlikely in meeting mode)
-
-            // For data interpretation, we need to use the participant's original timezone
-            // Fall back to Europe/Zurich if not specified - this is for interpreting the input data correctly
             const participantTimezone = dateData.timezone || participant.timezone || 'Europe/Zurich';
-
-            console.log(`Using fallback with timezone: ${participantTimezone}`);
-
-            // For regular timestamps, try to extract the original hour from originalText if available
-            const originalText = dateData.originalText || '';
-            console.log(`Original text from LLM: ${originalText}`);
 
             // Get a UTC date first
             const utcDate = DateTime.fromSeconds(dateData.timestamp.seconds, { zone: 'UTC' });
 
             // Try to extract the original hour
             let originalHour = 0;
+            let originalMinute = 0;
+            const originalText = dateData.originalText || '';
+            
             if (originalText) {
-              const matches = originalText.match(/T(\d{2}):/);
-              if (matches && matches.length >= 2) {
+              const matches = originalText.match(/T(\d{2}):(\d{2})/);
+              if (matches && matches.length >= 3) {
                 originalHour = parseInt(matches[1]);
-                console.log(`Extracted original hour from text: ${originalHour}`);
+                originalMinute = parseInt(matches[2]);
               }
             }
 
@@ -561,36 +539,40 @@ export class EventViewComponent implements OnInit {
               month: utcDate.month,
               day: utcDate.day,
               hour: originalHour || utcDate.hour,
-              minute: utcDate.minute,
+              minute: originalMinute || utcDate.minute,
               second: utcDate.second,
             }, { zone: participantTimezone });
 
-            console.log(`Luxon date in participant timezone: ${luxonDate.toISO()} (${participantTimezone})`);
-
             // Convert to viewer's timezone
             const dateInViewerTZ = luxonDate.setZone(this.viewerTimezone);
-            console.log(`Luxon date in viewer timezone: ${dateInViewerTZ.toISO()} (${this.viewerTimezone})`);
 
-            // Get the hour in viewer's timezone
-            const viewerHour = dateInViewerTZ.hour;
-            console.log(`Hour in viewer timezone: ${viewerHour}`);
+            // For a single point in time, assume the participant is available for the meeting duration
+            const startMinutes = dateInViewerTZ.hour * 60 + dateInViewerTZ.minute;
+            const endMinutes = startMinutes + (this.event?.meetingDuration || 60);
 
-            // Create the date string and slot key
-            const dateString = dateInViewerTZ.toISODate();
-            const slotKey = `${dateString}-${viewerHour}`;
-            console.log(`Looking for slot key: ${slotKey}`);
-
-            const slotIndex = this.uniqueDates.findIndex(slot => slot.dateString === slotKey);
-            if (slotIndex !== -1) {
-              participantAvailability[slotIndex] = 'available';
-              console.log(`Marking fallback slot ${viewerHour}:00 as available`);
-            }
+            this.uniqueDates.forEach((slot, index) => {
+              if (slot.slotStart) {
+                const slotStartDateTime = DateTime.fromJSDate(slot.slotStart).setZone(this.viewerTimezone);
+                const slotMinutes = slotStartDateTime.hour * 60 + slotStartDateTime.minute;
+                
+                // Check if the slot's date matches the participant's date
+                const slotDateStr = this.formatDateKey(slot.date);
+                const participantDateStr = dateInViewerTZ.toISODate();
+                
+                if (slotDateStr === participantDateStr && slotMinutes >= startMinutes && slotMinutes < endMinutes) {
+                  participantAvailability[index] = 'available';
+                }
+              }
+            });
           }
         });
       }
 
       this.availabilityMap.set(participant.id || participant.name, participantAvailability);
     });
+    
+    // After populating availability map, find common available time slots
+    this.findCommonAvailableTimeSlots();
   }
   
   /**
@@ -727,6 +709,53 @@ export class EventViewComponent implements OnInit {
     } else {
       return 'participation-high';
     }
+  }
+  
+  /**
+   * Common available time slots for meetings - stores slots where everyone is available
+   */
+  commonAvailableSlots: {slot: any, dateString: string}[] = [];
+  
+  /**
+   * Find common available time slots where all participants are available
+   */
+  findCommonAvailableTimeSlots(): void {
+    // Clear any previous results
+    this.commonAvailableSlots = [];
+    
+    // Only process if we have participants
+    if (this.participants.length === 0) {
+      return;
+    }
+    
+    // Check each time slot
+    this.uniqueDates.forEach((slot, index) => {
+      const dateString = slot.dateString;
+      let allAvailable = true;
+      
+      // Check if all participants are available for this slot
+      for (const participant of this.participants) {
+        if (!this.isParticipantAvailable(participant, dateString)) {
+          allAvailable = false;
+          break;
+        }
+      }
+      
+      // If all participants are available, add to common slots
+      if (allAvailable) {
+        this.commonAvailableSlots.push({
+          slot,
+          dateString
+        });
+      }
+    });
+  }
+  
+  /**
+   * Check if a time slot is commonly available for all participants
+   */
+  isCommonAvailableSlot(dateString: string): boolean {
+    return this.commonAvailableSlots.some(item => item.dateString === dateString);
   }
 
   // Expose window object for template
