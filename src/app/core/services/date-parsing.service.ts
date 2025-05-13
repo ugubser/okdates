@@ -39,7 +39,7 @@ export class DateParsingService {
    */
   async parseLlm(rawInput: string, isMeeting: boolean = false, timezone?: string | null): Promise<ParsedDate[]> {
     try {
-      console.log(`Parsing ${isMeeting ? 'meeting times' : 'dates'} with LLM Cloud Function...`);
+      //console.log(`Parsing ${isMeeting ? 'meeting times' : 'dates'} with LLM Cloud Function...`);
 
       // Call the Firebase Function
       const response = await this.firestoreService.callFunction('parsing-parseDates', {
@@ -48,7 +48,7 @@ export class DateParsingService {
         timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
       });
 
-      console.log('Cloud Function response:', response);
+      //console.log('Cloud Function response:', response);
 
       if (response.data.success) {
         // The parsed dates are already in the correct format
@@ -57,7 +57,7 @@ export class DateParsingService {
         throw new Error(response.data.error || 'Failed to parse dates with LLM');
       }
     } catch (error) {
-      console.error('Error parsing dates with Cloud Function:', error);
+      //console.error('Error parsing dates with Cloud Function:', error);
       // Fall back to client-side parsing if Cloud Function fails
       console.log('Falling back to client-side parsing...');
       return this.parseClientSide(rawInput, isMeeting, timezone);
