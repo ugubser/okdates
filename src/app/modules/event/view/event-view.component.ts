@@ -204,78 +204,121 @@ export class EventViewComponent implements OnInit {
       this.processMeetingAvailability();
     } else {
       // For regular events - use the original date-based approach
-      this.processDateAvailability();
+      this.processRegularEventAvailability();
     }
   }
 
   /**
-   * Process availability data for regular date-based events
+   * Process availability data for regular date-based events (original implementation)
    */
-  processDateAvailability(): void {
+  processRegularEventAvailability(): void {
     // Extract all dates from all participants
     const allDates = new Set<string>();
-
+    
+    console.log('Processing regular event availability for participants:', this.participants);
+    
     // First pass: collect all unique dates
     this.participants.forEach(participant => {
+      console.log(`Processing participant ${participant.name}, parsed dates:`, participant.parsedDates);
+      
       if (participant.parsedDates && participant.parsedDates.length > 0) {
-        participant.parsedDates.forEach(timestamp => {
-          const date = new Date(timestamp.seconds * 1000);
-          const dateString = this.formatDateKey(date);
-          allDates.add(dateString);
+        participant.parsedDates.forEach(dateData => {
+          // Check for various timestamp formats
+          if (dateData.timestamp && dateData.timestamp.seconds) {
+            const date = new Date(dateData.timestamp.seconds * 1000);
+            const dateString = date.toISOString().split('T')[0];
+            console.log(`Adding date from timestamp: ${dateString}`);
+            allDates.add(dateString);
+          } 
+          // Handle time range data - use start date
+          else if (dateData.startTimestamp && dateData.startTimestamp.seconds) {
+            const date = new Date(dateData.startTimestamp.seconds * 1000);
+            const dateString = date.toISOString().split('T')[0];
+            console.log(`Adding date from startTimestamp: ${dateString}`);
+            allDates.add(dateString);
+          }
+          // Legacy format - direct seconds value
+          else if (dateData.seconds) {
+            const date = new Date(dateData.seconds * 1000);
+            const dateString = date.toISOString().split('T')[0];
+            console.log(`Adding date from direct seconds: ${dateString}`);
+            allDates.add(dateString);
+          }
+          else {
+            console.warn('Unrecognized date format:', dateData);
+          }
         });
       }
     });
-
+    
+    console.log('All unique dates found:', allDates);
+    
     // Sort dates chronologically
     const sortedDates = Array.from(allDates).sort((a, b) => {
       return new Date(a).getTime() - new Date(b).getTime();
     });
-
+    
+    console.log('Sorted dates:', sortedDates);
+    
     // Create displayColumns and uniqueDates
     sortedDates.forEach(dateString => {
       const date = new Date(dateString);
-      const formattedDate = this.formatDateForDisplay(date);
+      const formattedDate = date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      });
       this.uniqueDates.push({ date, dateString, formattedDate });
       this.displayColumns.push(dateString);
       this.footerColumns.push(dateString);
     });
-
+    
     // Second pass: populate availability map
     this.participants.forEach(participant => {
       const participantDates: string[] = [];
-
+      
       // Initialize with all dates as unavailable
       sortedDates.forEach(() => {
         participantDates.push('unavailable');
       });
-
+      
       // Mark participant's available dates
       if (participant.parsedDates && participant.parsedDates.length > 0) {
-        participant.parsedDates.forEach(timestamp => {
-          if (timestamp.seconds) { // Check if it's a regular timestamp
-            // Use UTC Date to avoid automatic timezone conversion
-            // This preserves the original time as stored
-            const timestampMs = timestamp.seconds * 1000;
-            const date = new Date(timestampMs);
-
-            // If timezone info is available, create date that respects it
-            if (timestamp.timezone) {
-              // console.log(`Using timezone from date: ${timestamp.timezone}`);
-            } else if (participant.timezone) {
-              // console.log(`Using timezone from participant: ${participant.timezone}`);
-            }
-
-            const dateString = this.formatDateKey(date);
+        participant.parsedDates.forEach(dateData => {
+          let dateString = '';
+          
+          // Check for various timestamp formats
+          if (dateData.timestamp && dateData.timestamp.seconds) {
+            const date = new Date(dateData.timestamp.seconds * 1000);
+            dateString = date.toISOString().split('T')[0];
+          } 
+          // Handle time range data - use start date
+          else if (dateData.startTimestamp && dateData.startTimestamp.seconds) {
+            const date = new Date(dateData.startTimestamp.seconds * 1000);
+            dateString = date.toISOString().split('T')[0];
+          }
+          // Legacy format - direct seconds value
+          else if (dateData.seconds) {
+            const date = new Date(dateData.seconds * 1000);
+            dateString = date.toISOString().split('T')[0];
+          }
+          
+          if (dateString) {
             const dateIndex = sortedDates.indexOf(dateString);
             if (dateIndex !== -1) {
               participantDates[dateIndex] = 'available';
+              console.log(`Marking ${participant.name} as available on ${dateString}`);
             }
           }
         });
       }
-
+      
       this.availabilityMap.set(participant.id || participant.name, participantDates);
+      console.log(`Set availability for ${participant.name}:`, participantDates);
     });
+    
+    console.log('Final uniqueDates:', this.uniqueDates);
+    console.log('Final availabilityMap:', this.availabilityMap);
   }
 
   /**
@@ -579,6 +622,11 @@ export class EventViewComponent implements OnInit {
     if (date instanceof DateTime) {
       return date.toISODate() || '';
     } else {
+      // For regular JavaScript Date objects, ensure we have a valid date before converting
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date detected:', date);
+        return ''; // Return empty string for invalid dates
+      }
       return date.toISOString().split('T')[0];
     }
   }
@@ -749,8 +797,10 @@ export class EventViewComponent implements OnInit {
   
   /**
    * Check if a time slot is commonly available for all participants
+   * Only applicable for meeting mode
    */
   isCommonAvailableSlot(dateString: string): boolean {
+    if (!this.event?.isMeeting) return false;
     return this.commonAvailableSlots.some(item => item.dateString === dateString);
   }
 

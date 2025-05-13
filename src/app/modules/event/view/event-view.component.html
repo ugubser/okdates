@@ -97,9 +97,12 @@
 
         <!-- Dynamic Date Columns -->
         <ng-container *ngFor="let dateInfo of uniqueDates" [matColumnDef]="dateInfo.dateString">
-          <th mat-header-cell *matHeaderCellDef [ngClass]="[getParticipationClass(dateInfo.dateString), event.isMeeting ? 'time-slot' : '', isCommonAvailableSlot(dateInfo.dateString) ? 'common-available-slot' : '']">
+          <th mat-header-cell *matHeaderCellDef [ngClass]="[getParticipationClass(dateInfo.dateString), event.isMeeting ? 'time-slot' : '', event.isMeeting && isCommonAvailableSlot(dateInfo.dateString) ? 'common-available-slot' : '']">
             <div class="date-header">
+              <!-- Regular event view - simple date display -->
               <span *ngIf="!event.isMeeting">{{ dateInfo.formattedDate }}</span>
+              
+              <!-- Meeting view - time slot display with common availability -->
               <div *ngIf="event.isMeeting" class="time-slot-container">
                 <!-- For the first time slot of each day, show the day -->
                 <span class="day-display" *ngIf="isFirstTimeSlotOfDay(dateInfo)">
@@ -107,7 +110,7 @@
                 </span>
                 <span class="time-display">{{ dateInfo.formattedDate | slice:dateInfo.formattedDate.lastIndexOf(' ') + 1 }}</span>
                 <span class="timezone-display" *ngIf="dateInfo.timezone">{{ dateInfo.timezone }}</span>
-                <span class="common-available-badge" *ngIf="isCommonAvailableSlot(dateInfo.dateString)">Available for All</span>
+                <span class="common-available-badge" *ngIf="event.isMeeting && isCommonAvailableSlot(dateInfo.dateString)">Available for All</span>
               </div>
               <button
                 *ngIf="isAdmin"
