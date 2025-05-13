@@ -322,8 +322,8 @@ export class EventViewComponent implements OnInit {
     });
 
     // Find earliest start time and latest end time from all participants with minute precision
-    let earliestMinuteOfDay = 23 * 60; // Default to late (23:00)
-    let latestMinuteOfDay = 9 * 60;    // Default to early (09:00)
+    let earliestMinuteOfDay = 24 * 60; // Default to late (24:00)
+    let latestMinuteOfDay = 0;         // Default to early (00:00)
 
     // Scan through all participants' time ranges to find min/max times
     this.participants.forEach(participant => {
@@ -332,8 +332,15 @@ export class EventViewComponent implements OnInit {
           if (dateData.startTimestamp && dateData.endTimestamp) {
             // Get timezone and create proper DateTime objects
             const participantTimezone = dateData.timezone || participant.timezone || 'Europe/Zurich';
-            const startDate = DateTime.fromSeconds(dateData.startTimestamp.seconds, { zone: 'UTC' }).setZone(participantTimezone);
-            const endDate = DateTime.fromSeconds(dateData.endTimestamp.seconds, { zone: 'UTC' }).setZone(participantTimezone);
+            
+            // Use the approach from the expand-timestamp.js script:
+            // 1. Parse timestamp as UTC first
+            const utcStartDate = DateTime.fromSeconds(dateData.startTimestamp.seconds, { zone: 'utc' });
+            const utcEndDate = DateTime.fromSeconds(dateData.endTimestamp.seconds, { zone: 'utc' });
+            
+            // 2. Relabel to target timezone keeping the same wall-clock time
+            const startDate = utcStartDate.setZone(participantTimezone, { keepLocalTime: true });
+            const endDate = utcEndDate.setZone(participantTimezone, { keepLocalTime: true });
 
             // Update earliest/latest times in minutes of day
             const startMinutes = startDate.hour * 60 + startDate.minute;
@@ -346,9 +353,19 @@ export class EventViewComponent implements OnInit {
       }
     });
 
-    // Apply some reasonable bounds if we don't have enough data
-    earliestMinuteOfDay = Math.max(6 * 60, Math.min(earliestMinuteOfDay, 9 * 60));  // Between 6am and 9am
-    latestMinuteOfDay = Math.min(23 * 60, Math.max(latestMinuteOfDay, 21 * 60));   // Between 9pm and 11pm
+    // Apply reasonable bounds only if we don't have ANY data
+    if (earliestMinuteOfDay === 24 * 60) {
+      earliestMinuteOfDay = 7 * 60; // 7:00 AM default
+    }
+    if (latestMinuteOfDay === 0) {
+      latestMinuteOfDay = 19 * 60; // 7:00 PM default
+    }
+    
+    // Ensure we have enough of a time range
+    if (latestMinuteOfDay - earliestMinuteOfDay < 2 * 60) { // At least 2 hours
+      earliestMinuteOfDay = Math.max(0, earliestMinuteOfDay - 60); // Extend 1 hour earlier
+      latestMinuteOfDay = Math.min(24 * 60, latestMinuteOfDay + 60); // Extend 1 hour later
+    }
 
     // Round down earliest time to nearest 15-minute interval
     earliestMinuteOfDay = Math.floor(earliestMinuteOfDay / 15) * 15;
@@ -427,14 +444,15 @@ export class EventViewComponent implements OnInit {
             // But the original date components (like 9:00 AM) came from the user's input
             // We need to recreate the original date components in the participant's timezone
 
-            // Let's try a different approach - first get a UTC DateTime
-            const utcStartDate = DateTime.fromSeconds(dateData.startTimestamp.seconds, { zone: 'UTC' });
-            const utcEndDate = DateTime.fromSeconds(dateData.endTimestamp.seconds, { zone: 'UTC' });
-
-            // Look at the originalText to get the real time that was intended
+            // Use the approach from the expand-timestamp.js script:
+            // 1. Parse timestamp as UTC first
+            const utcStartDate = DateTime.fromSeconds(dateData.startTimestamp.seconds, { zone: 'utc' });
+            const utcEndDate = DateTime.fromSeconds(dateData.endTimestamp.seconds, { zone: 'utc' });
+            
+            // Look at the originalText to get the real time that was intended - this is for debugging only
             const originalText = dateData.originalText || '';
 
-            // Parse out the hours from the original text if available
+            // We won't need to parse hours from the original text since we're now using the correct timezone approach
             let originalStartHour = 0;
             let originalStartMinute = 0;
             let originalEndHour = 0;
@@ -450,25 +468,9 @@ export class EventViewComponent implements OnInit {
               }
             }
 
-            // Create DateTime objects with the original hour/minute but in the participant's timezone
-            // We need to rebuild the DateTime from its components
-            const luxonStartDate = DateTime.fromObject({
-              year: utcStartDate.year,
-              month: utcStartDate.month,
-              day: utcStartDate.day,
-              hour: originalStartHour || utcStartDate.hour,
-              minute: originalStartMinute || utcStartDate.minute,
-              second: utcStartDate.second,
-            }, { zone: participantTimezone });
-
-            const luxonEndDate = DateTime.fromObject({
-              year: utcEndDate.year,
-              month: utcEndDate.month,
-              day: utcEndDate.day,
-              hour: originalEndHour || utcEndDate.hour,
-              minute: originalEndMinute || utcEndDate.minute,
-              second: utcEndDate.second,
-            }, { zone: participantTimezone });
+            // 2. Relabel to target timezone keeping the same wall-clock time
+            const luxonStartDate = utcStartDate.setZone(participantTimezone, { keepLocalTime: true });
+            const luxonEndDate = utcEndDate.setZone(participantTimezone, { keepLocalTime: true });
 
             // Convert to viewer's timezone for slot matching
             const startInViewerTZ = luxonStartDate.setZone(this.viewerTimezone);
@@ -517,10 +519,11 @@ export class EventViewComponent implements OnInit {
             // Fallback for regular timestamps (unlikely in meeting mode)
             const participantTimezone = dateData.timezone || participant.timezone || 'Europe/Zurich';
 
-            // Get a UTC date first
-            const utcDate = DateTime.fromSeconds(dateData.timestamp.seconds, { zone: 'UTC' });
-
-            // Try to extract the original hour
+            // Use the approach from the expand-timestamp.js script:
+            // 1. Parse timestamp as UTC first
+            const utcDate = DateTime.fromSeconds(dateData.timestamp.seconds, { zone: 'utc' });
+            
+            // These variables are for debugging only - we won't use them anymore
             let originalHour = 0;
             let originalMinute = 0;
             const originalText = dateData.originalText || '';
@@ -533,15 +536,8 @@ export class EventViewComponent implements OnInit {
               }
             }
 
-            // Create a DateTime with the original hour in the participant's timezone
-            const luxonDate = DateTime.fromObject({
-              year: utcDate.year,
-              month: utcDate.month,
-              day: utcDate.day,
-              hour: originalHour || utcDate.hour,
-              minute: originalMinute || utcDate.minute,
-              second: utcDate.second,
-            }, { zone: participantTimezone });
+            // 2. Relabel to target timezone keeping the same wall-clock time
+            const luxonDate = utcDate.setZone(participantTimezone, { keepLocalTime: true });
 
             // Convert to viewer's timezone
             const dateInViewerTZ = luxonDate.setZone(this.viewerTimezone);
