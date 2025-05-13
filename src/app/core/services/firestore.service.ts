@@ -35,7 +35,7 @@ export class FirestoreService {
       // Try to read events collection to verify connection
       const colRef = collection(this.firestore, 'events');
       const snapshot = await getDocs(colRef);
-      console.log(`Successfully connected to Firestore. Found ${snapshot.size} events`);
+      //console.log(`Successfully connected to Firestore. Found ${snapshot.size} events`);
     } catch (error) {
       console.error('Failed to connect to Firestore:', error);
     }
@@ -44,33 +44,33 @@ export class FirestoreService {
   // Document methods
   async getDocument(collectionPath: string, docId: string): Promise<any> {
     try {
-      console.log(`FirestoreService: Getting document ${collectionPath}/${docId}`);
+      //console.log(`FirestoreService: Getting document ${collectionPath}/${docId}`);
       const docRef = doc(this.firestore, collectionPath, docId);
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
         const data = docSnap.data();
-        console.log(`Document found at ${collectionPath}/${docId}:`, data);
+        //console.log(`Document found at ${collectionPath}/${docId}:`, data);
         return {
           id: docSnap.id,
           ...data
         };
       } else {
-        console.log(`No document found at ${collectionPath}/${docId}`);
+        //console.log(`No document found at ${collectionPath}/${docId}`);
         return null;
       }
     } catch (error) {
-      console.error(`Error getting document ${collectionPath}/${docId}:`, error);
+      //console.error(`Error getting document ${collectionPath}/${docId}:`, error);
       return null;
     }
   }
 
   async setDocument(collectionPath: string, docId: string, data: any): Promise<void> {
     try {
-      console.log(`FirestoreService: Setting document ${collectionPath}/${docId}`, data);
+      //console.log(`FirestoreService: Setting document ${collectionPath}/${docId}`, data);
       const docRef = doc(this.firestore, collectionPath, docId);
       await setDoc(docRef, data, { merge: true });
-      console.log(`Document updated at ${collectionPath}/${docId}`);
+      //console.log(`Document updated at ${collectionPath}/${docId}`);
     } catch (error) {
       console.error(`Error setting document ${collectionPath}/${docId}:`, error);
       throw error;
@@ -89,11 +89,11 @@ export class FirestoreService {
       }, 2));
       
       const colRef = collection(this.firestore, collectionPath);
-      console.log('Collection reference created');
+      //console.log('Collection reference created');
       
-      console.log('Adding document to Firestore...');
+      //console.log('Adding document to Firestore...');
       const docRef = await addDoc(colRef, data);
-      console.log(`Document successfully added with ID: ${docRef.id}`);
+      //console.log(`Document successfully added with ID: ${docRef.id}`);
       
       return docRef.id;
     } catch (error) {
@@ -108,10 +108,10 @@ export class FirestoreService {
 
   async deleteDocument(collectionPath: string, docId: string): Promise<void> {
     try {
-      console.log(`FirestoreService: Deleting document ${collectionPath}/${docId}`);
+      //console.log(`FirestoreService: Deleting document ${collectionPath}/${docId}`);
       const docRef = doc(this.firestore, collectionPath, docId);
       await deleteDoc(docRef);
-      console.log(`Document successfully deleted at ${collectionPath}/${docId}`);
+      //console.log(`Document successfully deleted at ${collectionPath}/${docId}`);
     } catch (error) {
       console.error(`Error deleting document ${collectionPath}/${docId}:`, error);
       throw error;
@@ -120,7 +120,7 @@ export class FirestoreService {
 
   async getCollection(collectionPath: string): Promise<any[]> {
     try {
-      console.log(`FirestoreService: Getting collection '${collectionPath}'`);
+      //console.log(`FirestoreService: Getting collection '${collectionPath}'`);
       const colRef = collection(this.firestore, collectionPath);
       const querySnapshot = await getDocs(colRef);
       
@@ -132,7 +132,7 @@ export class FirestoreService {
         });
       });
       
-      console.log(`Found ${results.length} documents in collection ${collectionPath}`);
+      //console.log(`Found ${results.length} documents in collection ${collectionPath}`);
       return results;
     } catch (error) {
       console.error(`Error getting collection ${collectionPath}:`, error);
@@ -143,10 +143,10 @@ export class FirestoreService {
   // Firebase Functions methods
   async callFunction(name: string, data: any): Promise<any> {
     try {
-      console.log(`FirestoreService: Calling function '${name}' with data:`, data);
+      //console.log(`FirestoreService: Calling function '${name}' with data:`, data);
       const functionRef = httpsCallable(this.functions, name);
       const result = await functionRef(data);
-      console.log(`Function '${name}' returned:`, result);
+      //console.log(`Function '${name}' returned:`, result);
       return result;
     } catch (error) {
       console.error(`Error calling function ${name}:`, error);
@@ -156,7 +156,7 @@ export class FirestoreService {
   
   // Helper method to create a Firestore timestamp
   createTimestamp(): Timestamp {
-    console.log('Creating Firestore timestamp');
+    //console.log('Creating Firestore timestamp');
     return Timestamp.now();
   }
   

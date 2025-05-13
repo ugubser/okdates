@@ -85,11 +85,11 @@ export class EventService {
     location: string | null = null,
     isMeeting: boolean = false
   ): Promise<{ eventId: string, event: Event }> {
-    console.log('EventService: Creating event directly in Firestore');
+    //console.log('EventService: Creating event directly in Firestore');
 
     // Create timestamp
     const timestamp = this.firestoreService.createTimestamp();
-    console.log('Created timestamp:', timestamp);
+    //console.log('Created timestamp:', timestamp);
 
     // Generate admin key for secure editing
     const adminKey = this.generateAdminKey();
@@ -111,19 +111,19 @@ export class EventService {
       eventData.location = location;
     }
 
-    console.log('Event data to save:', eventData);
+    //console.log('Event data to save:', eventData);
 
     // Generate a unique event ID
-    console.log('Adding document to Firestore...');
+    //console.log('Adding document to Firestore...');
     const eventId = await this.firestoreService.addDocument(this.eventsPath, eventData);
-    console.log('Document added with ID:', eventId);
+    //console.log('Document added with ID:', eventId);
 
     const event: Event = {
       id: eventId,
       ...eventData
     };
 
-    console.log('Event created successfully:', event);
+    //console.log('Event created successfully:', event);
 
     return {
       eventId,
