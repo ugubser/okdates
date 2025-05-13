@@ -38,7 +38,7 @@ function loadKeyFromFirebaseFunctionsConfig(): string | undefined {
   try {
     const config = functions.config();
     if (config.openrouter && config.openrouter.api_key) {
-      console.log('Found OpenRouter config in Firebase Functions config');
+      //console.log('Found OpenRouter config in Firebase Functions config');
       openRouterModel = config.openrouter.model || openRouterModel;
       return config.openrouter.api_key;
     } else {
@@ -54,7 +54,7 @@ function loadKeyFromFirebaseFunctionsConfig(): string | undefined {
 function loadKeyFromEnvironmentVariables(): string | undefined {
   const key = process.env.OPENROUTER_API_KEY;
   if (key) {
-    console.log('Using OpenRouter API key from environment variables');
+    //console.log('Using OpenRouter API key from environment variables');
     openRouterBaseUrl = process.env.OPENROUTER_BASE_URL || openRouterBaseUrl;
     openRouterModel = process.env.OPENROUTER_MODEL || openRouterModel;
     return key;
@@ -74,7 +74,7 @@ function loadKeyFromExternalFile(): string | undefined {
     
     for (const keyPath of keyPaths) {
       if (fs.existsSync(keyPath)) {
-        console.log('Loading API key from key file:', keyPath);
+        //console.log('Loading API key from key file:', keyPath);
         const key = fs.readFileSync(keyPath, 'utf8').trim();
         if (key && key !== 'YOUR_OPENROUTER_API_KEY_HERE') {
           return key;
@@ -108,9 +108,9 @@ function loadKeyFromConfigFile(): string | undefined {
         }
       }
     }
-    console.warn('No valid AI config file found with API key');
+    //console.warn('No valid AI config file found with API key');
   } catch (error) {
-    console.error('Error loading AI config from file:', error);
+    //console.error('Error loading AI config from file:', error);
   }
   return undefined;
 }
@@ -120,7 +120,7 @@ openRouterKey = loadApiKey();
 
 // Log API key status (safely without revealing the key)
 if (openRouterKey) {
-  console.log('OpenRouter API key is configured (starts with:', openRouterKey.substring(0, 5) + '...)');
+  //console.log('OpenRouter API key is configured (starts with:', openRouterKey.substring(0, 5) + '...)');
 } else {
   console.error('No OpenRouter API key found in environment variables or config file!');
 }
@@ -141,7 +141,7 @@ console.log(`OpenAI client initialized with baseURL: ${openRouterBaseUrl}`);
 if (!openRouterKey) {
   console.error('ERROR: OpenRouter API key is missing!');
 } else {
-  console.log('Using OpenRouter API key:', openRouterKey.substring(0, 10) + '...');
+  //console.log('Using OpenRouter API key:', openRouterKey.substring(0, 10) + '...');
 }
 
 /**
@@ -170,7 +170,7 @@ export async function parseDatesWithLLM(rawInput: string, isMeeting: boolean = f
     isConfirmed: boolean;
   }>;
 }> {
-  console.log(`Parsing ${isMeeting ? 'meeting times' : 'dates'} with LLM:`, rawInput);
+  //console.log(`Parsing ${isMeeting ? 'meeting times' : 'dates'} with LLM:`, rawInput);
 
   try {
     let messages;
@@ -278,7 +278,8 @@ ${rawInput}`
     }
 
     // Call the LLM API
-    console.log('Calling OpenRouter API with model:', openRouterModel);
+    //console.log('Calling OpenRouter API with model:', openRouterModel);
+    /*
     console.log('Request payload:', {
       model: openRouterModel,
       messages,
@@ -288,7 +289,7 @@ ${rawInput}`
       },
       temperature: 0.2
     });
-
+*/
     const response = await openai.chat.completions.create({
       model: openRouterModel,
       messages: messages as any,
@@ -304,11 +305,11 @@ ${rawInput}`
 
     // Parse the JSON response
     const content = response.choices[0]?.message?.content || '';
-    console.log('Raw content:', content);
+    //console.log('Raw content:', content);
 
     try {
       const parsedContent = JSON.parse(content);
-      console.log('Parsed content:', parsedContent);
+      //console.log('Parsed content:', parsedContent);
 
       if (isMeeting) {
         // For meetings, transform the time ranges into start/end timestamps

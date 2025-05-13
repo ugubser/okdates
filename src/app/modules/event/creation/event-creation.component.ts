@@ -163,26 +163,26 @@ export class EventCreationComponent implements OnInit {
   }
   
   ngOnInit(): void {
-    console.log('Event creation component initialized');
-    console.log('isCreatingNew:', this.isCreatingNew);
-    console.log('eventId:', this.eventId);
+    //console.log('Event creation component initialized');
+    //console.log('isCreatingNew:', this.isCreatingNew);
+    //console.log('eventId:', this.eventId);
 
     // Check if this is a meeting creation
     const isMeetingParam = this.route.snapshot.queryParamMap.get('isMeeting');
     this.isMeeting = isMeetingParam === 'true';
-    console.log('isMeeting:', this.isMeeting);
+    //console.log('isMeeting:', this.isMeeting);
 
     if (this.isCreatingNew) {
       // Initialize a new empty event
-      console.log('Creating new event...');
+      //console.log('Creating new event...');
       this.createNewEvent();
     } else if (this.eventId) {
       // Load existing event
-      console.log('Loading existing event...');
+      //console.log('Loading existing event...');
       this.loadEvent();
     } else {
       // Navigate to home if no event ID and not creating
-      console.log('No event ID and not creating, navigating to home...');
+      //console.log('No event ID and not creating, navigating to home...');
       this.router.navigate(['/']);
     }
   }
@@ -190,11 +190,11 @@ export class EventCreationComponent implements OnInit {
   async createNewEvent(): Promise<void> {
     try {
       this.isLoading = true;
-      console.log('Creating event in Firestore...');
+      //console.log('Creating event in Firestore...');
 
       // Initialize with empty title and description
       const { eventId, event } = await this.eventService.createEventDirect(null, null, null, this.isMeeting);
-      console.log('Event created with ID:', eventId);
+      //console.log('Event created with ID:', eventId);
 
       this.eventId = eventId;
       this.event = event;
@@ -210,7 +210,7 @@ export class EventCreationComponent implements OnInit {
       });
 
       // Now the user can edit the empty event
-      console.log('New event ready for editing:', this.event);
+      //console.log('New event ready for editing:', this.event);
     } catch (error) {
       console.error('Error creating event:', error);
       // Navigate back to home on error
