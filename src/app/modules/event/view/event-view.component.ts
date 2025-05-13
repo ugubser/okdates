@@ -837,19 +837,53 @@ export class EventViewComponent implements OnInit {
   /**
    * Generate and download an iCalendar file for a specific date
    */
-  downloadICalForDate(dateInfo: {date: Date, dateString: string, formattedDate: string}): void {
+  downloadICalForDate(dateInfo: any): void {
     if (!this.event) return;
 
-    // Generate the iCalendar content
-    const icalContent = this.iCalendarService.generateICalendarFile(
-      this.event,
-      dateInfo.date,
-      dateInfo.formattedDate
-    );
+    // Handle differently based on event type
+    let icalContent;
 
-    // Create a filename with the event title and date
-    const safeTitle = (this.event.title || 'Event').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    const fileName = `${safeTitle}_${dateInfo.dateString}.ics`;
+    if (this.event.isMeeting) {
+      // For meetings, use the slot start and end times, and pass timezone
+      if (dateInfo.slotStart && dateInfo.slotEnd) {
+        icalContent = this.iCalendarService.generateICalendarFile(
+          this.event,
+          dateInfo.date,
+          dateInfo.formattedDate,
+          dateInfo.slotStart,
+          dateInfo.slotEnd,
+          dateInfo.timezone || this.viewerTimezone // Pass timezone info for meetings
+        );
+      } else {
+        console.warn('Missing slot times for meeting event');
+        icalContent = this.iCalendarService.generateICalendarFile(
+          this.event,
+          dateInfo.date,
+          dateInfo.formattedDate
+        );
+      }
+    } else {
+      // For regular events, pass the date only - timezone will be determined by the service
+      icalContent = this.iCalendarService.generateICalendarFile(
+        this.event,
+        dateInfo.date,
+        dateInfo.formattedDate
+      );
+    }
+
+    // Create a filename with the event title and date/time
+    let fileName;
+    if (this.event.isMeeting && dateInfo.slotStart) {
+      // For meetings, include the time in the filename
+      const timeStr = dateInfo.slotStart.getHours().toString().padStart(2, '0') + 
+                      dateInfo.slotStart.getMinutes().toString().padStart(2, '0');
+      const safeTitle = (this.event.title || 'Meeting').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      fileName = `${safeTitle}_${dateInfo.dateString}_${timeStr}.ics`;
+    } else {
+      // For regular events, just use the date
+      const safeTitle = (this.event.title || 'Event').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      fileName = `${safeTitle}_${dateInfo.dateString}.ics`;
+    }
 
     // Trigger the download
     this.iCalendarService.downloadICalFile(icalContent, fileName);
