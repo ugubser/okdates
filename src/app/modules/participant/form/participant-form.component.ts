@@ -180,8 +180,11 @@ export class ParticipantFormComponent implements OnInit {
         const isMeeting = this.event?.isMeeting || false;
 
         // Get the selected timezone (only relevant for meetings)
-        const timezone = isMeeting ? this.participantForm.get('timezone')?.value : null;
-        console.log(`Using timezone: ${timezone || 'default'}`);
+        // Important: For regular events, pass null instead of undefined
+        const timezone = isMeeting ? 
+          (this.participantForm.get('timezone')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone) : 
+          null;
+        console.log(`Using timezone: ${timezone || 'null'}`);
 
         // Use the LLM-based parsing
         console.log(`Parsing ${isMeeting ? 'meeting times' : 'dates'} using LLM...`);
@@ -195,7 +198,9 @@ export class ParticipantFormComponent implements OnInit {
         // Fallback to client-side parsing if LLM fails
         const rawDateInput = this.participantForm.get('availability')?.value;
         const isMeeting = this.event?.isMeeting || false;
-        const timezone = isMeeting ? this.participantForm.get('timezone')?.value : null;
+        const timezone = isMeeting ? 
+          (this.participantForm.get('timezone')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone) : 
+          null;
         console.log('Falling back to client-side parsing...');
         this.parsedDates = this.dateParsingService.parseClientSide(rawDateInput, isMeeting, timezone);
       } finally {
@@ -268,7 +273,7 @@ export class ParticipantFormComponent implements OnInit {
           const isMeeting = this.event?.isMeeting || false;
           const timezone = isMeeting ?
             this.participantForm.get('timezone')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone :
-            undefined;
+            null; // Use null instead of undefined for non-meeting events
 
           await this.participantService.updateParticipantDirect(
             this.eventId,
@@ -277,7 +282,7 @@ export class ParticipantFormComponent implements OnInit {
               name,
               rawDateInput,
               parsedDates: cleanDates,
-              timezone, // Include timezone info
+              timezone, // Include timezone info (null for non-meeting events)
               submittedAt: { seconds: Date.now() / 1000, nanoseconds: 0 }
             }
           );
@@ -288,14 +293,14 @@ export class ParticipantFormComponent implements OnInit {
           const isMeeting = this.event?.isMeeting || false;
           const timezone = isMeeting ?
             this.participantForm.get('timezone')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone :
-            undefined;
+            null; // Use null instead of undefined for non-meeting events
 
           const result = await this.participantService.addParticipantDirect(
             this.eventId,
             name,
             rawDateInput,
             cleanDates,
-            timezone
+            timezone || null // Ensure we never pass undefined
           );
           
           // Store participant ID in localStorage for future editing
@@ -350,8 +355,21 @@ export class ParticipantFormComponent implements OnInit {
    * This removes any undefined fields which Firestore doesn't accept
    */
   cleanTimestampsForStorage(dates: any[]): any[] {
-    // First stringify and then parse to remove undefined values
-    const cleanString = JSON.stringify(dates);
+    // First ensure we have valid data, then stringify and parse to remove undefined values
+    const cleanedDates = dates.map(date => {
+      // Make a copy to avoid modifying the original
+      const cleanDate = {...date};
+      
+      // For regular events, ensure timezone is null or a valid string, never undefined
+      if (!this.event?.isMeeting && cleanDate.timezone === undefined) {
+        cleanDate.timezone = null;
+      }
+      
+      return cleanDate;
+    });
+    
+    // Now stringify and parse to remove any remaining undefined values
+    const cleanString = JSON.stringify(cleanedDates);
     return JSON.parse(cleanString);
   }
   
