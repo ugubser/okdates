@@ -306,6 +306,34 @@
     .participation-high {
       background-color: rgba(76, 175, 80, 0.1); /* Light green */
     }
+    
+    /* Common available slot - everyone is available */
+    .common-available-slot {
+      background-color: rgba(76, 175, 80, 0.3) !important; /* Brighter green */
+      position: relative;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border: 2px solid rgba(76, 175, 80, 0.8);
+        pointer-events: none;
+      }
+    }
+    
+    .common-available-badge {
+      background-color: rgba(76, 175, 80, 0.9);
+      color: white;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 10px;
+      margin-top: 4px;
+      font-weight: bold;
+      display: inline-block;
+    }
 
     /* Footer row styles */
     .mat-mdc-footer-row {
