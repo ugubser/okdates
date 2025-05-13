@@ -215,11 +215,11 @@ export class EventViewComponent implements OnInit {
     // Extract all dates from all participants
     const allDates = new Set<string>();
     
-    console.log('Processing regular event availability for participants:', this.participants);
+    //console.log('Processing regular event availability for participants:', this.participants);
     
     // First pass: collect all unique dates
     this.participants.forEach(participant => {
-      console.log(`Processing participant ${participant.name}, parsed dates:`, participant.parsedDates);
+      //console.log(`Processing participant ${participant.name}, parsed dates:`, participant.parsedDates);
       
       if (participant.parsedDates && participant.parsedDates.length > 0) {
         participant.parsedDates.forEach(dateData => {
@@ -227,21 +227,21 @@ export class EventViewComponent implements OnInit {
           if (dateData.timestamp && dateData.timestamp.seconds) {
             const date = new Date(dateData.timestamp.seconds * 1000);
             const dateString = date.toISOString().split('T')[0];
-            console.log(`Adding date from timestamp: ${dateString}`);
+            //console.log(`Adding date from timestamp: ${dateString}`);
             allDates.add(dateString);
           } 
           // Handle time range data - use start date
           else if (dateData.startTimestamp && dateData.startTimestamp.seconds) {
             const date = new Date(dateData.startTimestamp.seconds * 1000);
             const dateString = date.toISOString().split('T')[0];
-            console.log(`Adding date from startTimestamp: ${dateString}`);
+            //console.log(`Adding date from startTimestamp: ${dateString}`);
             allDates.add(dateString);
           }
           // Legacy format - direct seconds value
           else if (dateData.seconds) {
             const date = new Date(dateData.seconds * 1000);
             const dateString = date.toISOString().split('T')[0];
-            console.log(`Adding date from direct seconds: ${dateString}`);
+            //console.log(`Adding date from direct seconds: ${dateString}`);
             allDates.add(dateString);
           }
           else {
@@ -251,14 +251,14 @@ export class EventViewComponent implements OnInit {
       }
     });
     
-    console.log('All unique dates found:', allDates);
+    //console.log('All unique dates found:', allDates);
     
     // Sort dates chronologically
     const sortedDates = Array.from(allDates).sort((a, b) => {
       return new Date(a).getTime() - new Date(b).getTime();
     });
     
-    console.log('Sorted dates:', sortedDates);
+    //console.log('Sorted dates:', sortedDates);
     
     // Create displayColumns and uniqueDates
     sortedDates.forEach(dateString => {
@@ -307,18 +307,18 @@ export class EventViewComponent implements OnInit {
             const dateIndex = sortedDates.indexOf(dateString);
             if (dateIndex !== -1) {
               participantDates[dateIndex] = 'available';
-              console.log(`Marking ${participant.name} as available on ${dateString}`);
+              //console.log(`Marking ${participant.name} as available on ${dateString}`);
             }
           }
         });
       }
       
       this.availabilityMap.set(participant.id || participant.name, participantDates);
-      console.log(`Set availability for ${participant.name}:`, participantDates);
+      //console.log(`Set availability for ${participant.name}:`, participantDates);
     });
     
-    console.log('Final uniqueDates:', this.uniqueDates);
-    console.log('Final availabilityMap:', this.availabilityMap);
+    //console.log('Final uniqueDates:', this.uniqueDates);
+    //console.log('Final availabilityMap:', this.availabilityMap);
   }
 
   /**

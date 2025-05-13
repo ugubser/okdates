@@ -25,7 +25,7 @@ export class HomeComponent implements OnInit {
   }
 
   createNewEvent(isMeeting: boolean = false): void {
-    console.log(`Creating new ${isMeeting ? 'meeting' : 'event'} - navigating to create page`);
+    //console.log(`Creating new ${isMeeting ? 'meeting' : 'event'} - navigating to create page`);
     this.router.navigate(['/event/create'], { queryParams: { isMeeting } });
   }
   
@@ -36,7 +36,7 @@ export class HomeComponent implements OnInit {
   private async listEvents(): Promise<void> {
     try {
       const events = await this.firestoreService.getCollection('events');
-      console.log('Current events in the database:', events);
+      //console.log('Current events in the database:', events);
     } catch (error) {
       console.error('Error listing events:', error);
     }
