@@ -59,7 +59,7 @@
   </div>
   
   <div class="share-section">
-    <h3>Share this event with participants</h3>
+    <h3>Share this {{ event.isMeeting ? 'meeting' : 'event' }} with participants</h3>
     <p class="share-prompt">Copy and share this link so people can add their availability:</p>
     <div class="link-container">
       <span class="event-link">{{ getShareableUrl() }}</span>
