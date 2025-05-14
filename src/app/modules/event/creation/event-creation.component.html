@@ -3,9 +3,9 @@
   
   <form [formGroup]="eventForm" (ngSubmit)="saveEvent()">
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Event Title (optional)</mat-label>
+      <mat-label>{{ isMeeting ? 'Meeting Title (optional)' : 'Event Title (optional)' }}</mat-label>
       <input matInput formControlName="title" placeholder="e.g., Team Dinner">
-      <mat-hint>Give your event a name so participants know what it's for</mat-hint>
+      <mat-hint>Give your {{ isMeeting ? 'meeting' : 'event' }} a name so participants know what it's for</mat-hint>
     </mat-form-field>
     
     <mat-form-field appearance="outline" class="full-width">
