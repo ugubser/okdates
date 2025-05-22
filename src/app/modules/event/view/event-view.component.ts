@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -8,21 +9,111 @@ import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatCardModule } from '@angular/material/card';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { EventService } from '../../../core/services/event.service';
 import { ParticipantService } from '../../../core/services/participant.service';
 import { ParticipantStorageService } from '../../../core/services/participant-storage.service';
+import { AdminStorageService } from '../../../core/services/admin-storage.service';
 import { ICalendarService } from '../../../core/services/ical.service';
 import { Event } from '../../../core/models/event.model';
 import { Participant } from '../../../core/models/participant.model';
 import { ParsedDate } from '../../../core/models/parsed-date.model';
 import { DateTime } from 'luxon';
 
+// Password Dialog Component
+@Component({
+  selector: 'admin-password-dialog',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatInputModule,
+    MatFormFieldModule,
+    MatDialogModule
+  ],
+  template: `
+    <h2 mat-dialog-title>Administrator Access</h2>
+    <mat-dialog-content>
+      <p>Enter the administrator password to access admin features:</p>
+      <form [formGroup]="passwordForm">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Password</mat-label>
+          <input matInput type="password" formControlName="password" required>
+          <mat-error *ngIf="passwordForm.get('password')?.hasError('required')">
+            Password is required
+          </mat-error>
+          <mat-error *ngIf="errorMessage">
+            {{ errorMessage }}
+          </mat-error>
+        </mat-form-field>
+      </form>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Cancel</button>
+      <button 
+        mat-raised-button 
+        color="primary" 
+        [disabled]="!passwordForm.valid || isVerifying"
+        (click)="verifyPassword()">
+        {{ isVerifying ? 'Verifying...' : 'Submit' }}
+      </button>
+    </mat-dialog-actions>
+  `,
+  styles: [`
+    .full-width {
+      width: 100%;
+    }
+  `]
+})
+export class AdminPasswordDialogComponent {
+  passwordForm: FormGroup;
+  isVerifying = false;
+  errorMessage = '';
+  
+  constructor(
+    private dialogRef: MatDialogRef<AdminPasswordDialogComponent>,
+    private fb: FormBuilder,
+    private eventService: EventService,
+    @Inject(MAT_DIALOG_DATA) public data: { eventId: string }
+  ) {
+    this.passwordForm = this.fb.group({
+      password: ['', Validators.required]
+    });
+  }
+  
+  async verifyPassword(): Promise<void> {
+    if (this.passwordForm.valid) {
+      this.isVerifying = true;
+      this.errorMessage = '';
+      
+      try {
+        const password = this.passwordForm.get('password')?.value;
+        const isValid = await this.eventService.verifyAdminPassword(this.data.eventId, password);
+        
+        if (isValid) {
+          this.dialogRef.close({ success: true, password });
+        } else {
+          this.errorMessage = 'Invalid password';
+        }
+      } catch (error) {
+        this.errorMessage = 'An error occurred while verifying the password';
+        console.error('Error verifying password:', error);
+      } finally {
+        this.isVerifying = false;
+      }
+    }
+  }
+}
+
 @Component({
   selector: 'app-event-view',
   standalone: true,
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
@@ -30,6 +121,8 @@ import { DateTime } from 'luxon';
     MatChipsModule,
     MatCardModule,
     MatMenuModule,
+    MatInputModule,
+    MatFormFieldModule,
     MatDialogModule
   ],
   templateUrl: './event-view.component.html',
@@ -67,11 +160,17 @@ export class EventViewComponent implements OnInit {
     private eventService: EventService,
     private participantService: ParticipantService,
     private participantStorageService: ParticipantStorageService,
+    private adminStorageService: AdminStorageService,
     private iCalendarService: ICalendarService,
     private dialog: MatDialog
   ) {
     this.eventId = this.route.snapshot.paramMap.get('id') || '';
     this.adminKey = this.route.snapshot.paramMap.get('adminKey') || '';
+    
+    // If admin key is provided in the URL, store it for future use
+    if (this.adminKey) {
+      this.adminStorageService.storeAdminKey(this.eventId, this.adminKey);
+    }
   }
   
   /**
@@ -107,15 +206,27 @@ export class EventViewComponent implements OnInit {
         return;
       }
       
-      // Check if user has admin access
+      // Check for admin access from URL parameter or stored admin key
+      let storedAdminKey = this.adminStorageService.getAdminKey(this.eventId);
+      
       if (this.adminKey) {
+        // Use admin key from URL parameter
         this.isAdmin = await this.eventService.verifyAdminKey(this.eventId, this.adminKey);
         
-        if (!this.isAdmin) {
-          console.warn('Invalid admin key provided');
-          // Still show the event, but without admin privileges
+        if (this.isAdmin) {
+          // Store valid admin key for future use
+          this.adminStorageService.storeAdminKey(this.eventId, this.adminKey);
         } else {
-          // console.log('Admin access verified');
+          console.warn('Invalid admin key provided in URL');
+        }
+      } else if (storedAdminKey) {
+        // Use stored admin key
+        this.isAdmin = await this.eventService.verifyAdminKey(this.eventId, storedAdminKey);
+        this.adminKey = storedAdminKey;
+        
+        if (!this.isAdmin) {
+          console.warn('Stored admin key is no longer valid');
+          this.adminStorageService.removeAdminKey(this.eventId);
         }
       }
       
@@ -173,6 +284,45 @@ export class EventViewComponent implements OnInit {
     this.router.navigate(['/event', this.eventId, 'participate']);
   }
   
+  /**
+   * Open admin password dialog to verify admin access
+   */
+  openAdminPasswordDialog(): void {
+    // Only show password dialog if the event has a password set
+    if (!this.event?.adminPassword) {
+      alert('This event does not have an administrator password set.');
+      return;
+    }
+    
+    const dialogRef = this.dialog.open(AdminPasswordDialogComponent, {
+      width: '400px',
+      data: { eventId: this.eventId }
+    });
+    
+    dialogRef.afterClosed().subscribe(async (result) => {
+      if (result && result.success) {
+        // Password verification successful
+        // Get the admin key for this event
+        if (this.event?.adminKey) {
+          this.adminKey = this.event.adminKey;
+          this.adminStorageService.storeAdminKey(this.eventId, this.adminKey);
+          this.isAdmin = true;
+        }
+      }
+    });
+  }
+
+  /**
+   * Copy admin link to clipboard
+   */
+  copyAdminLink(): void {
+    if (this.isAdmin && this.event?.adminKey) {
+      const adminUrl = `${window.location.origin}/event/${this.eventId}/admin/${this.event.adminKey}`;
+      navigator.clipboard.writeText(adminUrl);
+      alert('Admin link copied to clipboard!');
+    }
+  }
+
   editEvent(): void {
     // Only allow editing if admin key is valid or we're in development
     if (this.isAdmin) {
@@ -180,6 +330,9 @@ export class EventViewComponent implements OnInit {
       this.router.navigate(['/event', this.eventId, 'edit'], { 
         queryParams: { adminKey: this.adminKey }
       });
+    } else if (this.event?.adminPassword) {
+      // If there's an admin password set, show the password dialog
+      this.openAdminPasswordDialog();
     } else {
       console.warn('Edit attempted without admin permissions');
       // Show notification that admin permissions are required

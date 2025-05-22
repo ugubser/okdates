@@ -75,6 +75,35 @@
       <mat-icon color="primary">check_circle</mat-icon> 
       <span>Link copied to clipboard!</span>
     </div>
+    
+    <!-- Admin access section -->
+    <div class="admin-access-section">
+      <!-- Show admin link directly if user is already an admin -->
+      <div *ngIf="isAdmin && event?.adminKey" class="admin-link-container">
+        <h4><mat-icon color="accent">admin_panel_settings</mat-icon> Administrator Link</h4>
+        <div class="link-container admin-link-display">
+          <span class="event-link admin-link">{{ window.location.origin }}/event/{{ eventId }}/admin/{{ event.adminKey }}</span>
+          <button 
+            mat-icon-button 
+            color="accent" 
+            (click)="copyAdminLink()"
+            matTooltip="Copy to clipboard">
+            <mat-icon>content_copy</mat-icon>
+          </button>
+        </div>
+        <p class="admin-hint">This admin link gives full access to edit the event.</p>
+      </div>
+      <!-- Show password button for non-admins if a password is set -->
+      <div *ngIf="!isAdmin && event.adminPassword">
+        <button 
+          mat-stroked-button 
+          color="accent"
+          (click)="openAdminPasswordDialog()"
+          class="admin-password-button">
+          <mat-icon>lock</mat-icon> Enter Admin Password
+        </button>
+      </div>
+    </div>
   </div>
   
   <div class="participants-section" *ngIf="participants.length > 0">

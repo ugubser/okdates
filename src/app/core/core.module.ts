@@ -6,6 +6,7 @@ import { FirestoreService } from './services/firestore.service';
 import { EventService } from './services/event.service';
 import { ParticipantService } from './services/participant.service';
 import { DateParsingService } from './services/date-parsing.service';
+import { AdminStorageService } from './services/admin-storage.service';
 
 @NgModule({
   declarations: [],
@@ -16,7 +17,8 @@ import { DateParsingService } from './services/date-parsing.service';
     FirestoreService,
     EventService,
     ParticipantService,
-    DateParsingService
+    DateParsingService,
+    AdminStorageService
   ]
 })
 export class CoreModule {
