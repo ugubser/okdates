@@ -8,6 +8,7 @@ export interface Event {
   location?: string | null; // Optional location for the event
   isActive: boolean;
   adminKey?: string; // Unique key for admin access
+  adminPassword?: string; // Optional encrypted password for admin access
   startTime?: string | null; // Optional start time in HH:MM format
   endTime?: string | null; // Optional end time in HH:MM format
   isMeeting?: boolean; // Whether this is a meeting with specific times rather than just a date

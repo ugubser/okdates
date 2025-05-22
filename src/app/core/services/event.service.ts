@@ -77,13 +77,37 @@ export class EventService {
   }
 
   /**
+   * Simple password encryption for storing in Firestore
+   * Note: This is not secure cryptography, just basic obfuscation
+   */
+  encryptPassword(password: string): string {
+    if (!password) return '';
+    
+    // Convert password to base64 and add a simple transformation
+    const base64 = btoa(password);
+    return base64.split('').reverse().join('');
+  }
+
+  /**
+   * Decrypt a password that was encrypted with encryptPassword
+   */
+  decryptPassword(encryptedPassword: string): string {
+    if (!encryptedPassword) return '';
+    
+    // Reverse the transformation and decode from base64
+    const base64 = encryptedPassword.split('').reverse().join('');
+    return atob(base64);
+  }
+
+  /**
    * Creates an event directly in Firestore with a unique ID
    */
   async createEventDirect(
     title: string | null = null,
     description: string | null = null,
     location: string | null = null,
-    isMeeting: boolean = false
+    isMeeting: boolean = false,
+    adminPassword: string | null = null
   ): Promise<{ eventId: string, event: Event }> {
     //console.log('EventService: Creating event directly in Firestore');
 
@@ -111,6 +135,11 @@ export class EventService {
       eventData.location = location;
     }
 
+    // Add encrypted password if provided
+    if (adminPassword) {
+      eventData.adminPassword = this.encryptPassword(adminPassword);
+    }
+
     //console.log('Event data to save:', eventData);
 
     // Generate a unique event ID
@@ -135,6 +164,14 @@ export class EventService {
    * Updates an event in Firestore
    */
   async updateEvent(eventId: string, data: Partial<Event>): Promise<void> {
+    // If updating password, encrypt it first
+    if (data.adminPassword) {
+      data = {
+        ...data,
+        adminPassword: this.encryptPassword(data.adminPassword)
+      };
+    }
+    
     await this.firestoreService.setDocument(this.eventsPath, eventId, data);
   }
   
@@ -150,6 +187,25 @@ export class EventService {
       return event.adminKey === adminKey;
     } catch (error) {
       console.error('Error verifying admin key:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Verifies if the provided password matches the one stored for the event
+   */
+  async verifyAdminPassword(eventId: string, password: string): Promise<boolean> {
+    try {
+      const event = await this.getEventDirect(eventId);
+      if (!event || !event.adminPassword) {
+        return false;
+      }
+      
+      // Decrypt stored password and compare
+      const decryptedPassword = this.decryptPassword(event.adminPassword);
+      return decryptedPassword === password;
+    } catch (error) {
+      console.error('Error verifying admin password:', error);
       return false;
     }
   }

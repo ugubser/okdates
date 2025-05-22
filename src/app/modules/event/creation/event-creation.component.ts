@@ -14,6 +14,7 @@ import { provideNativeDateAdapter } from '@angular/material/core';
 import { EventService } from '../../../core/services/event.service';
 import { Event } from '../../../core/models/event.model';
 import { FirestoreService } from '../../../core/services/firestore.service';
+import { AdminStorageService } from '../../../core/services/admin-storage.service';
 
 @Component({
   selector: 'app-event-creation',
@@ -52,6 +53,7 @@ export class EventCreationComponent implements OnInit {
     private fb: FormBuilder,
     private eventService: EventService,
     private firestoreService: FirestoreService,
+    private adminStorageService: AdminStorageService,
     private route: ActivatedRoute,
     private router: Router
   ) {
@@ -61,8 +63,10 @@ export class EventCreationComponent implements OnInit {
       location: ['', [Validators.maxLength(200)]],
       startTime: [null],
       endTime: [null],
-      meetingDuration: [120, [Validators.min(15), Validators.max(720)]] // Default to 2 hours (120 minutes)
-    }, { validators: this.timeValidator });
+      meetingDuration: [120, [Validators.min(15), Validators.max(720)]], // Default to 2 hours (120 minutes)
+      adminPassword: ['', [Validators.maxLength(100)]],
+      confirmPassword: ['', [Validators.maxLength(100)]]
+    }, { validators: [this.timeValidator, this.passwordMatchValidator] });
 
     this.eventId = this.route.snapshot.paramMap.get('id') || '';
     this.isCreatingNew = this.router.url.includes('/event/create');
@@ -73,10 +77,41 @@ export class EventCreationComponent implements OnInit {
     // Subscribe to form value changes to update validation in real-time
     this.eventForm.valueChanges.subscribe(() => {
       this.checkTimeValidity();
+      this.checkPasswordValidity();
     });
 
     // We'll handle start time changes through the change event instead
     // which works better with the native time input
+  }
+  
+  // Password validator to check if passwords match
+  passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
+    const formGroup = control as FormGroup;
+    const password = formGroup.get('adminPassword')?.value;
+    const confirmPassword = formGroup.get('confirmPassword')?.value;
+    
+    // Only validate if both fields have values
+    if (password && confirmPassword) {
+      if (password !== confirmPassword) {
+        return { passwordMismatch: true };
+      }
+    }
+    
+    return null;
+  }
+  
+  // Check password validity and update error
+  passwordError: string | null = null;
+  
+  checkPasswordValidity(): void {
+    const password = this.eventForm.get('adminPassword')?.value;
+    const confirmPassword = this.eventForm.get('confirmPassword')?.value;
+    
+    if (password && confirmPassword && password !== confirmPassword) {
+      this.passwordError = 'Passwords do not match';
+    } else {
+      this.passwordError = null;
+    }
   }
 
   // Custom validator function for the form
@@ -198,6 +233,12 @@ export class EventCreationComponent implements OnInit {
 
       this.eventId = eventId;
       this.event = event;
+      
+      // Store admin key in localStorage to make this user the administrator
+      if (event.adminKey) {
+        this.adminKey = event.adminKey;
+        this.adminStorageService.storeAdminKey(eventId, event.adminKey);
+      }
 
       // Create an empty form for the user to fill out
       this.eventForm.patchValue({
@@ -206,7 +247,9 @@ export class EventCreationComponent implements OnInit {
         location: '',
         startTime: null,
         endTime: null,
-        meetingDuration: this.isMeeting ? 120 : null // Default to 2 hours for meetings
+        meetingDuration: this.isMeeting ? 120 : null, // Default to 2 hours for meetings
+        adminPassword: '',
+        confirmPassword: ''
       });
 
       // Now the user can edit the empty event
@@ -266,12 +309,13 @@ export class EventCreationComponent implements OnInit {
   async saveEvent(): Promise<void> {
     // Check time validity before saving
     this.checkTimeValidity();
+    this.checkPasswordValidity();
 
-    if (this.eventForm.valid && this.eventId && !this.timeError) {
+    if (this.eventForm.valid && this.eventId && !this.timeError && !this.passwordError) {
       try {
         this.isSaving = true;
 
-        const { title, description, location, startTime, endTime, meetingDuration } = this.eventForm.value;
+        const { title, description, location, startTime, endTime, meetingDuration, adminPassword } = this.eventForm.value;
         let finalStartTime = startTime;
         let finalEndTime = endTime;
 
@@ -290,6 +334,11 @@ export class EventCreationComponent implements OnInit {
         // Add meeting duration if this is a meeting
         if (this.isMeeting && meetingDuration) {
           updateData.meetingDuration = meetingDuration;
+        }
+
+        // Add admin password if provided
+        if (adminPassword) {
+          updateData.adminPassword = adminPassword;
         }
 
         // If start time exists
@@ -324,6 +373,11 @@ export class EventCreationComponent implements OnInit {
         }
 
         await this.eventService.updateEvent(this.eventId, updateData);
+        
+        // If this is a new event, store the admin key in localStorage
+        if (this.isCreatingNew && this.event?.adminKey) {
+          this.adminStorageService.storeAdminKey(this.eventId, this.event.adminKey);
+        }
 
         // Redirect to the event view page after saving
         this.router.navigate(['/event', this.eventId, 'view']);
