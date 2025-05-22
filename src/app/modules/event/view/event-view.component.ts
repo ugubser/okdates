@@ -66,6 +66,9 @@ import { DateTime } from 'luxon';
     .full-width {
       width: 100%;
     }
+    input[type="password"] {
+      padding: 8px;
+    }
   `]
 })
 export class AdminPasswordDialogComponent {
