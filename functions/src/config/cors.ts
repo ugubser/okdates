@@ -6,7 +6,7 @@ export const corsConfig = cors({
     'http://localhost:4200',
     'http://localhost:5003',
     'https://okdates.tribecans.com',
-    'https://okdate.vanguardsignals.com'
+    'https://okdates.vanguardsignals.com'
   ],
   methods: ['GET', 'POST', 'OPTIONS'],
   credentials: true
