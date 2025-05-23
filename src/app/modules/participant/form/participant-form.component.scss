@@ -12,7 +12,7 @@
   }
   
   p {
-    color: rgba(0, 0, 0, 0.6);
+    color: var(--text-secondary);
     white-space: pre-line;
   }
 }
@@ -51,11 +51,12 @@
 }
 
 .parsed-dates-section {
-  background-color: #f5f5f5;
+  background-color: var(--surface-color);
   border-radius: 8px;
   padding: 1.5rem;
   margin: 2rem 0;
   position: relative;
+  border: 1px solid var(--border-color);
   
   .ai-powered-badge {
     position: absolute;
@@ -80,9 +81,9 @@
 }
 
 .parsed-dates-list {
-  background-color: white;
+  background-color: var(--surface-color);
   border-radius: 4px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   margin-top: 1rem;
   overflow: hidden;
   
@@ -108,7 +109,7 @@
   
   .original-text {
     display: block;
-    color: rgba(0, 0, 0, 0.5);
+    color: var(--text-secondary);
     font-style: italic;
     margin-top: 0.25rem;
   }
@@ -116,10 +117,10 @@
   .help-text {
     padding: 12px 16px;
     margin: 0;
-    border-top: 1px solid #eeeeee;
-    background-color: #fafafa;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--background-color);
     font-size: 0.9rem;
-    color: rgba(0, 0, 0, 0.6);
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     

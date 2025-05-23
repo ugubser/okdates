@@ -1,22 +1,15 @@
-/* Simple CSS theme */
-
-:root {
-  --primary-color: #3f51b5;
-  --primary-light: #757de8;
-  --primary-dark: #002984;
-  --accent-color: #ff4081;
-  --accent-light: #ff79b0;
-  --accent-dark: #c60055;
-  --text-on-primary: #ffffff;
-  --text-on-accent: #ffffff;
-}
+/* Import theme files */
+@use './styles/themes/okdates';
+@use './styles/themes/vanguard';
+@use './styles/themes/mixins';
 
 /* Global styles */
 html, body { height: 100%; }
 body { 
   margin: 0; 
-  font-family: Roboto, "Helvetica Neue", sans-serif; 
-  color: rgba(0, 0, 0, 0.87);
+  font-family: var(--font-family); 
+  color: var(--text-primary);
+  background-color: var(--background-color);
 }
 
 /* Material theme overrides */
@@ -40,6 +33,35 @@ body {
   color: var(--text-on-accent);
 }
 
+.mat-mdc-raised-button.mat-accent {
+  background-color: var(--accent-color);
+  color: var(--text-on-accent);
+}
+
+/* Vanguard theme specific overrides */
+:root.vanguard-theme {
+  .mat-mdc-button.mat-primary {
+    background-color: transparent;
+    color: var(--accent-color);
+    border: 2px solid var(--accent-color);
+  }
+  
+  .mat-mdc-raised-button.mat-primary {
+    background-color: var(--accent-color);
+    color: var(--text-on-accent);
+  }
+  
+  .mat-mdc-outlined-button.mat-primary {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+  }
+  
+  .mat-mdc-button.mat-primary:hover {
+    background-color: var(--accent-color);
+    color: var(--text-on-accent);
+  }
+}
+
 /* Global styles */
 * {
   box-sizing: border-box;
@@ -55,6 +77,139 @@ input[type="text"],
 input[type="time"],
 input:not([type]) {
   padding: 8px !important;
+  background-color: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+/* Vanguard theme form field improvements */
+:root.vanguard-theme {
+  .mat-mdc-form-field {
+    .mat-mdc-text-field-wrapper {
+      background-color: var(--surface-color);
+    }
+    
+    .mat-mdc-form-field-infix {
+      color: var(--text-primary);
+    }
+    
+    .mat-mdc-input-element {
+      color: var(--text-primary);
+      caret-color: var(--accent-color);
+    }
+    
+    .mat-mdc-form-field-label {
+      color: var(--text-secondary);
+    }
+    
+    .mat-mdc-form-field-hint {
+      color: var(--text-secondary);
+    }
+  }
+  
+  .mat-mdc-text-field-wrapper {
+    background-color: var(--surface-color) !important;
+    border: 1px solid var(--border-color) !important;
+  }
+  
+  .mat-mdc-form-field-focus-overlay {
+    background-color: transparent;
+  }
+  
+  /* Event Time section padding */
+  .time-fields {
+    padding: 2rem !important;
+    margin: 1.5rem 0 !important;
+  }
+  
+  /* Administrator badge styling */
+  .admin-badge {
+    background-color: transparent !important;
+    border: 2px solid var(--accent-color) !important;
+    color: var(--accent-color) !important;
+  }
+  
+  /* Admin panel styling */
+  .admin-panel {
+    background-color: var(--surface-color) !important;
+    border: 1px solid var(--border-color) !important;
+    
+    h3 {
+      color: var(--accent-color) !important;
+    }
+    
+    .admin-panel-content {
+      color: var(--text-primary) !important;
+    }
+  }
+  
+  /* Admin link sections */
+  .admin-link-section {
+    background-color: var(--surface-color) !important;
+    border: 1px solid var(--accent-color) !important;
+    
+    h3 {
+      color: var(--accent-color) !important;
+    }
+  }
+  
+  .admin-link-display {
+    background-color: var(--surface-color) !important;
+    border: 1px solid var(--accent-color) !important;
+  }
+  
+  /* Participant availability table improvements */
+  .availability-table {
+    table {
+      background-color: var(--surface-color);
+      
+      th, td {
+        border-color: var(--border-color) !important;
+        color: var(--text-primary) !important;
+      }
+      
+      th {
+        background-color: var(--background-color) !important;
+        color: var(--text-primary) !important;
+      }
+      
+      th:first-child, td:first-child {
+        background-color: var(--surface-color) !important;
+        color: var(--text-primary) !important;
+      }
+      
+      .mat-mdc-header-row {
+        background-color: var(--background-color) !important;
+      }
+      
+      .mat-mdc-row {
+        background-color: var(--surface-color) !important;
+        
+        &:hover {
+          background-color: var(--primary-light) !important;
+        }
+      }
+      
+      .mat-mdc-footer-row {
+        background-color: var(--background-color) !important;
+        border-top: 2px solid var(--border-color) !important;
+      }
+      
+      .percentage-cell {
+        color: var(--accent-color) !important;
+      }
+    }
+  }
+  
+  /* Date summary cards */
+  .date-summary .date-card {
+    background-color: var(--surface-color) !important;
+    border: 1px solid var(--border-color) !important;
+    
+    .availability-percentage {
+      color: var(--accent-color) !important;
+    }
+  }
 }
 
 /* Custom scrollbar */

@@ -1,0 +1,47 @@
+// Shared mixins and utilities for all themes
+
+// Button mixin that adapts to theme variables
+@mixin themed-button($variant: 'primary') {
+  @if $variant == 'primary' {
+    background-color: var(--primary-color);
+    color: var(--text-on-primary);
+    
+    &:hover {
+      background-color: var(--primary-light);
+    }
+  } @else if $variant == 'accent' {
+    background-color: var(--accent-color);
+    color: var(--text-on-accent);
+    
+    &:hover {
+      background-color: var(--accent-light);
+    }
+  }
+}
+
+// Card styling that adapts to theme
+@mixin themed-card() {
+  background-color: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+// Typography mixins
+@mixin themed-text($type: 'primary') {
+  @if $type == 'primary' {
+    color: var(--text-primary);
+  } @else if $type == 'secondary' {
+    color: var(--text-secondary);
+  }
+}
+
+// Input styling
+@mixin themed-input() {
+  background-color: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  
+  &:focus {
+    border-color: var(--accent-color);
+  }
+}
