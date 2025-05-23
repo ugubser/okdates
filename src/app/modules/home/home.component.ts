@@ -20,8 +20,8 @@ export class HomeComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Debug: List all events on initialization
-    this.listEvents();
+    // Removed debug function that was causing Firestore permissions error
+    // this.listEvents();
   }
 
   createNewEvent(isMeeting: boolean = false): void {
