@@ -1,0 +1,34 @@
+// Vanguard Signals Theme Variables
+// Based on vanguardsignals.com design - dark, modern, professional aesthetic
+
+:root.vanguard-theme {
+  // Primary Colors - Dark theme with professional accent
+  --primary-color: #000000;
+  --primary-light: #cacaca;
+  --primary-dark: #000000;
+  
+  // Accent Colors - Bright green as requested
+  --accent-color: #23e711;
+  --accent-light: #45ea33;
+  --accent-dark: #1bc40d;
+  
+  // Text Colors - High contrast for dark theme
+  --text-on-primary: #ffffff;
+  --text-on-accent: #000000;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  
+  // Background Colors - Dark theme with better contrast
+  --background-color: #000000;
+  --surface-color: #323232;
+  --footer-background: #0a0a0a;
+  
+  // Border Colors - More visible borders for dark theme
+  --border-color: #a8a5a5;
+  
+  // Typography - Modern, professional fonts
+  --font-family: "brother-1816", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  
+  // Logo - White for dark background
+  --logo-color: #ffffff;
+}
