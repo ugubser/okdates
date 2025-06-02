@@ -32,6 +32,15 @@
       <button mat-raised-button color="primary" (click)="addAvailability()">
         <mat-icon>calendar_today</mat-icon> Add My Availability
       </button>
+      <!-- Show password button for non-admins if a password is set -->
+      <button 
+        *ngIf="!isAdmin && event.adminPassword"
+        mat-stroked-button 
+        color="accent"
+        (click)="openAdminPasswordDialog()"
+        class="admin-password-button">
+        <mat-icon>lock</mat-icon> Enter Admin Password
+      </button>
     </div>
   </div>
   
@@ -58,7 +67,7 @@
     </div>
   </div>
   
-  <div class="share-section">
+  <div class="share-section" *ngIf="isAdmin">
     <h3>Share this {{ event.isMeeting ? 'meeting' : 'event' }} with participants</h3>
     <p class="share-prompt">Copy and share this link so people can add their availability:</p>
     <div class="link-container">
@@ -79,7 +88,7 @@
     <!-- Admin access section -->
     <div class="admin-access-section">
       <!-- Show admin link directly if user is already an admin -->
-      <div *ngIf="isAdmin && event?.adminKey" class="admin-link-container">
+      <div *ngIf="event?.adminKey" class="admin-link-container">
         <h4><mat-icon color="accent">admin_panel_settings</mat-icon> Administrator Link</h4>
         <div class="link-container admin-link-display">
           <span class="event-link admin-link">{{ window.location.origin }}/event/{{ eventId }}/admin/{{ event.adminKey }}</span>
@@ -92,16 +101,6 @@
           </button>
         </div>
         <p class="admin-hint">This admin link gives full access to edit the event.</p>
-      </div>
-      <!-- Show password button for non-admins if a password is set -->
-      <div *ngIf="!isAdmin && event.adminPassword">
-        <button 
-          mat-stroked-button 
-          color="accent"
-          (click)="openAdminPasswordDialog()"
-          class="admin-password-button">
-          <mat-icon>lock</mat-icon> Enter Admin Password
-        </button>
       </div>
     </div>
   </div>
