@@ -107,79 +107,15 @@
   
   <div class="participants-section" *ngIf="participants.length > 0">
     <h2>{{ event.isMeeting ? 'Participant Time Slot Availability' : 'Participant Date Availability' }}</h2>
-    
-    
+
+
     <!-- Detailed availability table -->
     <div class="availability-table">
-      <table mat-table [dataSource]="participants" class="availability-matrix">
-        <!-- Participant Column -->
-        <ng-container matColumnDef="participant">
-          <th mat-header-cell *matHeaderCellDef>Participant</th>
-          <td mat-cell *matCellDef="let participant">{{ participant.name }}</td>
-        </ng-container>
-
-        <!-- Available Label Column for Footer -->
-        <ng-container matColumnDef="available">
-          <td mat-footer-cell *matFooterCellDef>Available:</td>
-        </ng-container>
-
-        <!-- Dynamic Date Columns -->
-        <ng-container *ngFor="let dateInfo of uniqueDates" [matColumnDef]="dateInfo.dateString">
-          <th mat-header-cell *matHeaderCellDef [ngClass]="[getParticipationClass(dateInfo.dateString), event.isMeeting ? 'time-slot' : '', event.isMeeting && isCommonAvailableSlot(dateInfo.dateString) ? 'common-available-slot' : '']">
-            <div class="date-header">
-              <!-- Regular event view - simple date display -->
-              <span *ngIf="!event.isMeeting">{{ dateInfo.formattedDate }}</span>
-              
-              <!-- Meeting view - time slot display with common availability -->
-              <div *ngIf="event.isMeeting" class="time-slot-container">
-                <!-- For the first time slot of each day, show the day -->
-                <span class="day-display" *ngIf="isFirstTimeSlotOfDay(dateInfo)">
-                  {{ formatDayOnly(dateInfo.date) }}
-                </span>
-                <span class="time-display">{{ dateInfo.formattedDate | slice:dateInfo.formattedDate.lastIndexOf(' ') + 1 }}</span>
-                <span class="timezone-display" *ngIf="dateInfo.timezone">{{ dateInfo.timezone }}</span>
-                <span class="common-available-badge" *ngIf="event.isMeeting && isCommonAvailableSlot(dateInfo.dateString)">Available for All</span>
-              </div>
-              <button
-                *ngIf="isAdmin"
-                mat-icon-button
-                color="primary"
-                class="download-cal-button"
-                (click)="downloadICalForDate(dateInfo); $event.stopPropagation();"
-                matTooltip="Download iCalendar file">
-                <mat-icon>calendar_today</mat-icon>
-              </button>
-            </div>
-          </th>
-          <td mat-cell *matCellDef="let participant" [ngClass]="getParticipationClass(dateInfo.dateString)">
-            <div
-              class="availability-indicator"
-              [ngClass]="getAvailabilityClass(isParticipantAvailable(participant, dateInfo.dateString))">
-            </div>
-          </td>
-          <td mat-footer-cell *matFooterCellDef class="percentage-cell" [ngClass]="getParticipationClass(dateInfo.dateString)">
-            <div class="footer-cell-content">
-              <span>{{ Math.round((getAvailableCountForDate(dateInfo.dateString) / participants.length) * 100) }}%</span>
-              <button
-                *ngIf="isAdmin"
-                mat-icon-button
-                color="primary"
-                class="download-cal-button-footer"
-                (click)="downloadICalForDate(dateInfo); $event.stopPropagation();"
-                matTooltip="Download iCalendar file">
-                <mat-icon>calendar_today</mat-icon>
-              </button>
-            </div>
-          </td>
-        </ng-container>
-        
-        <!-- Header and regular rows -->
-        <tr mat-header-row *matHeaderRowDef="displayColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayColumns;"></tr>
-
-        <!-- Footer row with availability percentages -->
-        <tr mat-footer-row *matFooterRowDef="footerColumns; sticky: true"></tr>
-      </table>
+      <app-availability-timeline
+        [event]="event"
+        [participants]="participants"
+        [mode]="'view'">
+      </app-availability-timeline>
     </div>
     
     <!-- Raw participant input list -->

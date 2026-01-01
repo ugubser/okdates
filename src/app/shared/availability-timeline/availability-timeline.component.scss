@@ -1,0 +1,191 @@
+.availability-timeline {
+  overflow-x: auto;
+
+  table {
+    width: 100%;
+
+    th:first-child, td:first-child {
+      text-align: left;
+      padding-left: 16px;
+      position: sticky;
+      left: 0;
+      background-color: white;
+      z-index: 1;
+    }
+
+    th.time-slot {
+      padding: 8px 4px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    .availability-indicator {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      margin: 0 auto;
+
+      &.available {
+        background-color: var(--primary-color);
+      }
+
+      &.unavailable {
+        background-color: #f5f5f5;
+        border: 1px solid #e0e0e0;
+      }
+    }
+
+    /* Time slot styles */
+    .time-slot-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 40px;
+
+      .time-display {
+        font-size: 0.75rem;
+        white-space: nowrap;
+      }
+
+      .timezone-display {
+        font-size: 0.65rem;
+        color: #777;
+        margin-top: 4px;
+        margin-bottom: 6px;
+        padding: 0 8px;
+        display: block;
+      }
+
+      .day-display {
+        font-weight: bold;
+        font-size: 0.8rem;
+      }
+    }
+
+    /* Participation level styles */
+    .participation-low {
+      background-color: rgba(244, 67, 54, 0.1); /* Light red */
+    }
+
+    .participation-medium {
+      background-color: rgba(255, 193, 7, 0.1); /* Light amber */
+    }
+
+    .participation-high {
+      background-color: rgba(76, 175, 80, 0.1); /* Light green */
+    }
+
+    /* Common available slot - everyone is available */
+    .common-available-slot {
+      background-color: rgba(76, 175, 80, 0.3) !important; /* Brighter green */
+      position: relative;
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border: 2px solid rgba(76, 175, 80, 0.8);
+        pointer-events: none;
+      }
+    }
+
+    .common-available-badge {
+      background-color: rgba(76, 175, 80, 0.9);
+      color: white;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 10px;
+      margin-top: 4px;
+      font-weight: bold;
+      display: inline-block;
+    }
+
+    /* Footer row styles */
+    .mat-mdc-footer-row {
+      border-top: 2px solid #e0e0e0;
+      background-color: #f5f5f5;
+      font-weight: 500;
+    }
+
+    .percentage-cell {
+      text-align: center !important;
+      color: var(--primary-color);
+      font-weight: bold;
+      font-size: 1rem;
+    }
+
+    .date-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      span {
+        margin-right: 8px;
+      }
+    }
+
+    .footer-cell-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+
+      span {
+        flex: 1;
+        text-align: center;
+      }
+    }
+  }
+
+  /* Selection mode styles */
+  .selection-row {
+    background-color: #f5f5f5;
+    border-top: 2px solid #1976d2;
+
+    .selection-row-label {
+      font-weight: 600;
+      color: #1976d2;
+      padding-left: 16px;
+    }
+  }
+
+  .selectable-cell {
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: #e3f2fd;
+    }
+
+    &.selected {
+      background-color: #c8e6c9;
+
+      mat-icon {
+        color: #4caf50;
+      }
+    }
+  }
+
+  .selection-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    padding: 8px 0;
+
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      color: #bdbdbd;
+      transition: color 0.2s;
+    }
+
+    mat-icon[svgicon="check_circle"] {
+      color: #4caf50;
+    }
+  }
+}

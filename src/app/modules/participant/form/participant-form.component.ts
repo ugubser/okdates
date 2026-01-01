@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,6 +9,7 @@ import { MatListModule, MatSelectionList } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { EventService } from '../../../core/services/event.service';
 import { ParticipantService } from '../../../core/services/participant.service';
 import { DateParsingService } from '../../../core/services/date-parsing.service';
@@ -16,6 +17,7 @@ import { ParticipantStorageService } from '../../../core/services/participant-st
 import { Event } from '../../../core/models/event.model';
 import { ParsedDate } from '../../../core/models/parsed-date.model';
 import { Participant } from '../../../core/models/participant.model';
+import { AvailabilityTimelineComponent } from '../../../shared/availability-timeline/availability-timeline.component';
 
 @Component({
   selector: 'app-participant-form',
@@ -23,6 +25,7 @@ import { Participant } from '../../../core/models/participant.model';
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     RouterLink,
     MatButtonModule,
     MatInputModule,
@@ -30,7 +33,9 @@ import { Participant } from '../../../core/models/participant.model';
     MatListModule,
     MatProgressSpinnerModule,
     MatIconModule,
-    MatSelectModule
+    MatSelectModule,
+    MatButtonToggleModule,
+    AvailabilityTimelineComponent
   ],
   templateUrl: './participant-form.component.html',
   styleUrls: ['./participant-form.component.scss']
@@ -52,6 +57,13 @@ export class ParticipantFormComponent implements OnInit {
   existingParticipant: Participant | null = null;
   isAdmin = false;
   adminKey = '';
+
+  // Entry mode selection
+  entryMode: 'text' | 'timeline' = 'text';
+  hasExistingParticipants = false;
+  participants: Participant[] = [];
+  selectedSlotKeys: string[] = [];
+  preselectedSlotKeys: string[] = [];
 
   // Timezone handling
   timezones: {value: string, label: string}[] = [];
@@ -108,12 +120,26 @@ export class ParticipantFormComponent implements OnInit {
     try {
       this.isLoading = true;
       this.event = await this.eventService.getEventDirect(this.eventId);
-      
+
       if (!this.event) {
         this.router.navigate(['/']);
         return;
       }
-      
+
+      // Load existing participants to enable timeline mode
+      try {
+        this.participants = await this.participantService.getParticipantsDirect(this.eventId);
+        this.hasExistingParticipants = this.participants.length > 0;
+
+        // Set default entry mode: timeline if participants exist, otherwise text
+        this.entryMode = this.hasExistingParticipants ? 'timeline' : 'text';
+      } catch (error) {
+        console.error('Error loading participants:', error);
+        this.participants = [];
+        this.hasExistingParticipants = false;
+        this.entryMode = 'text';
+      }
+
       // Check if admin key is valid
       if (this.adminKey) {
         this.isAdmin = await this.eventService.verifyAdminKey(this.eventId, this.adminKey);
@@ -144,9 +170,10 @@ export class ParticipantFormComponent implements OnInit {
           // Populate the form with existing data
           this.participantForm.patchValue({
             name: this.existingParticipant.name,
-            availability: this.existingParticipant.rawDateInput
+            availability: this.existingParticipant.rawDateInput,
+            timezone: this.existingParticipant.timezone || this.userTimezone
           });
-          
+
           // Convert the existing parsed dates to our format
           if (this.existingParticipant.parsedDates && this.existingParticipant.parsedDates.length > 0) {
             this.parsedDates = this.existingParticipant.parsedDates.map(timestamp => {
@@ -156,6 +183,9 @@ export class ParticipantFormComponent implements OnInit {
                 isConfirmed: true
               };
             });
+
+            // Pre-select slots for timeline mode (for edit mode)
+            this.preselectedSlotKeys = this.convertParsedDatesToSlotKeys(this.existingParticipant.parsedDates);
           }
         } else {
           console.warn('Participant not found:', this.participantId);
@@ -453,5 +483,127 @@ export class ParticipantFormComponent implements OnInit {
         this.timezones.push(tz);
       }
     });
+  }
+
+  /**
+   * Handle slot selections from timeline component
+   */
+  onSlotsSelected(slotKeys: string[]): void {
+    this.selectedSlotKeys = slotKeys;
+  }
+
+  /**
+   * Proceed with timeline-selected slots
+   */
+  async proceedWithSelectedSlots(): Promise<void> {
+    if (this.selectedSlotKeys.length === 0) {
+      return;
+    }
+
+    // Convert slot keys back to ParsedDate format
+    this.parsedDates = this.convertSlotKeysToParsedDates(this.selectedSlotKeys);
+
+    // Set raw input for display purposes
+    const rawInput = `Selected ${this.parsedDates.length} ${this.event?.isMeeting ? 'time slots' : 'dates'} from timeline`;
+    this.participantForm.patchValue({
+      availability: rawInput
+    });
+
+    // Move to confirmation step
+    this.showParsedDates = true;
+  }
+
+  /**
+   * Convert slot keys to ParsedDate format
+   */
+  private convertSlotKeysToParsedDates(slotKeys: string[]): ParsedDate[] {
+    const parsedDates: ParsedDate[] = [];
+
+    if (!this.event?.isMeeting) {
+      // For regular events: slot key is date string "YYYY-MM-DD"
+      for (const dateKey of slotKeys) {
+        // Parse the date components and create date in local timezone
+        const parts = dateKey.split('-').map(Number);
+        const dateObj = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+
+        const timestamp = {
+          seconds: Math.floor(dateObj.getTime() / 1000),
+          nanoseconds: 0
+        };
+
+        parsedDates.push({
+          originalText: 'Selected from timeline',
+          timestamp: timestamp,
+          isConfirmed: true
+        });
+      }
+    } else {
+      // For meetings: slot key is "YYYY-MM-DD-HH-MM"
+      // Need to reconstruct start and end timestamps based on meeting duration
+      const meetingDuration = this.event.meetingDuration || 120;
+
+      for (const slotKey of slotKeys) {
+        const parts = slotKey.split('-').map(Number);
+        if (parts.length >= 5) {
+          const [year, month, day, hour, minute] = parts;
+
+          // IMPORTANT: Create UTC timestamps that represent the wall-clock time
+          // The backend stores times as UTC and then "relabels" them to the participant's timezone
+          // This preserves the hour/minute values (e.g., 10:00 stays 10:00)
+          const startDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+          const endDate = new Date(startDate.getTime() + meetingDuration * 60 * 1000);
+
+          const startTimestamp = {
+            seconds: Math.floor(startDate.getTime() / 1000),
+            nanoseconds: 0
+          };
+
+          const endTimestamp = {
+            seconds: Math.floor(endDate.getTime() / 1000),
+            nanoseconds: 0
+          };
+
+          parsedDates.push({
+            originalText: 'Selected from timeline',
+            startTimestamp: startTimestamp,
+            endTimestamp: endTimestamp,
+            timezone: this.participantForm.get('timezone')?.value || this.userTimezone,
+            isConfirmed: true
+          });
+        }
+      }
+    }
+
+    return parsedDates;
+  }
+
+  /**
+   * Convert ParsedDates to slot keys (for edit mode pre-selection)
+   */
+  private convertParsedDatesToSlotKeys(parsedDates: any[]): string[] {
+    const slotKeys: string[] = [];
+
+    for (const pd of parsedDates) {
+      if (!this.event?.isMeeting && pd.timestamp) {
+        // Regular event: extract date using local timezone
+        const date = new Date(pd.timestamp.seconds * 1000);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        slotKeys.push(`${year}-${month}-${day}`);
+      } else if (this.event?.isMeeting && pd.startTimestamp) {
+        // Meeting: extract start time slot using UTC (matches how we store it)
+        // The timestamp is stored as UTC representing wall-clock time
+        const startDate = new Date(pd.startTimestamp.seconds * 1000);
+        const year = startDate.getUTCFullYear();
+        const month = String(startDate.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(startDate.getUTCDate()).padStart(2, '0');
+        const hour = String(startDate.getUTCHours()).padStart(2, '0');
+        const minute = String(startDate.getUTCMinutes()).padStart(2, '0');
+        slotKeys.push(`${year}-${month}-${day}-${hour}-${minute}`);
+      }
+    }
+
+    return slotKeys;
   }
 }

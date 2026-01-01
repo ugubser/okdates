@@ -3,11 +3,25 @@
     <h1>{{ event.title || 'Untitled Event' }}</h1>
     <p *ngIf="event.description">{{ event.description }}</p>
   </div>
-  
+
   <div *ngIf="!showParsedDates">
     <h2>{{ isEditMode ? 'Update Your Availability' : 'Enter Your Availability' }}</h2>
-    
-    <form [formGroup]="participantForm" (ngSubmit)="parseDates()">
+
+    <!-- Mode Toggle (only shown if there are existing participants) -->
+    <div class="mode-toggle-container" *ngIf="hasExistingParticipants">
+      <mat-button-toggle-group [(ngModel)]="entryMode" aria-label="Entry Mode">
+        <mat-button-toggle value="timeline">Select from Timeline</mat-button-toggle>
+        <mat-button-toggle value="text">Enter as Text</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <!-- Empty state message for first participant -->
+    <div class="empty-state-message" *ngIf="!hasExistingParticipants">
+      <p>Be the first to add your availability!</p>
+    </div>
+
+    <!-- Text Entry Form -->
+    <form [formGroup]="participantForm" (ngSubmit)="parseDates()" *ngIf="entryMode === 'text'">
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Your Name</mat-label>
         <input matInput formControlName="name" placeholder="Enter your name">
@@ -49,15 +63,15 @@
       </mat-form-field>
 
       <div class="form-actions">
-        <button 
+        <button
           mat-raised-button
           color="primary"
           type="submit"
           [disabled]="!participantForm.valid || isParsing">
           {{ isParsing ? 'Processing...' : (isEditMode ? 'Update Dates' : 'Next') }}
         </button>
-        
-        <button 
+
+        <button
           mat-button
           type="button"
           [routerLink]="['/event', eventId, 'view']">
@@ -65,6 +79,61 @@
         </button>
       </div>
     </form>
+
+    <!-- Timeline Selection Section -->
+    <div *ngIf="entryMode === 'timeline' && hasExistingParticipants" class="timeline-selection-container">
+      <!-- Name Input (always required) -->
+      <form [formGroup]="participantForm">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Your Name</mat-label>
+          <input matInput formControlName="name" placeholder="Enter your name">
+          <mat-error *ngIf="participantForm.get('name')?.hasError('required')">
+            Name is required
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Timezone selector (for meetings only) -->
+        <mat-form-field *ngIf="event.isMeeting" appearance="outline" class="full-width timezone-field">
+          <mat-label>Your Timezone</mat-label>
+          <mat-select formControlName="timezone">
+            <mat-option *ngFor="let tz of timezones" [value]="tz.value">
+              {{ tz.label }}
+            </mat-option>
+          </mat-select>
+          <mat-hint>
+            Times will be interpreted in this timezone
+          </mat-hint>
+        </mat-form-field>
+      </form>
+
+      <h3>Select your available {{ event.isMeeting ? 'time slots' : 'dates' }}</h3>
+      <p>Click on the {{ event.isMeeting ? 'time slots' : 'dates' }} that work for you:</p>
+
+      <!-- Timeline component -->
+      <app-availability-timeline
+        [event]="event"
+        [participants]="participants"
+        [mode]="'select'"
+        [preselectedSlots]="preselectedSlotKeys"
+        (slotsSelected)="onSlotsSelected($event)">
+      </app-availability-timeline>
+
+      <div class="form-actions">
+        <button
+          mat-raised-button
+          color="primary"
+          [disabled]="!participantForm.get('name')?.valid || selectedSlotKeys.length === 0"
+          (click)="proceedWithSelectedSlots()">
+          Next
+        </button>
+
+        <button
+          mat-button
+          [routerLink]="['/event', eventId, 'view']">
+          Cancel
+        </button>
+      </div>
+    </div>
   </div>
   
   <div *ngIf="showParsedDates">
