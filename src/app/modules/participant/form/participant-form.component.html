@@ -140,11 +140,12 @@
     <h2>{{ event.isMeeting ? 'Confirm Your Time Slots' : 'Confirm Your Dates' }}</h2>
 
     <div class="parsed-dates-section">
-      <div class="ai-powered-badge">
+      <div class="ai-powered-badge" *ngIf="!usedTimelineSelection">
         <mat-icon>smart_toy</mat-icon> AI-Powered {{ event.isMeeting ? 'Time' : 'Date' }} Recognition
       </div>
 
-      <p>We identified the following {{ event.isMeeting ? 'time slots' : 'dates' }} from your input:</p>
+      <p *ngIf="!usedTimelineSelection">We identified the following {{ event.isMeeting ? 'time slots' : 'dates' }} from your input:</p>
+      <p *ngIf="usedTimelineSelection">You selected the following {{ event.isMeeting ? 'time slots' : 'dates' }}:</p>
       
       <div class="parsed-dates-list">
         <mat-selection-list #datesList>
@@ -167,12 +168,17 @@
             </div>
           </mat-list-option>
         </mat-selection-list>
-        
-        <p class="help-text">
+
+        <p class="help-text" *ngIf="!usedTimelineSelection">
           <mat-icon class="info-icon">info</mat-icon>
           Uncheck any dates that were incorrectly identified. Only checked dates will be submitted. If you don't see the date you want, please go back and try a different approach. LLMs are not perfect.
         </p>
-        
+
+        <p class="help-text" *ngIf="usedTimelineSelection">
+          <mat-icon class="info-icon">info</mat-icon>
+          Uncheck any {{ event.isMeeting ? 'time slots' : 'dates' }} you don't want to include. Only checked items will be submitted.
+        </p>
+
         <div class="no-dates" *ngIf="parsedDates.length === 0">
           <p>We couldn't identify any dates from your input. Please go back and try a different format.</p>
           <p class="suggestion">Try formats like "June 15-17", "6/15, 6/16", or "next Monday and Tuesday".</p>
