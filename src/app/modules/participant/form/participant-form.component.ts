@@ -64,6 +64,7 @@ export class ParticipantFormComponent implements OnInit {
   participants: Participant[] = [];
   selectedSlotKeys: string[] = [];
   preselectedSlotKeys: string[] = [];
+  usedTimelineSelection = false; // Track if user used timeline selection
 
   // Timezone handling
   timezones: {value: string, label: string}[] = [];
@@ -204,6 +205,7 @@ export class ParticipantFormComponent implements OnInit {
     if (this.participantForm.get('availability')?.valid) {
       try {
         this.isParsing = true;
+        this.usedTimelineSelection = false; // Text entry was used
         const rawDateInput = this.participantForm.get('availability')?.value;
 
         // Check if this is a meeting event or a regular event
@@ -211,8 +213,8 @@ export class ParticipantFormComponent implements OnInit {
 
         // Get the selected timezone (only relevant for meetings)
         // Important: For regular events, pass null instead of undefined
-        const timezone = isMeeting ? 
-          (this.participantForm.get('timezone')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone) : 
+        const timezone = isMeeting ?
+          (this.participantForm.get('timezone')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone) :
           null;
         //console.log(`Using timezone: ${timezone || 'null'}`);
 
@@ -499,6 +501,9 @@ export class ParticipantFormComponent implements OnInit {
     if (this.selectedSlotKeys.length === 0) {
       return;
     }
+
+    // Track that timeline selection was used (not text entry)
+    this.usedTimelineSelection = true;
 
     // Convert slot keys back to ParsedDate format
     this.parsedDates = this.convertSlotKeysToParsedDates(this.selectedSlotKeys);
