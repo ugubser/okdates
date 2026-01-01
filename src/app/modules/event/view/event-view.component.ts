@@ -21,6 +21,7 @@ import { Event } from '../../../core/models/event.model';
 import { Participant } from '../../../core/models/participant.model';
 import { ParsedDate } from '../../../core/models/parsed-date.model';
 import { DateTime } from 'luxon';
+import { AvailabilityTimelineComponent } from '../../../shared/availability-timeline/availability-timeline.component';
 
 // Password Dialog Component
 @Component({
@@ -126,7 +127,8 @@ export class AdminPasswordDialogComponent {
     MatMenuModule,
     MatInputModule,
     MatFormFieldModule,
-    MatDialogModule
+    MatDialogModule,
+    AvailabilityTimelineComponent
   ],
   templateUrl: './event-view.component.html',
   styleUrls: ['./event-view.component.scss']
