@@ -2,6 +2,8 @@ import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChange
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Event } from '../../core/models/event.model';
 import { Participant } from '../../core/models/participant.model';
 import { DateTime } from 'luxon';
@@ -18,7 +20,7 @@ interface DateInfo {
 @Component({
   selector: 'app-availability-timeline',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatIconModule],
+  imports: [CommonModule, MatTableModule, MatIconModule, MatButtonModule, MatTooltipModule],
   templateUrl: './availability-timeline.component.html',
   styleUrls: ['./availability-timeline.component.scss']
 })
@@ -27,7 +29,9 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
   @Input() participants: Participant[] = [];
   @Input() mode: 'view' | 'select' = 'view';
   @Input() preselectedSlots: string[] = [];
+  @Input() isAdmin: boolean = false;
   @Output() slotsSelected = new EventEmitter<string[]>();
+  @Output() downloadRequested = new EventEmitter<DateInfo>();
 
   uniqueDates: DateInfo[] = [];
   availabilityMap = new Map<string, string[]>();
@@ -471,5 +475,12 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
 
   isSelected(dateKey: string): boolean {
     return this.selectedSlotKeys.has(dateKey);
+  }
+
+  /**
+   * Request download of iCalendar file for a specific date/time slot
+   */
+  requestDownload(dateInfo: DateInfo): void {
+    this.downloadRequested.emit(dateInfo);
   }
 }

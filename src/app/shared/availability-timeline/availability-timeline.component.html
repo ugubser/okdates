@@ -39,6 +39,17 @@
             <span class="timezone-display" *ngIf="dateInfo.timezone">{{ dateInfo.timezone }}</span>
             <span class="common-available-badge" *ngIf="isCommonAvailableSlot(dateInfo.dateString)">Available for All</span>
           </div>
+
+          <!-- Download button for admins -->
+          <button
+            *ngIf="isAdmin && mode === 'view'"
+            mat-icon-button
+            class="download-ics-btn"
+            (click)="requestDownload(dateInfo)"
+            matTooltip="Download .ics file"
+            matTooltipPosition="above">
+            <mat-icon>download</mat-icon>
+          </button>
         </div>
       </th>
       <td mat-cell *matCellDef="let participant" [ngClass]="getParticipationClass(dateInfo.dateString)">

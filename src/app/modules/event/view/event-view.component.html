@@ -114,7 +114,9 @@
       <app-availability-timeline
         [event]="event"
         [participants]="participants"
-        [mode]="'view'">
+        [mode]="'view'"
+        [isAdmin]="isAdmin"
+        (downloadRequested)="downloadICalForDate($event)">
       </app-availability-timeline>
     </div>
     
