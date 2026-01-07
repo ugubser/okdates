@@ -121,9 +121,30 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      position: relative;
 
       span {
         margin-right: 8px;
+      }
+
+      .download-ics-btn {
+        width: 28px;
+        height: 28px;
+        line-height: 28px;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+        margin-left: 4px;
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+
+        &:hover {
+          opacity: 1;
+          background-color: rgba(0, 0, 0, 0.04);
+        }
       }
     }
 
