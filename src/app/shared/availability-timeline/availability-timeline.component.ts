@@ -31,6 +31,15 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
   @Input() mode: 'view' | 'select' = 'view';
   @Input() preselectedSlots: string[] = [];
   @Input() isAdmin: boolean = false;
+  @Input() set timezone(value: string) {
+    if (value && value !== this.viewerTimezone) {
+      this.viewerTimezone = value;
+      // Clear selections since slot keys encode timezone-specific wall-clock times
+      this.selectedSlotKeys.clear();
+      this.slotsSelected.emit([]);
+      this.processAvailabilityData();
+    }
+  }
   @Output() slotsSelected = new EventEmitter<string[]>();
   @Output() downloadRequested = new EventEmitter<DateInfo>();
 
@@ -194,36 +203,41 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
     // Get meeting duration from event or default to 60 minutes
     const meetingDuration = this.event?.meetingDuration || 60;
 
-    // First pass: collect all unique dates from time ranges
+    // Helper: convert a stored timestamp to the viewer's timezone
+    const toViewerTZ = (seconds: number, participantTz: string): DateTime => {
+      const utc = DateTime.fromSeconds(seconds, { zone: 'utc' });
+      const inParticipantTz = utc.setZone(participantTz, { keepLocalTime: true });
+      return inParticipantTz.setZone(this.viewerTimezone);
+    };
+
+    // First pass: collect all unique dates from time ranges (in viewer timezone)
     this.participants.forEach(participant => {
       if (participant.parsedDates && participant.parsedDates.length > 0) {
         participant.parsedDates.forEach(dateData => {
+          const participantTimezone = dateData.timezone || participant.timezone || 'Europe/Zurich';
           if (dateData.startTimestamp && dateData.endTimestamp) {
-            const startDate = new Date(dateData.startTimestamp.seconds * 1000);
-            const endDate = new Date(dateData.endTimestamp.seconds * 1000);
+            const startInViewer = toViewerTZ(dateData.startTimestamp.seconds, participantTimezone);
+            const endInViewer = toViewerTZ(dateData.endTimestamp.seconds, participantTimezone);
 
-            const startDateString = this.formatDateKey(startDate);
-            allDates.add(startDateString);
-
-            const endDateString = this.formatDateKey(endDate);
-            if (endDateString !== startDateString) {
-              allDates.add(endDateString);
+            allDates.add(startInViewer.toISODate() || '');
+            const endDateStr = endInViewer.toISODate() || '';
+            if (endDateStr !== (startInViewer.toISODate() || '')) {
+              allDates.add(endDateStr);
             }
           } else if (dateData.timestamp) {
-            const date = new Date(dateData.timestamp.seconds * 1000);
-            const dateString = this.formatDateKey(date);
-            allDates.add(dateString);
+            const inViewer = toViewerTZ(dateData.timestamp.seconds, participantTimezone);
+            allDates.add(inViewer.toISODate() || '');
           }
         });
       }
     });
 
     // Sort dates chronologically
-    const sortedDates = Array.from(allDates).sort((a, b) => {
+    const sortedDates = Array.from(allDates).filter(Boolean).sort((a, b) => {
       return new Date(a).getTime() - new Date(b).getTime();
     });
 
-    // Find earliest start time and latest end time from all participants
+    // Find earliest start time and latest end time from all participants (in viewer timezone)
     let earliestMinuteOfDay = 24 * 60;
     let latestMinuteOfDay = 0;
 
@@ -233,14 +247,11 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
           if (dateData.startTimestamp && dateData.endTimestamp) {
             const participantTimezone = dateData.timezone || participant.timezone || 'Europe/Zurich';
 
-            const utcStartDate = DateTime.fromSeconds(dateData.startTimestamp.seconds, { zone: 'utc' });
-            const utcEndDate = DateTime.fromSeconds(dateData.endTimestamp.seconds, { zone: 'utc' });
+            const startInViewer = toViewerTZ(dateData.startTimestamp.seconds, participantTimezone);
+            const endInViewer = toViewerTZ(dateData.endTimestamp.seconds, participantTimezone);
 
-            const startDate = utcStartDate.setZone(participantTimezone, { keepLocalTime: true });
-            const endDate = utcEndDate.setZone(participantTimezone, { keepLocalTime: true });
-
-            const startMinutes = startDate.hour * 60 + startDate.minute;
-            const endMinutes = endDate.hour * 60 + endDate.minute;
+            const startMinutes = startInViewer.hour * 60 + startInViewer.minute;
+            const endMinutes = endInViewer.hour * 60 + endInViewer.minute;
 
             earliestMinuteOfDay = Math.min(earliestMinuteOfDay, startMinutes);
             latestMinuteOfDay = Math.max(latestMinuteOfDay, endMinutes);
@@ -267,9 +278,10 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
     earliestMinuteOfDay = Math.floor(earliestMinuteOfDay / 15) * 15;
     latestMinuteOfDay = Math.ceil(latestMinuteOfDay / 15) * 15;
 
-    // Create time slots for each date
+    // Create time slots for each date using viewer timezone
     sortedDates.forEach(dateString => {
-      const date = new Date(dateString);
+      // Parse date components from ISO date string
+      const [year, month, day] = dateString.split('-').map(Number);
 
       for (let minuteOfDay = earliestMinuteOfDay; minuteOfDay < latestMinuteOfDay; minuteOfDay += meetingDuration) {
         if (minuteOfDay + meetingDuration <= latestMinuteOfDay) {
@@ -279,18 +291,25 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
           const endHours = Math.floor((minuteOfDay + meetingDuration) / 60);
           const endMinutes = (minuteOfDay + meetingDuration) % 60;
 
-          const slotDate = new Date(date);
-          slotDate.setHours(hours, minutes, 0, 0);
+          // Create slot dates in the viewer timezone so times are correct
+          const slotStartDT = DateTime.fromObject(
+            { year, month, day, hour: hours, minute: minutes, second: 0 },
+            { zone: this.viewerTimezone }
+          );
+          const slotEndDT = DateTime.fromObject(
+            { year, month, day, hour: endHours, minute: endMinutes, second: 0 },
+            { zone: this.viewerTimezone }
+          );
 
-          const slotEndDate = new Date(date);
-          slotEndDate.setHours(endHours, endMinutes, 0, 0);
+          const slotDate = slotStartDT.toJSDate();
+          const slotEndDate = slotEndDT.toJSDate();
 
           const slotKey = `${dateString}-${hours.toString().padStart(2, '0')}-${minutes.toString().padStart(2, '0')}`;
 
           const formattedStartTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
           const formattedEndTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
 
-          const formattedDate = `${this.formatDateForDisplay(date)} ${formattedStartTime}-${formattedEndTime}`;
+          const formattedDate = `${slotStartDT.toFormat('EEE, MMM d')} ${formattedStartTime}-${formattedEndTime}`;
 
           this.uniqueDates.push({
             date: slotDate,

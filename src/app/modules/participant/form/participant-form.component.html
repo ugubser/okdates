@@ -114,6 +114,7 @@
         [event]="event"
         [participants]="participants"
         [mode]="'select'"
+        [timezone]="participantForm.get('timezone')?.value"
         [preselectedSlots]="preselectedSlotKeys"
         (slotsSelected)="onSlotsSelected($event)">
       </app-availability-timeline>
