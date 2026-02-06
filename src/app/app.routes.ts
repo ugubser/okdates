@@ -9,7 +9,9 @@ export const routes: Routes = [
   { path: 'event/create', component: EventCreationComponent },
   { path: 'event/:id/edit', component: EventCreationComponent },
   { path: 'event/:id/view', component: EventViewComponent },
-  { path: 'event/:id/admin/:adminKey', component: EventViewComponent },
+  // Backward compatibility: old admin URLs redirect to view (admin key is lost,
+  // but users can authenticate via the admin password dialog instead)
+  { path: 'event/:id/admin/:adminKey', redirectTo: 'event/:id/view' },
   { path: 'event/:id/participate', component: ParticipantFormComponent },
   { path: 'event/:id/participant/:participantId', component: ParticipantFormComponent },
   // Redirect to home for any unmatched routes

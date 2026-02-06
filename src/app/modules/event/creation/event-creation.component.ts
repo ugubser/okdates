@@ -73,8 +73,10 @@ export class EventCreationComponent implements OnInit, OnDestroy {
     this.eventId = this.route.snapshot.paramMap.get('id') || '';
     this.isCreatingNew = this.router.url.includes('/event/create');
 
-    // Check for admin key in query params (passed from event view)
-    this.adminKey = this.route.snapshot.queryParamMap.get('adminKey') || '';
+    // Read admin key from localStorage (stored by AdminStorageService)
+    if (this.eventId) {
+      this.adminKey = this.adminStorageService.getAdminKey(this.eventId) || '';
+    }
 
     // Subscribe to form value changes to update validation in real-time
     this.eventForm.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => {
@@ -404,7 +406,7 @@ export class EventCreationComponent implements OnInit, OnDestroy {
   
   copyAdminLink(): void {
     if (this.event?.adminKey) {
-      const adminUrl = `${window.location.origin}/event/${this.eventId}/admin/${this.event.adminKey}`;
+      const adminUrl = `${window.location.origin}/event/${this.eventId}/view#admin=${this.event.adminKey}`;
       navigator.clipboard.writeText(adminUrl);
       // Would add a notification here in a real app
     }

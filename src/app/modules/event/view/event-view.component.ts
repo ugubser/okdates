@@ -170,10 +170,12 @@ export class EventViewComponent implements OnInit {
     private dialog: MatDialog
   ) {
     this.eventId = this.route.snapshot.paramMap.get('id') || '';
-    this.adminKey = this.route.snapshot.paramMap.get('adminKey') || '';
-    
-    // If admin key is provided in the URL, store it for future use
-    if (this.adminKey) {
+
+    // Read admin key from URL fragment (e.g. #admin=XYZ) instead of path segment
+    const fragment = this.route.snapshot.fragment || '';
+    const adminMatch = fragment.match(/^admin=(.+)$/);
+    if (adminMatch) {
+      this.adminKey = adminMatch[1];
       this.adminStorageService.storeAdminKey(this.eventId, this.adminKey);
     }
   }
@@ -326,7 +328,7 @@ export class EventViewComponent implements OnInit {
    */
   copyAdminLink(): void {
     if (this.isAdmin && this.event?.adminKey) {
-      const adminUrl = `${window.location.origin}/event/${this.eventId}/admin/${this.event.adminKey}`;
+      const adminUrl = `${window.location.origin}/event/${this.eventId}/view#admin=${this.event.adminKey}`;
       navigator.clipboard.writeText(adminUrl);
       alert('Admin link copied to clipboard!');
     }
@@ -335,10 +337,8 @@ export class EventViewComponent implements OnInit {
   editEvent(): void {
     // Only allow editing if admin key is valid or we're in development
     if (this.isAdmin) {
-      // Navigate to event edit page with admin key
-      this.router.navigate(['/event', this.eventId, 'edit'], { 
-        queryParams: { adminKey: this.adminKey }
-      });
+      // Navigate to event edit page (admin key is in localStorage)
+      this.router.navigate(['/event', this.eventId, 'edit']);
     } else if (this.event?.adminPassword) {
       // If there's an admin password set, show the password dialog
       this.openAdminPasswordDialog();
@@ -1027,18 +1027,10 @@ export class EventViewComponent implements OnInit {
    */
   editParticipant(participant: Participant): void {
     if (!participant.id) return;
-    
-    // Prepare query params 
-    const queryParams: any = { edit: 'true' };
-    
-    // If admin, pass the admin key
-    if (this.isAdmin && this.adminKey) {
-      queryParams.adminKey = this.adminKey;
-    }
-    
-    // Navigate to participant edit route
+
+    // Navigate to participant edit route (admin key is in localStorage)
     this.router.navigate(['/event', this.eventId, 'participant', participant.id], {
-      queryParams
+      queryParams: { edit: 'true' }
     });
   }
   

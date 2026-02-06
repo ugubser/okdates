@@ -91,7 +91,7 @@
       <div *ngIf="event?.adminKey" class="admin-link-container">
         <h4><mat-icon color="accent">admin_panel_settings</mat-icon> Administrator Link</h4>
         <div class="link-container admin-link-display">
-          <span class="event-link admin-link">{{ window.location.origin }}/event/{{ eventId }}/admin/{{ event.adminKey }}</span>
+          <span class="event-link admin-link">{{ window.location.origin }}/event/{{ eventId }}/view#admin={{ event.adminKey }}</span>
           <button 
             mat-icon-button 
             color="accent" 

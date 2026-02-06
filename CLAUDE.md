@@ -94,7 +94,7 @@ firebase functions:config:set openrouter.api_key="YOUR_API_KEY" openrouter.model
 
 3. **LLM Integration**
    - `/functions/src/parsing/llm-parser.ts`: Handles natural language date parsing using OpenRouter API
-   - Supports both server-side (LLM) and client-side (basic) date parsing for fallback
+   - Server-side (LLM) parsing with backend basicDateParsing fallback
 
 ### Data Flow
 
@@ -111,7 +111,7 @@ The application uses OpenRouter API to access LLM capabilities for date parsing.
 - Uses the OpenAI client library for API interaction
 - Properly sets required headers for OpenRouter
 - Implements a robust key loading sequence with fallbacks
-- Features client-side fallback parsing when API is unavailable
+- Backend has basicDateParsing fallback when LLM is unavailable
 
 ### OpenRouter Authentication
 
@@ -136,3 +136,15 @@ const openai = new OpenAI({
   - HTTP Callable functions for frontend integration
   - CORS-enabled HTTP endpoints for external access
   - Functions run in the `europe-west1` region
+
+## Known Technical Debt
+
+The following architectural issues were identified during code review (Feb 2026):
+
+1. ~~**Admin key exposed in URL path**~~ — **RESOLVED.** Admin keys now use URL fragments (`#admin=KEY`) which are never sent to servers or included in referrer headers. Old `/event/:id/admin/:key` URLs redirect to the view page.
+
+2. ~~**No rate limiting on Cloud Functions**~~ — **RESOLVED.** All callable Cloud Functions (`createEvent`, `getEvent`, `addParticipant`, `getParticipants`, `parseDates`) now enforce Firebase App Check via `context.app` validation, with an emulator bypass for local development.
+
+3. ~~**~150 lines duplicate date parsing (client vs backend)**~~ — **RESOLVED.** Client-side `parseClientSide()` and helpers removed from `date-parsing.service.ts`. The backend's `basicDateParsing()` fallback handles LLM failures; the frontend surfaces errors to the user.
+
+4. **OnPush for event-view component** — Deferred. Would improve rendering performance but requires `ChangeDetectorRef.markForCheck()` after every async operation (data load, dialog close, admin verification). High risk of subtle rendering bugs. The safer approach is extracting admin panel and share section into OnPush child components.

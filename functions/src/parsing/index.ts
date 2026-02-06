@@ -5,7 +5,11 @@ import { parseDatesWithLLM } from './llm-parser';
  * Parses raw text input into structured date objects using LLM
  */
 export const parseDates = functions.region('europe-west1').https.onCall(async (data, context) => {
-  // CORS headers are automatically handled for us in HTTP Callable functions
+  // Enforce App Check (skip in emulator)
+  if (!context.app && !process.env.FUNCTIONS_EMULATOR) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
   try {
     const { rawDateInput, isMeeting = false, timezone = 'UTC' } = data;
 

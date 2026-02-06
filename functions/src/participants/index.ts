@@ -5,7 +5,11 @@ import * as admin from 'firebase-admin';
  * Adds a new participant to an event
  */
 export const addParticipant = functions.region('europe-west1').https.onCall(async (data, context) => {
-  // CORS headers are automatically handled for us in HTTP Callable functions
+  // Enforce App Check (skip in emulator)
+  if (!context.app && !process.env.FUNCTIONS_EMULATOR) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
   try {
     const { eventId, name, rawDateInput, parsedDates, timezone = 'UTC' } = data;
 
@@ -74,7 +78,11 @@ export const addParticipant = functions.region('europe-west1').https.onCall(asyn
  * Gets all participants for an event
  */
 export const getParticipants = functions.region('europe-west1').https.onCall(async (data, context) => {
-  // CORS headers are automatically handled for us in HTTP Callable functions
+  // Enforce App Check (skip in emulator)
+  if (!context.app && !process.env.FUNCTIONS_EMULATOR) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
   try {
     const { eventId } = data;
     

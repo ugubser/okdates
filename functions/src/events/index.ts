@@ -6,7 +6,11 @@ import { corsConfig } from '../config/cors';
  * Creates a new event with a unique identifier
  */
 export const createEvent = functions.region('europe-west1').https.onCall(async (data, context) => {
-  // CORS headers are automatically handled for us in HTTP Callable functions
+  // Enforce App Check (skip in emulator)
+  if (!context.app && !process.env.FUNCTIONS_EMULATOR) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
   try {
     const { title, description } = data;
 
@@ -52,7 +56,11 @@ export const createEvent = functions.region('europe-west1').https.onCall(async (
  * Gets an event by ID
  */
 export const getEvent = functions.region('europe-west1').https.onCall(async (data, context) => {
-  // CORS headers are automatically handled for us in HTTP Callable functions
+  // Enforce App Check (skip in emulator)
+  if (!context.app && !process.env.FUNCTIONS_EMULATOR) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
   try {
     const { eventId } = data;
     

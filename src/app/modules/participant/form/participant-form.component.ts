@@ -14,6 +14,7 @@ import { EventService } from '../../../core/services/event.service';
 import { ParticipantService } from '../../../core/services/participant.service';
 import { DateParsingService } from '../../../core/services/date-parsing.service';
 import { ParticipantStorageService } from '../../../core/services/participant-storage.service';
+import { AdminStorageService } from '../../../core/services/admin-storage.service';
 import { Event } from '../../../core/models/event.model';
 import { ParsedDate } from '../../../core/models/parsed-date.model';
 import { Participant } from '../../../core/models/participant.model';
@@ -77,7 +78,8 @@ export class ParticipantFormComponent implements OnInit {
     private eventService: EventService,
     private participantService: ParticipantService,
     private dateParsingService: DateParsingService,
-    private participantStorageService: ParticipantStorageService
+    private participantStorageService: ParticipantStorageService,
+    private adminStorageService: AdminStorageService
   ) {
     this.participantForm = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(100)]],
@@ -102,8 +104,8 @@ export class ParticipantFormComponent implements OnInit {
       
       this.participantId = routeParticipantId || queryParticipantId || '';
       
-      // Check for admin key in query params
-      this.adminKey = this.route.snapshot.queryParamMap.get('adminKey') || '';
+      // Read admin key from localStorage
+      this.adminKey = this.adminStorageService.getAdminKey(this.eventId) || '';
       
       // If we have a participant ID in the route, we're definitely in edit mode
       if (routeParticipantId) {
@@ -217,12 +219,12 @@ export class ParticipantFormComponent implements OnInit {
           (this.participantForm.get('timezone')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone) :
           null;
 
-        // parseLlm already falls back to client-side parsing internally
         this.parsedDates = await this.dateParsingService.parseLlm(rawDateInput, isMeeting, timezone);
 
         this.showParsedDates = true;
       } catch (error) {
         console.error('Error parsing dates:', error);
+        alert('Could not parse your dates. Please check your input and try again.');
       } finally {
         this.isParsing = false;
       }
