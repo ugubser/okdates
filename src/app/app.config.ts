@@ -13,7 +13,8 @@ import { routes } from './app.routes';
 import { environment } from '../environments/environment';
 
 // Capture initial URL immediately before any initialization happens
-const initialRequestUrl = window.location.pathname + window.location.search;
+// Include hash so that fragment-based params like #admin=KEY survive re-navigation
+const initialRequestUrl = window.location.pathname + window.location.search + window.location.hash;
 
 // App Initialization Factory - centralized initialization process
 function appInitializerFactory() {
