@@ -227,8 +227,157 @@ input:not([type]) {
   .date-summary .date-card {
     background-color: var(--surface-color) !important;
     border: 1px solid var(--border-color) !important;
-    
+
     .availability-percentage {
+      color: var(--accent-color) !important;
+    }
+  }
+
+  /* Availability timeline (participant selection grid) */
+  .availability-timeline {
+    table {
+      background-color: var(--surface-color) !important;
+
+      th:first-child, td:first-child {
+        background-color: var(--surface-color) !important;
+        color: var(--text-primary) !important;
+      }
+
+      th, td {
+        border-color: var(--border-color) !important;
+        color: var(--text-primary) !important;
+      }
+
+      .availability-indicator.unavailable {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+      }
+
+      /* Participation levels - adjusted for dark backgrounds */
+      .participation-low {
+        background-color: rgba(244, 67, 54, 0.15) !important;
+      }
+
+      .participation-medium {
+        background-color: rgba(255, 193, 7, 0.15) !important;
+      }
+
+      .participation-high {
+        background-color: rgba(76, 175, 80, 0.15) !important;
+      }
+
+      .common-available-slot {
+        background-color: rgba(76, 175, 80, 0.25) !important;
+      }
+
+      .mat-mdc-header-row {
+        background-color: var(--background-color) !important;
+      }
+
+      .mat-mdc-row {
+        background-color: var(--surface-color) !important;
+      }
+
+      .mat-mdc-footer-row {
+        background-color: var(--background-color) !important;
+        border-top: 2px solid var(--border-color) !important;
+      }
+
+      .percentage-cell {
+        color: var(--accent-color) !important;
+      }
+
+      .timezone-display {
+        color: var(--text-secondary) !important;
+      }
+
+      .download-ics-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+      }
+    }
+
+    /* Selection row (Your Availability) */
+    .selection-row {
+      background-color: var(--background-color) !important;
+      border-top: 2px solid var(--accent-color) !important;
+
+      .selection-row-label {
+        color: var(--accent-color) !important;
+      }
+    }
+
+    .selectable-cell {
+      &:hover {
+        background-color: rgba(0, 188, 212, 0.15) !important;
+      }
+
+      &.selected {
+        background-color: rgba(0, 188, 212, 0.25) !important;
+
+        mat-icon {
+          color: var(--accent-color) !important;
+        }
+      }
+    }
+
+    .selection-indicator mat-icon {
+      color: rgba(255, 255, 255, 0.3) !important;
+    }
+  }
+
+  /* Participant form overrides */
+  .no-dates .suggestion {
+    color: var(--text-secondary) !important;
+  }
+
+  .parsed-dates-list {
+    .date-number {
+      color: var(--accent-color) !important;
+    }
+
+    .info-icon {
+      color: var(--accent-color) !important;
+    }
+  }
+
+  .ai-powered-badge {
+    background-color: var(--accent-color) !important;
+    color: var(--text-on-accent) !important;
+  }
+
+  /* Event view share section */
+  .share-section {
+    h4 {
+      color: var(--text-primary) !important;
+    }
+
+    .share-prompt {
+      color: var(--text-secondary) !important;
+    }
+
+    .admin-link-container {
+      border-top-color: var(--border-color) !important;
+    }
+
+    .admin-hint {
+      color: var(--text-secondary) !important;
+    }
+  }
+
+  /* Event creation admin link section */
+  .link-section.admin-link-section {
+    background-color: var(--surface-color) !important;
+    border: 1px solid var(--accent-color) !important;
+
+    h3 {
+      color: var(--accent-color) !important;
+    }
+
+    .admin-hint {
+      color: var(--text-secondary) !important;
+    }
+
+    .event-link {
       color: var(--accent-color) !important;
     }
   }
@@ -250,6 +399,21 @@ input:not([type]) {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #a0a0a0;
+}
+
+/* Vanguard dark scrollbar */
+:root.vanguard-theme {
+  ::-webkit-scrollbar-track {
+    background: #1a1a1a;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #444;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #666;
+  }
 }
 
 /* Styling for ngx-material-timepicker */
