@@ -21,6 +21,7 @@ import { CommonModule } from '@angular/common';
 })
 export class AppComponent implements OnInit {
   title = 'OkDates';
+  isVanguardTheme = false;
 
   ngOnInit() {
     this.applyThemeBasedOnDomain();
@@ -29,10 +30,11 @@ export class AppComponent implements OnInit {
   private applyThemeBasedOnDomain(): void {
     const hostname = window.location.hostname;
     const themeClass = this.getThemeClass(hostname);
-    
+    this.isVanguardTheme = themeClass === 'vanguard-theme';
+
     // Remove any existing theme classes
     document.documentElement.classList.remove('okdates-theme', 'vanguard-theme');
-    
+
     // Apply the appropriate theme class
     document.documentElement.classList.add(themeClass);
   }

@@ -40,22 +40,28 @@ body {
 
 /* Vanguard theme specific overrides */
 :root.vanguard-theme {
+  .mat-toolbar.mat-primary {
+    background: rgba(0, 0, 0, 0.95) !important;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
   .mat-mdc-button.mat-primary {
     background-color: transparent;
     color: var(--accent-color);
     border: 2px solid var(--accent-color);
   }
-  
+
   .mat-mdc-raised-button.mat-primary {
     background-color: var(--accent-color);
     color: var(--text-on-accent);
   }
-  
+
   .mat-mdc-outlined-button.mat-primary {
     border-color: var(--accent-color);
     color: var(--accent-color);
   }
-  
+
   .mat-mdc-button.mat-primary:hover {
     background-color: var(--accent-color);
     color: var(--text-on-accent);
@@ -80,6 +86,22 @@ input:not([type]) {
   background-color: var(--surface-color);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
+}
+
+/* Vanguard theme link colors */
+:root.vanguard-theme {
+  a {
+    color: var(--accent-color);
+    transition: color 0.3s ease;
+
+    &:visited {
+      color: var(--accent-dark);
+    }
+
+    &:hover {
+      color: var(--text-primary);
+    }
+  }
 }
 
 /* Vanguard theme form field improvements */

@@ -1,6 +1,9 @@
 <div class="app-container">
   <mat-toolbar color="primary">
-    <a routerLink="/" class="logo">OkDates</a>
+    <a *ngIf="isVanguardTheme" href="https://www.vanguardsignals.com" class="logo">
+      <img src="assets/logos/vanguard-signals.svg" alt="Vanguard Signals" class="logo-image">
+    </a>
+    <a *ngIf="!isVanguardTheme" routerLink="/" class="logo">OkDates</a>
     <span class="spacer"></span>
     <a routerLink="/" mat-button>Home</a>
   </mat-toolbar>
