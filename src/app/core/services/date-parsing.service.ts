@@ -10,27 +10,6 @@ export class DateParsingService {
   constructor(private firestoreService: FirestoreService) { }
   
   /**
-   * Parses raw text input into structured date objects
-   * Uses the Firebase Function
-   */
-  async parseDates(rawDateInput: string): Promise<ParsedDate[]> {
-    try {
-      const response = await this.firestoreService.callFunction('parsing-parseDates', {
-        rawDateInput
-      });
-      
-      if (response.data.success) {
-        return response.data.data.parsedDates;
-      } else {
-        throw new Error(response.data.error || 'Failed to parse dates');
-      }
-    } catch (error) {
-      console.error('Error parsing dates:', error);
-      throw error;
-    }
-  }
-  
-  /**
    * Parse dates using LLM via Cloud Function
    * This is the primary method that should be used for production
    * @param rawInput The raw text input from user
@@ -39,27 +18,19 @@ export class DateParsingService {
    */
   async parseLlm(rawInput: string, isMeeting: boolean = false, timezone?: string | null): Promise<ParsedDate[]> {
     try {
-      //console.log(`Parsing ${isMeeting ? 'meeting times' : 'dates'} with LLM Cloud Function...`);
-
-      // Call the Firebase Function
       const response = await this.firestoreService.callFunction('parsing-parseDates', {
         rawDateInput: rawInput,
         isMeeting,
         timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
       });
 
-      //console.log('Cloud Function response:', response);
-
       if (response.data.success) {
-        // The parsed dates are already in the correct format
         return response.data.data.parsedDates;
       } else {
         throw new Error(response.data.error || 'Failed to parse dates with LLM');
       }
     } catch (error) {
-      //console.error('Error parsing dates with Cloud Function:', error);
       // Fall back to client-side parsing if Cloud Function fails
-      console.log('Falling back to client-side parsing...');
       return this.parseClientSide(rawInput, isMeeting, timezone);
     }
   }

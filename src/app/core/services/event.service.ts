@@ -84,16 +84,9 @@ export class EventService {
     isMeeting: boolean = false,
     adminPassword: string | null = null
   ): Promise<{ eventId: string, event: Event }> {
-    //console.log('EventService: Creating event directly in Firestore');
-
-    // Create timestamp
     const timestamp = this.firestoreService.createTimestamp();
-    //console.log('Created timestamp:', timestamp);
-
-    // Generate admin key for secure editing
     const adminKey = this.generateAdminKey();
 
-    // Convert to plain JS object for better Firestore compatibility
     const eventData: any = {
       createdAt: timestamp,
       title: title || null,
@@ -101,8 +94,6 @@ export class EventService {
       isActive: true,
       adminKey: adminKey,
       isMeeting: isMeeting,
-      // For meetings, we'll add meeting duration when saving
-      // Not including time fields by default for backward compatibility
     };
 
     // Only add location if provided
@@ -115,19 +106,12 @@ export class EventService {
       eventData.adminPassword = await this.hashPassword(adminPassword);
     }
 
-    //console.log('Event data to save:', eventData);
-
-    // Generate a unique event ID
-    //console.log('Adding document to Firestore...');
     const eventId = await this.firestoreService.addDocument(this.eventsPath, eventData);
-    //console.log('Document added with ID:', eventId);
 
     const event: Event = {
       id: eventId,
       ...eventData
     };
-
-    //console.log('Event created successfully:', event);
 
     return {
       eventId,

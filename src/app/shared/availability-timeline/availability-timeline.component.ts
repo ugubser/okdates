@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,7 +22,8 @@ interface DateInfo {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatIconModule, MatButtonModule, MatTooltipModule],
   templateUrl: './availability-timeline.component.html',
-  styleUrls: ['./availability-timeline.component.scss']
+  styleUrls: ['./availability-timeline.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AvailabilityTimelineComponent implements OnInit, OnChanges {
   @Input() event!: Event;
@@ -40,6 +41,7 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
   commonAvailableSlots: string[] = [];
   selectedSlotKeys = new Set<string>();
   viewerTimezone: string = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  private availableCountCache = new Map<string, number>();
 
   // Expose Math for template
   Math = Math;
@@ -64,6 +66,7 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
   processAvailabilityData(): void {
     // Clear any existing data
     this.availabilityMap.clear();
+    this.availableCountCache.clear();
     this.uniqueDates = [];
     this.displayColumns = ['participant'];
     this.footerColumns = ['available'];
@@ -75,6 +78,22 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
     } else {
       this.processRegularEventAvailability();
     }
+
+    this.buildAvailableCountCache();
+  }
+
+  private buildAvailableCountCache(): void {
+    this.availableCountCache.clear();
+    this.uniqueDates.forEach((dateInfo, dateIndex) => {
+      let count = 0;
+      this.participants.forEach(participant => {
+        const availability = this.availabilityMap.get(participant.id || participant.name);
+        if (availability && availability[dateIndex] === 'available') {
+          count++;
+        }
+      });
+      this.availableCountCache.set(dateInfo.dateString, count);
+    });
   }
 
   processRegularEventAvailability(): void {
@@ -426,21 +445,7 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
   }
 
   getAvailableCountForDate(dateString: string): number {
-    let count = 0;
-    const dateIndex = this.uniqueDates.findIndex(d => d.dateString === dateString);
-
-    if (dateIndex === -1) {
-      return 0;
-    }
-
-    this.participants.forEach(participant => {
-      const availability = this.availabilityMap.get(participant.id || participant.name);
-      if (availability && availability[dateIndex] === 'available') {
-        count++;
-      }
-    });
-
-    return count;
+    return this.availableCountCache.get(dateString) || 0;
   }
 
   isParticipantAvailable(participant: Participant, dateString: string): boolean {

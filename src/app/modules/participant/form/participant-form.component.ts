@@ -216,25 +216,13 @@ export class ParticipantFormComponent implements OnInit {
         const timezone = isMeeting ?
           (this.participantForm.get('timezone')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone) :
           null;
-        //console.log(`Using timezone: ${timezone || 'null'}`);
 
-        // Use the LLM-based parsing
-        //console.log(`Parsing ${isMeeting ? 'meeting times' : 'dates'} using LLM...`);
+        // parseLlm already falls back to client-side parsing internally
         this.parsedDates = await this.dateParsingService.parseLlm(rawDateInput, isMeeting, timezone);
-        //console.log('Parsed dates:', this.parsedDates);
 
         this.showParsedDates = true;
       } catch (error) {
-        //console.error('Error parsing dates:', error);
-
-        // Fallback to client-side parsing if LLM fails
-        const rawDateInput = this.participantForm.get('availability')?.value;
-        const isMeeting = this.event?.isMeeting || false;
-        const timezone = isMeeting ? 
-          (this.participantForm.get('timezone')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone) : 
-          null;
-        console.log('Falling back to client-side parsing...');
-        this.parsedDates = this.dateParsingService.parseClientSide(rawDateInput, isMeeting, timezone);
+        console.error('Error parsing dates:', error);
       } finally {
         this.isParsing = false;
       }
@@ -254,9 +242,6 @@ export class ParticipantFormComponent implements OnInit {
           await this.parseDates();
         }
 
-        // Debug: log parsed dates before processing
-        //console.log('Raw parsed dates before processing:', JSON.stringify(this.parsedDates));
-        
         // Extract the timestamps for storage
         // For meetings, we need both startTimestamp and endTimestamp
         // For regular events, we need just timestamp
@@ -292,12 +277,8 @@ export class ParticipantFormComponent implements OnInit {
           }
         });
 
-        // Debug: log processed dates
-        //console.log('Processed parsed dates:', JSON.stringify(parsedDates));
-
         // Clean the timestamps to remove any undefined values
         const cleanDates = this.cleanTimestampsForStorage(parsedDates);
-        //console.log('Cleaned dates for storage:', JSON.stringify(cleanDates));
 
         if (this.isEditMode && this.participantId && this.existingParticipant) {
           // Update existing participant
@@ -319,7 +300,6 @@ export class ParticipantFormComponent implements OnInit {
             }
           );
           
-          //console.log('Updated participant:', this.participantId);
         } else {
           // Add new participant with timezone info
           const isMeeting = this.event?.isMeeting || false;
@@ -337,7 +317,6 @@ export class ParticipantFormComponent implements OnInit {
           
           // Store participant ID in localStorage for future editing
           this.participantStorageService.storeParticipantId(this.eventId, result.participantId);
-          //console.log('Stored participant ID in localStorage:', result.participantId);
         }
         
         // Navigate to event view
@@ -353,7 +332,6 @@ export class ParticipantFormComponent implements OnInit {
   confirmDates(): void {
     // Get the selected dates from the selection list
     const selectedOptions = this.datesList.selectedOptions.selected;
-    //console.log('Selected options:', selectedOptions);
 
     // Filter the parsedDates to include only selected ones
     const confirmedDates: ParsedDate[] = [];
@@ -368,8 +346,6 @@ export class ParticipantFormComponent implements OnInit {
         confirmedDates.push(date);
       }
     });
-
-    //console.log('Confirmed dates:', confirmedDates);
 
     // Update the parsed dates to only include confirmed ones
     this.parsedDates = confirmedDates;
