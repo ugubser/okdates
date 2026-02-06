@@ -9,7 +9,7 @@
       padding-left: 16px;
       position: sticky;
       left: 0;
-      background-color: white;
+      background-color: var(--surface-color);
       z-index: 1;
     }
 
@@ -30,8 +30,8 @@
       }
 
       &.unavailable {
-        background-color: #f5f5f5;
-        border: 1px solid #e0e0e0;
+        background-color: var(--unavailable-bg);
+        border: 1px solid var(--unavailable-border);
       }
     }
 
@@ -49,7 +49,7 @@
 
       .timezone-display {
         font-size: 0.65rem;
-        color: #777;
+        color: var(--text-secondary);
         margin-top: 4px;
         margin-bottom: 6px;
         padding: 0 8px;
@@ -64,20 +64,20 @@
 
     /* Participation level styles */
     .participation-low {
-      background-color: rgba(244, 67, 54, 0.1); /* Light red */
+      background-color: var(--participation-low-bg);
     }
 
     .participation-medium {
-      background-color: rgba(255, 193, 7, 0.1); /* Light amber */
+      background-color: var(--participation-medium-bg);
     }
 
     .participation-high {
-      background-color: rgba(76, 175, 80, 0.1); /* Light green */
+      background-color: var(--participation-high-bg);
     }
 
     /* Common available slot - everyone is available */
     .common-available-slot {
-      background-color: rgba(76, 175, 80, 0.3) !important; /* Brighter green */
+      background-color: var(--common-available-bg) !important;
       position: relative;
 
       &::before {
@@ -87,14 +87,14 @@
         left: 0;
         right: 0;
         bottom: 0;
-        border: 2px solid rgba(76, 175, 80, 0.8);
+        border: 2px solid var(--common-available-border);
         pointer-events: none;
       }
     }
 
     .common-available-badge {
-      background-color: rgba(76, 175, 80, 0.9);
-      color: white;
+      background-color: var(--common-available-badge-bg);
+      color: var(--text-on-primary);
       font-size: 0.65rem;
       padding: 2px 6px;
       border-radius: 10px;
@@ -105,8 +105,8 @@
 
     /* Footer row styles */
     .mat-mdc-footer-row {
-      border-top: 2px solid #e0e0e0;
-      background-color: #f5f5f5;
+      border-top: 2px solid var(--border-color);
+      background-color: var(--footer-background);
       font-weight: 500;
     }
 
@@ -143,7 +143,7 @@
 
         &:hover {
           opacity: 1;
-          background-color: rgba(0, 0, 0, 0.04);
+          background-color: var(--hover-overlay);
         }
       }
     }
@@ -163,12 +163,12 @@
 
   /* Selection mode styles */
   .selection-row {
-    background-color: #f5f5f5;
-    border-top: 2px solid #1976d2;
+    background-color: var(--footer-background);
+    border-top: 2px solid var(--selection-border);
 
     .selection-row-label {
       font-weight: 600;
-      color: #1976d2;
+      color: var(--selection-text);
       padding-left: 16px;
     }
   }
@@ -178,14 +178,14 @@
     transition: background-color 0.2s;
 
     &:hover {
-      background-color: #e3f2fd;
+      background-color: var(--selection-hover-bg);
     }
 
     &.selected {
-      background-color: #c8e6c9;
+      background-color: var(--selection-active-bg);
 
       mat-icon {
-        color: #4caf50;
+        color: var(--selection-active-icon);
       }
     }
   }
@@ -201,12 +201,12 @@
       font-size: 24px;
       width: 24px;
       height: 24px;
-      color: #bdbdbd;
+      color: var(--selection-inactive-icon);
       transition: color 0.2s;
     }
 
     mat-icon[svgicon="check_circle"] {
-      color: #4caf50;
+      color: var(--selection-active-icon);
     }
   }
 }

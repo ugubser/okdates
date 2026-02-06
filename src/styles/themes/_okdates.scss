@@ -25,9 +25,54 @@
   // Border Colors
   --border-color: #e0e0e0;
   
+  // Semantic Colors
+  --error-color: #f44336;
+  --success-color: #4caf50;
+  --warning-color: #ff9800;
+  --info-color: #2196f3;
+
+  // Admin Colors
+  --admin-bg: #fff8e1;
+  --admin-border: #ffca28;
+  --admin-text: #f57c00;
+
+  // Participation Levels
+  --participation-low-bg: rgba(244, 67, 54, 0.1);
+  --participation-medium-bg: rgba(255, 193, 7, 0.1);
+  --participation-high-bg: rgba(76, 175, 80, 0.1);
+
+  // Common Available
+  --common-available-bg: rgba(76, 175, 80, 0.3);
+  --common-available-border: rgba(76, 175, 80, 0.8);
+  --common-available-badge-bg: rgba(76, 175, 80, 0.9);
+
+  // Selection States
+  --selection-border: #1976d2;
+  --selection-text: #1976d2;
+  --selection-hover-bg: #e3f2fd;
+  --selection-active-bg: #c8e6c9;
+  --selection-active-icon: #4caf50;
+  --selection-inactive-icon: #bdbdbd;
+
+  // Feature Accent
+  --feature-accent: #673ab7;
+
+  // Unavailable State
+  --unavailable-bg: #f5f5f5;
+  --unavailable-border: #e0e0e0;
+
+  // Hover/Interaction
+  --hover-overlay: rgba(0, 0, 0, 0.04);
+
+  // Scrollbar
+  --scrollbar-track: #f1f1f1;
+  --scrollbar-thumb: #c2c2c2;
+  --scrollbar-thumb-hover: #a0a0a0;
+
   // Typography
   --font-family: Roboto, "Helvetica Neue", sans-serif;
-  
+  --font-mono: 'Courier New', monospace;
+
   // Logo
   --logo-color: white;
 }

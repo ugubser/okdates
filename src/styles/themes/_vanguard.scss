@@ -38,6 +38,44 @@
   --error-color: #f44336;
   --info-color: #2196f3;
 
+  // Admin Colors
+  --admin-bg: #1a1a1a;
+  --admin-border: #00bcd4;
+  --admin-text: #00bcd4;
+
+  // Participation Levels
+  --participation-low-bg: rgba(244, 67, 54, 0.15);
+  --participation-medium-bg: rgba(255, 193, 7, 0.15);
+  --participation-high-bg: rgba(76, 175, 80, 0.15);
+
+  // Common Available
+  --common-available-bg: rgba(76, 175, 80, 0.25);
+  --common-available-border: rgba(76, 175, 80, 0.8);
+  --common-available-badge-bg: rgba(76, 175, 80, 0.9);
+
+  // Selection States
+  --selection-border: #00bcd4;
+  --selection-text: #00bcd4;
+  --selection-hover-bg: rgba(0, 188, 212, 0.15);
+  --selection-active-bg: rgba(0, 188, 212, 0.25);
+  --selection-active-icon: #00bcd4;
+  --selection-inactive-icon: rgba(255, 255, 255, 0.3);
+
+  // Feature Accent
+  --feature-accent: #00bcd4;
+
+  // Unavailable State
+  --unavailable-bg: rgba(255, 255, 255, 0.1);
+  --unavailable-border: rgba(255, 255, 255, 0.2);
+
+  // Hover/Interaction
+  --hover-overlay: rgba(255, 255, 255, 0.1);
+
+  // Scrollbar
+  --scrollbar-track: #1a1a1a;
+  --scrollbar-thumb: #444;
+  --scrollbar-thumb-hover: #666;
+
   // Typography - brother-1816 from Adobe TypeKit (landing page design system)
   --font-family: 'brother-1816', 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   --font-mono: 'Fira Code', 'Courier New', monospace;

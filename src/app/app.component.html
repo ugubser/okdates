@@ -1,20 +1,20 @@
 <div class="app-container">
   <mat-toolbar color="primary">
-    <a *ngIf="isVanguardTheme" href="https://www.vanguardsignals.com" class="logo">
-      <img src="assets/logos/vanguard-signals.svg" alt="Vanguard Signals" class="logo-image">
+    <a *ngIf="themeConfig.logo.type === 'image'" [href]="themeConfig.logo.link" class="logo">
+      <img [src]="themeConfig.logo.path" [alt]="themeConfig.logo.alt" class="logo-image">
     </a>
-    <a *ngIf="!isVanguardTheme" routerLink="/" class="logo">OkDates</a>
+    <a *ngIf="themeConfig.logo.type === 'text'" routerLink="/" class="logo">{{ themeConfig.logo.alt }}</a>
     <span class="spacer"></span>
     <a routerLink="/" mat-button>Home</a>
   </mat-toolbar>
-  
+
   <div class="content-container">
     <router-outlet></router-outlet>
   </div>
-  
+
   <footer class="app-footer">
     <div class="footer-content">
-      <!-- 
+      <!--
       <p>&copy; 2025 OkDates. All rights reserved.</p>
       -->
       <p>OkDates is Open Source and free to use. <a href="https://github.com/ugubser/OkDates" target="_blank">Learn more</a>. Made in Switzerland 🇨🇭</p>

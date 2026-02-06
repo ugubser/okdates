@@ -2,7 +2,7 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 2rem;
-  
+
   h1 {
     margin-bottom: 2rem;
   }
@@ -19,43 +19,43 @@
   padding: 1.5rem;
   margin: 2rem 0;
   border: 1px solid var(--border-color);
-  
+
   h3 {
     margin-top: 0;
     margin-bottom: 0.5rem;
     color: var(--text-primary);
   }
-  
+
   .hint {
     margin-top: 0.5rem;
     color: var(--text-secondary);
     font-size: 0.9rem;
     font-style: italic;
   }
-  
+
   &.admin-link-section {
-    background-color: #fff8e1; // Light amber background to distinguish it
-    border: 1px solid #ffca28;
-    
+    background-color: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+
     h3 {
-      color: #f57c00;
+      color: var(--admin-text);
     }
-    
+
     .admin-hint {
       margin-bottom: 0.5rem;
-      color: rgba(0, 0, 0, 0.6);
+      color: var(--text-secondary);
       font-size: 0.9rem;
     }
-    
+
     .warning {
       margin-top: 0.5rem;
-      color: #d32f2f; // Red warning text
+      color: var(--error-color);
       font-weight: bold;
       font-size: 0.9rem;
     }
-    
+
     .event-link {
-      color: #f57c00; // Orange text for admin URL
+      color: var(--admin-text);
     }
   }
 }
@@ -68,13 +68,13 @@
   padding: 0.75rem 1rem;
   border: 1px solid var(--border-color);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  
+
   .event-link {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-family: monospace;
+    font-family: var(--font-mono, monospace);
     font-size: 0.9rem;
     color: var(--primary-color);
   }
@@ -166,14 +166,14 @@
 }
 
 .invalid-time {
-      color: #f44336;
+      color: var(--error-color);
 }
 .error-state {
-      color: #f44336;
-      caret-color: #f44336;
+      color: var(--error-color);
+      caret-color: var(--error-color);
 }
 .time-error-message {
-      color: #f44336;
+      color: var(--error-color);
       font-size: 12px;
       margin-top: -16px;
       margin-bottom: 16px;
@@ -205,7 +205,7 @@
 
     mat-form-field {
       flex: 1;
-      
+
       input[type="password"] {
         padding: 8px;
       }
