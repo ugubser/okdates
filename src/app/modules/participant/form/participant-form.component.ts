@@ -405,6 +405,10 @@ export class ParticipantFormComponent implements OnInit {
     return JSON.parse(cleanString);
   }
   
+  trackByIndex(index: number): number {
+    return index;
+  }
+
   formatDate(timestamp: any, startTimestamp?: any, endTimestamp?: any): string {
     const timezone = this.event?.isMeeting ?
       this.participantForm.get('timezone')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone :

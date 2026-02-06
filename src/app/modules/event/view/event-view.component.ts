@@ -181,6 +181,10 @@ export class EventViewComponent implements OnInit {
   /**
    * Check if the current user is the owner of a participant or an admin
    */
+  trackByParticipant(index: number, participant: Participant): string {
+    return participant.id || participant.name;
+  }
+
   isParticipantOwner(participant: Participant): boolean {
     if (!participant.id) return false;
     
@@ -800,9 +804,14 @@ export class EventViewComponent implements OnInit {
       : DateTime.fromJSDate(date).setZone(timezone || this.viewerTimezone);
 
     if (this.event?.isMeeting) {
-      // For meetings, include the time
-      const hour = luxonDate.hour;
-      const formattedTime = `${hour}:00-${hour + 1}:00`;
+      // For meetings, include the time using actual meeting duration
+      const duration = this.event?.meetingDuration || 60;
+      const startHour = luxonDate.hour;
+      const startMinute = luxonDate.minute;
+      const endTotalMinutes = startHour * 60 + startMinute + duration;
+      const endHour = Math.floor(endTotalMinutes / 60);
+      const endMinute = endTotalMinutes % 60;
+      const formattedTime = `${startHour}:${String(startMinute).padStart(2, '0')}-${endHour}:${String(endMinute).padStart(2, '0')}`;
 
       // Don't include timezone in the formatted date string because it's displayed separately
       const timezoneInfo = '';

@@ -124,7 +124,7 @@
     <div class="raw-input-section">
       <h3>Raw Availability Input</h3>
       <div class="participant-list">
-        <div class="participant-item" *ngFor="let participant of participants">
+        <div class="participant-item" *ngFor="let participant of participants; trackBy: trackByParticipant">
           <div class="participant-info">
             <div class="participant-name">{{ participant.name }}</div>
             <div class="participant-dates">{{ participant.rawDateInput }}</div>

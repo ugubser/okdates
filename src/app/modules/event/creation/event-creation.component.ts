@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -11,6 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { provideNativeDateAdapter } from '@angular/material/core';
+import { Subject, takeUntil } from 'rxjs';
 import { EventService } from '../../../core/services/event.service';
 import { Event } from '../../../core/models/event.model';
 import { FirestoreService } from '../../../core/services/firestore.service';
@@ -36,12 +37,13 @@ import { AdminStorageService } from '../../../core/services/admin-storage.servic
   templateUrl: './event-creation.component.html',
   styleUrls: ['./event-creation.component.scss']
 })
-export class EventCreationComponent implements OnInit {
+export class EventCreationComponent implements OnInit, OnDestroy {
   eventForm: FormGroup;
   eventId: string = '';
   event: Event | null = null;
   isSaving = false;
   isCreatingNew = false;
+  private destroy$ = new Subject<void>();
   isLoading = false;
   adminKey: string = '';
   isAdmin = false;
@@ -75,7 +77,7 @@ export class EventCreationComponent implements OnInit {
     this.adminKey = this.route.snapshot.queryParamMap.get('adminKey') || '';
 
     // Subscribe to form value changes to update validation in real-time
-    this.eventForm.valueChanges.subscribe(() => {
+    this.eventForm.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.checkTimeValidity();
       this.checkPasswordValidity();
     });
@@ -197,6 +199,11 @@ export class EventCreationComponent implements OnInit {
     this.eventForm.get('endTime')?.setValue(endTime);
   }
   
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   ngOnInit(): void {
     //console.log('Event creation component initialized');
     //console.log('isCreatingNew:', this.isCreatingNew);

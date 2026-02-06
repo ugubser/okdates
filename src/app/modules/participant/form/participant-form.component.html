@@ -150,7 +150,7 @@
       <div class="parsed-dates-list">
         <mat-selection-list #datesList>
           <mat-list-option 
-            *ngFor="let date of parsedDates; let i = index"
+            *ngFor="let date of parsedDates; let i = index; trackBy: trackByIndex"
             [selected]="true"
             checkboxPosition="before"
             [attr.data-index]="i">

@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Firestore, collection, doc, getDoc, setDoc, addDoc, getDocs, Timestamp, DocumentData, deleteDoc } from '@angular/fire/firestore';
+import { Firestore, collection, doc, getDoc, setDoc, addDoc, getDocs, Timestamp, deleteDoc } from '@angular/fire/firestore';
 import { Functions, httpsCallable } from '@angular/fire/functions';
-import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 @Injectable({

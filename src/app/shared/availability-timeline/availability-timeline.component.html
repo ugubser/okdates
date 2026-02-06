@@ -35,7 +35,7 @@
             <span class="day-display" *ngIf="isFirstTimeSlotOfDay(dateInfo)">
               {{ formatDayOnly(dateInfo.date) }}
             </span>
-            <span class="time-display">{{ dateInfo.formattedDate | slice:dateInfo.formattedDate.lastIndexOf(' ') + 1 }}</span>
+            <span class="time-display">{{ dateInfo.formattedDate ? (dateInfo.formattedDate | slice:dateInfo.formattedDate.lastIndexOf(' ') + 1) : '' }}</span>
             <span class="timezone-display" *ngIf="dateInfo.timezone">{{ dateInfo.timezone }}</span>
             <span class="common-available-badge" *ngIf="isCommonAvailableSlot(dateInfo.dateString)">Available for All</span>
           </div>
