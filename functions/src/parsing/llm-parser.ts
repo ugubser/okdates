@@ -327,26 +327,26 @@ ${rawInput}`
             const [_, startYear, startMonth, startDay, startHour, startMinute, startSecond] = startTimeParts;
             const [__, endYear, endMonth, endDay, endHour, endMinute, endSecond] = endTimeParts;
 
-            // Instead of using Date.UTC, which converts to UTC time,
-            // just store the original time components as provided by the user
+            // Use Date.UTC so wall-clock time is stored as UTC seconds,
+            // consistent with how the frontend timeline creates timestamps
             // JavaScript months are 0-indexed
-            startDate = new Date(
+            startDate = new Date(Date.UTC(
               parseInt(startYear),
               parseInt(startMonth) - 1,
               parseInt(startDay),
               parseInt(startHour),
               parseInt(startMinute),
               parseInt(startSecond)
-            );
+            ));
 
-            endDate = new Date(
+            endDate = new Date(Date.UTC(
               parseInt(endYear),
               parseInt(endMonth) - 1,
               parseInt(endDay),
               parseInt(endHour),
               parseInt(endMinute),
               parseInt(endSecond)
-            );
+            ));
           } else {
             // Fallback to the original method if parsing fails
             console.warn('Could not parse date parts directly, falling back to Date constructor');

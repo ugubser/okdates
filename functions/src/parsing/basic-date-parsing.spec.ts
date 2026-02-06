@@ -204,14 +204,15 @@ describe('basicDateParsing — meeting mode', () => {
     expect(result[0].startTimestamp).toBeDefined();
     expect(result[0].endTimestamp).toBeDefined();
 
+    // Meeting timestamps use Date.UTC — wall-clock time stored as UTC
     const start = dateFromSeconds(result[0].startTimestamp.seconds);
     const end = dateFromSeconds(result[0].endTimestamp.seconds);
-    expect(start.getMonth()).toBe(5);
-    expect(start.getDate()).toBe(15);
-    expect(start.getHours()).toBe(9);
-    expect(start.getMinutes()).toBe(0);
-    expect(end.getHours()).toBe(12);
-    expect(end.getMinutes()).toBe(0);
+    expect(start.getUTCMonth()).toBe(5);
+    expect(start.getUTCDate()).toBe(15);
+    expect(start.getUTCHours()).toBe(9);
+    expect(start.getUTCMinutes()).toBe(0);
+    expect(end.getUTCHours()).toBe(12);
+    expect(end.getUTCMinutes()).toBe(0);
   });
 
   it('parses MM/DD/YYYY from HH:MM to HH:MM', () => {
@@ -219,12 +220,12 @@ describe('basicDateParsing — meeting mode', () => {
     expect(result).toHaveLength(1);
     const start = dateFromSeconds(result[0].startTimestamp.seconds);
     const end = dateFromSeconds(result[0].endTimestamp.seconds);
-    expect(start.getFullYear()).toBe(2025);
-    expect(start.getMonth()).toBe(2);
-    expect(start.getDate()).toBe(14);
-    expect(start.getHours()).toBe(14);
-    expect(end.getHours()).toBe(16);
-    expect(end.getMinutes()).toBe(30);
+    expect(start.getUTCFullYear()).toBe(2025);
+    expect(start.getUTCMonth()).toBe(2);
+    expect(start.getUTCDate()).toBe(14);
+    expect(start.getUTCHours()).toBe(14);
+    expect(end.getUTCHours()).toBe(16);
+    expect(end.getUTCMinutes()).toBe(30);
   });
 
   it('parses day-of-week with time range (Monday from 9:00 to 12:00)', () => {
@@ -235,16 +236,16 @@ describe('basicDateParsing — meeting mode', () => {
 
     const start = dateFromSeconds(result[0].startTimestamp.seconds);
     const end = dateFromSeconds(result[0].endTimestamp.seconds);
-    expect(start.getDay()).toBe(1); // Monday
-    expect(start.getHours()).toBe(9);
-    expect(end.getHours()).toBe(12);
+    expect(start.getUTCDay()).toBe(1); // Monday
+    expect(start.getUTCHours()).toBe(9);
+    expect(end.getUTCHours()).toBe(12);
   });
 
   it('parses abbreviated day-of-week (Mon from 9:00 to 12:00)', () => {
     const result = basicDateParsing('Mon from 9:00 to 12:00', true);
     expect(result).toHaveLength(1);
     const start = dateFromSeconds(result[0].startTimestamp.seconds);
-    expect(start.getDay()).toBe(1); // Monday
+    expect(start.getUTCDay()).toBe(1); // Monday
   });
 
   it('handles overnight wrap (22:00 to 2:00)', () => {
@@ -254,9 +255,9 @@ describe('basicDateParsing — meeting mode', () => {
     const end = dateFromSeconds(result[0].endTimestamp.seconds);
     // End should be after start (next day)
     expect(end.getTime()).toBeGreaterThan(start.getTime());
-    expect(start.getHours()).toBe(22);
-    expect(end.getHours()).toBe(2);
-    expect(end.getDate()).toBe(start.getDate() + 1);
+    expect(start.getUTCHours()).toBe(22);
+    expect(end.getUTCHours()).toBe(2);
+    expect(end.getUTCDate()).toBe(start.getUTCDate() + 1);
   });
 
   it('returns needsLlmParsing for unparseable meeting input', () => {

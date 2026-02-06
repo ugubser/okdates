@@ -89,10 +89,10 @@ export function basicDateParsing(rawInput: string, isMeeting: boolean = false, t
           (yearPart.length === 2 ? 2000 + parseInt(yearPart) : parseInt(yearPart)) :
           currentYear;
 
-        // Instead of using Date.UTC, which converts to UTC time,
-        // store the original time components as provided by the user
-        const startDate = new Date(year, parseInt(month) - 1, parseInt(day), parseInt(startHour), parseInt(startMin));
-        const endDate = new Date(year, parseInt(month) - 1, parseInt(day), parseInt(endHour), parseInt(endMin));
+        // Use Date.UTC so wall-clock time is stored as UTC seconds,
+        // consistent with how the frontend timeline creates timestamps
+        const startDate = new Date(Date.UTC(year, parseInt(month) - 1, parseInt(day), parseInt(startHour), parseInt(startMin)));
+        const endDate = new Date(Date.UTC(year, parseInt(month) - 1, parseInt(day), parseInt(endHour), parseInt(endMin)));
 
         // If end time is earlier than start time, assume it's the next day
         if (endDate.getTime() < startDate.getTime()) {
@@ -128,22 +128,23 @@ export function basicDateParsing(rawInput: string, isMeeting: boolean = false, t
           const daysToAdd = (dowIndex + 7 - today.getDay()) % 7;
           targetDate.setDate(today.getDate() + daysToAdd);
 
-          // Create start and end dates using original time components
-          const startDate = new Date(
+          // Use Date.UTC so wall-clock time is stored as UTC seconds,
+          // consistent with how the frontend timeline creates timestamps
+          const startDate = new Date(Date.UTC(
             targetDate.getFullYear(),
             targetDate.getMonth(),
             targetDate.getDate(),
             parseInt(startHour),
             parseInt(startMin)
-          );
+          ));
 
-          const endDate = new Date(
+          const endDate = new Date(Date.UTC(
             targetDate.getFullYear(),
             targetDate.getMonth(),
             targetDate.getDate(),
             parseInt(endHour),
             parseInt(endMin)
-          );
+          ));
 
           // If end time is earlier than start time, assume it's the next day
           if (endDate.getTime() < startDate.getTime()) {
