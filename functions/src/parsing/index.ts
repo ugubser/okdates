@@ -70,7 +70,7 @@ export const parseDates = functions.region('europe-west1').https.onCall(async (d
  * Basic date parsing function
  * This is a placeholder for the LLM integration that will come later
  */
-function basicDateParsing(rawInput: string, isMeeting: boolean = false, timezone: string = 'UTC'): any[] {
+export function basicDateParsing(rawInput: string, isMeeting: boolean = false, timezone: string = 'UTC'): any[] {
   const dates = [];
   const currentYear = new Date().getFullYear();
 
@@ -233,7 +233,7 @@ function basicDateParsing(rawInput: string, isMeeting: boolean = false, timezone
 /**
  * Helper function to get month index from name
  */
-function getMonthIndex(monthName: string): number {
+export function getMonthIndex(monthName: string): number {
   const months = [
     'january', 'february', 'march', 'april', 'may', 'june',
     'july', 'august', 'september', 'october', 'november', 'december'
@@ -268,7 +268,7 @@ function getMonthIndex(monthName: string): number {
  * Helper function to get day of week index from name
  * Returns 0 for Sunday, 1 for Monday, etc.
  */
-function getDayOfWeekIndex(dowName: string): number {
+export function getDayOfWeekIndex(dowName: string): number {
   const daysOfWeek = [
     'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'
   ];
