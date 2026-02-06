@@ -152,6 +152,21 @@ input:not([type]) {
   }
 }
 
+/* Dropdown panel styling — rendered in overlay, needs global rules */
+.mat-mdc-select-panel {
+  background-color: var(--surface-color, #fff) !important;
+  color: var(--text-primary);
+}
+
+.mat-mdc-option {
+  color: var(--text-primary) !important;
+
+  &:hover:not(.mdc-list-item--disabled),
+  &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+    background-color: var(--hover-overlay, rgba(0, 0, 0, 0.04)) !important;
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

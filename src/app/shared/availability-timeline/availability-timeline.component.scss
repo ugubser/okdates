@@ -1,6 +1,13 @@
 .availability-timeline {
   overflow-x: auto;
 
+  /* Override Material table cell colors to respect theme variables */
+  ::ng-deep .mat-mdc-header-cell,
+  ::ng-deep .mat-mdc-cell,
+  ::ng-deep .mat-mdc-footer-cell {
+    color: var(--text-primary);
+  }
+
   table {
     width: 100%;
 
