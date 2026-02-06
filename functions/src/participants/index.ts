@@ -10,10 +10,19 @@ export const addParticipant = functions.region('europe-west1').https.onCall(asyn
     const { eventId, name, rawDateInput, parsedDates, timezone = 'UTC' } = data;
 
     if (!eventId || !name || !rawDateInput) {
-      return {
-        success: false,
-        error: 'Missing required fields'
-      };
+      return { success: false, error: 'Missing required fields' };
+    }
+    if (typeof eventId !== 'string' || eventId.length > 128) {
+      return { success: false, error: 'Invalid event ID' };
+    }
+    if (typeof name !== 'string' || name.length > 100) {
+      return { success: false, error: 'Name must be 100 characters or less' };
+    }
+    if (typeof rawDateInput !== 'string' || rawDateInput.length > 2000) {
+      return { success: false, error: 'Date input must be 2000 characters or less' };
+    }
+    if (timezone && (typeof timezone !== 'string' || timezone.length > 100)) {
+      return { success: false, error: 'Invalid timezone' };
     }
     
     // Verify event exists

@@ -10,10 +10,13 @@ export const parseDates = functions.region('europe-west1').https.onCall(async (d
     const { rawDateInput, isMeeting = false, timezone = 'UTC' } = data;
 
     if (!rawDateInput) {
-      return {
-        success: false,
-        error: 'Raw date input is required'
-      };
+      return { success: false, error: 'Raw date input is required' };
+    }
+    if (typeof rawDateInput !== 'string' || rawDateInput.length > 2000) {
+      return { success: false, error: 'Date input must be a string of 2000 characters or less' };
+    }
+    if (timezone && (typeof timezone !== 'string' || timezone.length > 100)) {
+      return { success: false, error: 'Invalid timezone' };
     }
 
     console.log(`Using timezone: ${timezone}`);

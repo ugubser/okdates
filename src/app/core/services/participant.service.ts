@@ -12,59 +12,6 @@ export class ParticipantService {
   /**
    * Adds a new participant to an event
    */
-  async addParticipant(
-    eventId: string,
-    name: string,
-    rawDateInput: string,
-    parsedDates: any[],
-    timezone: string = Intl.DateTimeFormat().resolvedOptions().timeZone
-  ): Promise<{ participantId: string, participant: Participant }> {
-    try {
-      const response = await this.firestoreService.callFunction('participants-addParticipant', {
-        eventId,
-        name,
-        rawDateInput,
-        parsedDates,
-        timezone
-      });
-      
-      if (response.data.success) {
-        return {
-          participantId: response.data.participantId,
-          participant: response.data.data
-        };
-      } else {
-        throw new Error(response.data.error || 'Failed to add participant');
-      }
-    } catch (error) {
-      console.error('Error adding participant:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Gets all participants for an event
-   */
-  async getParticipants(eventId: string): Promise<Participant[]> {
-    try {
-      const response = await this.firestoreService.callFunction('participants-getParticipants', {
-        eventId
-      });
-      
-      if (response.data.success) {
-        return response.data.data;
-      } else {
-        throw new Error(response.data.error || 'Failed to get participants');
-      }
-    } catch (error) {
-      console.error('Error getting participants:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Alternative implementation using direct Firestore access
-   */
   async addParticipantDirect(
     eventId: string,
     name: string,

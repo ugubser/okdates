@@ -11,52 +11,7 @@ export class EventService {
   constructor(private firestoreService: FirestoreService) { }
   
   /**
-   * Creates a new event
-   */
-  async createEvent(title?: string, description?: string, location?: string): Promise<{ eventId: string, event: Event }> {
-    try {
-      const response = await this.firestoreService.callFunction('events-createEvent', {
-        title,
-        description,
-        location
-      });
-      
-      if (response.data.success) {
-        return {
-          eventId: response.data.eventId,
-          event: response.data.data
-        };
-      } else {
-        throw new Error(response.data.error || 'Failed to create event');
-      }
-    } catch (error) {
-      console.error('Error creating event:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Gets an event by ID
-   */
-  async getEvent(eventId: string): Promise<Event> {
-    try {
-      const response = await this.firestoreService.callFunction('events-getEvent', {
-        eventId
-      });
-      
-      if (response.data.success) {
-        return response.data.data;
-      } else {
-        throw new Error(response.data.error || 'Failed to get event');
-      }
-    } catch (error) {
-      console.error('Error getting event:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Alternative implementation using direct Firestore access
+   * Gets an event by ID directly from Firestore
    */
   async getEventDirect(eventId: string): Promise<Event | null> {
     return this.firestoreService.getDocument(`${this.eventsPath}`, eventId);
@@ -77,26 +32,46 @@ export class EventService {
   }
 
   /**
-   * Simple password encryption for storing in Firestore
-   * Note: This is not secure cryptography, just basic obfuscation
+   * Hash a password with SHA-256 and a random salt for secure storage.
+   * Returns a string in the format "salt$hash".
    */
-  encryptPassword(password: string): string {
+  async hashPassword(password: string): Promise<string> {
     if (!password) return '';
-    
-    // Convert password to base64 and add a simple transformation
-    const base64 = btoa(password);
-    return base64.split('').reverse().join('');
+
+    const salt = Array.from(window.crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    const hash = await this.sha256(salt + password);
+    return `${salt}$${hash}`;
   }
 
   /**
-   * Decrypt a password that was encrypted with encryptPassword
+   * Verify a password against a stored hash (salt$hash format).
+   * Also supports legacy base64-reversed passwords for migration.
    */
-  decryptPassword(encryptedPassword: string): string {
-    if (!encryptedPassword) return '';
-    
-    // Reverse the transformation and decode from base64
-    const base64 = encryptedPassword.split('').reverse().join('');
-    return atob(base64);
+  async verifyPasswordHash(password: string, storedValue: string): Promise<boolean> {
+    if (!password || !storedValue) return false;
+
+    if (storedValue.includes('$')) {
+      // New format: salt$hash
+      const [salt, storedHash] = storedValue.split('$');
+      const hash = await this.sha256(salt + password);
+      return hash === storedHash;
+    }
+
+    // Legacy format: reversed base64 — verify and caller should re-hash
+    try {
+      const base64 = storedValue.split('').reverse().join('');
+      return atob(base64) === password;
+    } catch {
+      return false;
+    }
+  }
+
+  private async sha256(message: string): Promise<string> {
+    const data = new TextEncoder().encode(message);
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
   /**
@@ -135,9 +110,9 @@ export class EventService {
       eventData.location = location;
     }
 
-    // Add encrypted password if provided
+    // Add hashed password if provided
     if (adminPassword) {
-      eventData.adminPassword = this.encryptPassword(adminPassword);
+      eventData.adminPassword = await this.hashPassword(adminPassword);
     }
 
     //console.log('Event data to save:', eventData);
@@ -164,14 +139,14 @@ export class EventService {
    * Updates an event in Firestore
    */
   async updateEvent(eventId: string, data: Partial<Event>): Promise<void> {
-    // If updating password, encrypt it first
+    // If updating password, hash it first
     if (data.adminPassword) {
       data = {
         ...data,
-        adminPassword: this.encryptPassword(data.adminPassword)
+        adminPassword: await this.hashPassword(data.adminPassword)
       };
     }
-    
+
     await this.firestoreService.setDocument(this.eventsPath, eventId, data);
   }
   
@@ -200,10 +175,16 @@ export class EventService {
       if (!event || !event.adminPassword) {
         return false;
       }
-      
-      // Decrypt stored password and compare
-      const decryptedPassword = this.decryptPassword(event.adminPassword);
-      return decryptedPassword === password;
+
+      const isValid = await this.verifyPasswordHash(password, event.adminPassword);
+
+      // Migrate legacy passwords to new hash format on successful verification
+      if (isValid && !event.adminPassword.includes('$')) {
+        const newHash = await this.hashPassword(password);
+        await this.firestoreService.setDocument(this.eventsPath, eventId, { adminPassword: newHash });
+      }
+
+      return isValid;
     } catch (error) {
       console.error('Error verifying admin password:', error);
       return false;

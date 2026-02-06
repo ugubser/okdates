@@ -1,10 +1,11 @@
 rules_version = '2';
 
-// Require authentication for all storage operations
 service firebase.storage {
   match /b/{bucket}/o {
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      // Static assets (logos, etc.) are read-only
+      allow read: if request.auth != null;
+      allow write: if false;
     }
   }
 }

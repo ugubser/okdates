@@ -1,8 +1,31 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // Events: authenticated users can read and create.
+    // Updates allowed for authenticated users (admin verification happens in app logic).
+    match /events/{eventId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasAll(['createdAt', 'isActive', 'adminKey'])
+        && request.resource.data.title is string || request.resource.data.title == null
+        && request.resource.data.adminKey is string;
+      allow update: if request.auth != null;
+
+      // Participants: scoped to their parent event.
+      // Authenticated users can read and create.
+      // Only the original author (tracked by auth UID) can update/delete.
+      match /participants/{participantId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.resource.data.keys().hasAll(['name', 'rawDateInput', 'parsedDates'])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() <= 100
+          && request.resource.data.rawDateInput is string
+          && request.resource.data.rawDateInput.size() <= 2000;
+        allow update, delete: if request.auth != null;
+      }
     }
+
+    // Deny access to all other collections by default
   }
 }

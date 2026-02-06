@@ -77,6 +77,13 @@ body {
   width: 100%;
 }
 
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+}
+
 /* Add padding to textareas and inputs */
 textarea,
 input[type="text"],

@@ -9,7 +9,15 @@ export const createEvent = functions.region('europe-west1').https.onCall(async (
   // CORS headers are automatically handled for us in HTTP Callable functions
   try {
     const { title, description } = data;
-    
+
+    // Input validation
+    if (title && (typeof title !== 'string' || title.length > 200)) {
+      return { success: false, error: 'Title must be a string of 200 characters or less' };
+    }
+    if (description && (typeof description !== 'string' || description.length > 2000)) {
+      return { success: false, error: 'Description must be a string of 2000 characters or less' };
+    }
+
     // Create event document
     const eventRef = admin.firestore().collection('events').doc();
     const eventId = eventRef.id;
