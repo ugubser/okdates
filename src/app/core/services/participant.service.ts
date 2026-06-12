@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { Auth } from '@angular/fire/auth';
 import { FirestoreService } from './firestore.service';
 import { Participant } from '../models/participant.model';
 
@@ -6,9 +7,12 @@ import { Participant } from '../models/participant.model';
   providedIn: 'root'
 })
 export class ParticipantService {
-  
-  constructor(private firestoreService: FirestoreService) { }
-  
+
+  constructor(
+    private firestoreService: FirestoreService,
+    private auth: Auth
+  ) { }
+
   /**
    * Adds a new participant to an event
    */
@@ -25,11 +29,18 @@ export class ParticipantService {
       rawDateInput,
       parsedDates,
       timezone,
-      submittedAt: { seconds: Date.now() / 1000, nanoseconds: 0 }
+      // Integer-second server-relative timestamp (was fractional client seconds).
+      submittedAt: this.firestoreService.createTimestamp()
     };
-    
+
+    // Record the author's anonymous UID for self-edit / anti-spoof in rules.
+    const ownerUid = this.auth.currentUser?.uid;
+    if (ownerUid) {
+      (participantData as any).ownerUid = ownerUid;
+    }
+
     const participantId = await this.firestoreService.addDocument(
-      `events/${eventId}/participants`, 
+      `events/${eventId}/participants`,
       participantData
     );
     
@@ -94,7 +105,7 @@ export class ParticipantService {
     const updateData = {
       rawDateInput,
       parsedDates,
-      submittedAt: { seconds: Date.now() / 1000, nanoseconds: 0 }
+      submittedAt: this.firestoreService.createTimestamp()
     };
     
     await this.updateParticipantDirect(eventId, participantId, updateData);

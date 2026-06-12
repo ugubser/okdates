@@ -234,11 +234,16 @@ export class EventViewComponent implements OnInit {
         // Use stored admin key
         this.isAdmin = await this.eventService.verifyAdminKey(this.eventId, storedAdminKey);
         this.adminKey = storedAdminKey;
-        
+
         if (!this.isAdmin) {
           console.warn('Stored admin key is no longer valid');
           this.adminStorageService.removeAdminKey(this.eventId);
         }
+      }
+
+      // Admins who verified via password (no stored key) stay admin for this browser.
+      if (!this.isAdmin && this.adminStorageService.isPasswordVerified(this.eventId)) {
+        this.isAdmin = true;
       }
       
       // Load participants
@@ -312,13 +317,13 @@ export class EventViewComponent implements OnInit {
     
     dialogRef.afterClosed().subscribe(async (result) => {
       if (result && result.success) {
-        // Password verification successful
-        // Get the admin key for this event
-        if (this.event?.adminKey) {
-          this.adminKey = this.event.adminKey;
-          this.adminStorageService.storeAdminKey(this.eventId, this.adminKey);
-          this.isAdmin = true;
-        }
+        // Password verification grants admin for this browser. The plaintext
+        // admin key is never stored in the doc, so it cannot be recovered here;
+        // we persist a password-verified marker instead (same same-origin trust
+        // level as a stored admin key). The share-the-admin-link feature stays
+        // available only to admins who arrived via the key link.
+        this.isAdmin = true;
+        this.adminStorageService.storePasswordVerified(this.eventId);
       }
     });
   }
@@ -327,8 +332,8 @@ export class EventViewComponent implements OnInit {
    * Copy admin link to clipboard
    */
   copyAdminLink(): void {
-    if (this.isAdmin && this.event?.adminKey) {
-      const adminUrl = `${window.location.origin}/event/${this.eventId}/view#admin=${this.event.adminKey}`;
+    if (this.isAdmin && this.adminKey) {
+      const adminUrl = `${window.location.origin}/event/${this.eventId}/view#admin=${this.adminKey}`;
       navigator.clipboard.writeText(adminUrl);
       alert('Admin link copied to clipboard!');
     }

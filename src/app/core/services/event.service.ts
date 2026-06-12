@@ -32,39 +32,80 @@ export class EventService {
   }
 
   /**
-   * Hash a password with SHA-256 and a random salt for secure storage.
-   * Returns a string in the format "salt$hash".
+   * Number of PBKDF2 iterations for password hashing. Stored in the hash string
+   * so the value can be raised over time without breaking older hashes.
+   */
+  private static readonly PBKDF2_ITERATIONS = 100000;
+
+  /**
+   * Hash a password with PBKDF2-SHA256 and a random salt for secure storage.
+   * Returns a string in the format "pbkdf2$<iterations>$<saltHex>$<hashHex>".
    */
   async hashPassword(password: string): Promise<string> {
     if (!password) return '';
 
-    const salt = Array.from(window.crypto.getRandomValues(new Uint8Array(16)))
-      .map(b => b.toString(16).padStart(2, '0')).join('');
-    const hash = await this.sha256(salt + password);
-    return `${salt}$${hash}`;
+    const salt = window.crypto.getRandomValues(new Uint8Array(16));
+    const iterations = EventService.PBKDF2_ITERATIONS;
+    const hashHex = await this.pbkdf2(password, salt, iterations);
+    const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+    return `pbkdf2$${iterations}$${saltHex}$${hashHex}`;
   }
 
   /**
-   * Verify a password against a stored hash (salt$hash format).
-   * Also supports legacy base64-reversed passwords for migration.
+   * Verify a password against a stored hash.
+   * Supports the current pbkdf2$… format, the legacy salt$hash (SHA-256) format,
+   * and the legacy reversed-base64 format (read-only; these are migrated away
+   * server-side by scripts/migrate-admin-keys.ts).
    */
   async verifyPasswordHash(password: string, storedValue: string): Promise<boolean> {
     if (!password || !storedValue) return false;
 
+    if (storedValue.startsWith('pbkdf2$')) {
+      const [, iterStr, saltHex, storedHash] = storedValue.split('$');
+      const salt = this.hexToBytes(saltHex);
+      const hash = await this.pbkdf2(password, salt, parseInt(iterStr, 10));
+      return hash === storedHash;
+    }
+
     if (storedValue.includes('$')) {
-      // New format: salt$hash
+      // Legacy format: salt$hash (single-round SHA-256)
       const [salt, storedHash] = storedValue.split('$');
       const hash = await this.sha256(salt + password);
       return hash === storedHash;
     }
 
-    // Legacy format: reversed base64 — verify and caller should re-hash
+    // Legacy format: reversed base64 (reversible — server migration removes these)
     try {
       const base64 = storedValue.split('').reverse().join('');
       return atob(base64) === password;
     } catch {
       return false;
     }
+  }
+
+  private async pbkdf2(password: string, salt: Uint8Array, iterations: number): Promise<string> {
+    const keyMaterial = await window.crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(password),
+      'PBKDF2',
+      false,
+      ['deriveBits']
+    );
+    const bits = await window.crypto.subtle.deriveBits(
+      { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+      keyMaterial,
+      256
+    );
+    return Array.from(new Uint8Array(bits))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  private hexToBytes(hex: string): Uint8Array {
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < bytes.length; i++) {
+      bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+    }
+    return bytes;
   }
 
   private async sha256(message: string): Promise<string> {
@@ -83,16 +124,17 @@ export class EventService {
     location: string | null = null,
     isMeeting: boolean = false,
     adminPassword: string | null = null
-  ): Promise<{ eventId: string, event: Event }> {
+  ): Promise<{ eventId: string, event: Event, adminKey: string }> {
     const timestamp = this.firestoreService.createTimestamp();
     const adminKey = this.generateAdminKey();
+    const adminKeyHash = await this.sha256(adminKey);
 
     const eventData: any = {
       createdAt: timestamp,
       title: title || null,
       description: description || null,
       isActive: true,
-      adminKey: adminKey,
+      adminKeyHash: adminKeyHash,
       isMeeting: isMeeting,
     };
 
@@ -113,9 +155,12 @@ export class EventService {
       ...eventData
     };
 
+    // The plaintext adminKey is returned to the caller (for the share link /
+    // localStorage) but is never persisted in the document.
     return {
       eventId,
-      event
+      event,
+      adminKey
     };
   }
   
@@ -139,11 +184,21 @@ export class EventService {
    */
   async verifyAdminKey(eventId: string, adminKey: string): Promise<boolean> {
     try {
+      if (!adminKey) return false;
       const event = await this.getEventDirect(eventId);
-      if (!event || !event.adminKey) {
-        return false;
+      if (!event) return false;
+
+      if (event.adminKeyHash) {
+        const hash = await this.sha256(adminKey);
+        return hash === event.adminKeyHash;
       }
-      return event.adminKey === adminKey;
+
+      // Legacy fallback for un-migrated docs that still hold the plaintext key.
+      if (event.adminKey) {
+        return event.adminKey === adminKey;
+      }
+
+      return false;
     } catch (error) {
       console.error('Error verifying admin key:', error);
       return false;
@@ -160,15 +215,10 @@ export class EventService {
         return false;
       }
 
-      const isValid = await this.verifyPasswordHash(password, event.adminPassword);
-
-      // Migrate legacy passwords to new hash format on successful verification
-      if (isValid && !event.adminPassword.includes('$')) {
-        const newHash = await this.hashPassword(password);
-        await this.firestoreService.setDocument(this.eventsPath, eventId, { adminPassword: newHash });
-      }
-
-      return isValid;
+      // Note: legacy password hashes are upgraded server-side by
+      // scripts/migrate-admin-keys.ts, not lazily here — the firestore.rules
+      // immutability rule forbids clients from rewriting adminPassword.
+      return await this.verifyPasswordHash(password, event.adminPassword);
     } catch (error) {
       console.error('Error verifying admin password:', error);
       return false;

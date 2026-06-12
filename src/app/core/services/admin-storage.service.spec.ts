@@ -65,4 +65,24 @@ describe('AdminStorageService', () => {
     service.storeAdminKey('event1', 'key123');
     expect(localStorage.getItem('okdates_admin_event1')).toBe('key123');
   });
+
+  it('stores and reads the password-verified marker', () => {
+    expect(service.isPasswordVerified('event1')).toBe(false);
+    service.storePasswordVerified('event1');
+    expect(service.isPasswordVerified('event1')).toBe(true);
+  });
+
+  it('removeAdminKey also clears the password-verified marker', () => {
+    service.storeAdminKey('event1', 'key123');
+    service.storePasswordVerified('event1');
+    service.removeAdminKey('event1');
+    expect(service.getAdminKey('event1')).toBeNull();
+    expect(service.isPasswordVerified('event1')).toBe(false);
+  });
+
+  it('password-verified marker is independent of the admin key', () => {
+    service.storePasswordVerified('event1');
+    expect(service.getAdminKey('event1')).toBeNull();
+    expect(service.isPasswordVerified('event1')).toBe(true);
+  });
 });

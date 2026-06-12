@@ -231,47 +231,31 @@ export class EventCreationComponent implements OnInit, OnDestroy {
     }
   }
   
-  async createNewEvent(): Promise<void> {
-    try {
-      this.isLoading = true;
-      //console.log('Creating event in Firestore...');
+  createNewEvent(): void {
+    // The Firestore document is created atomically in saveEvent() so that the
+    // admin password (which is immutable after creation) is set as part of the
+    // initial write. Here we only set up an in-memory placeholder so the form
+    // renders; no document is written until the user saves.
+    this.event = {
+      createdAt: this.firestoreService.createTimestamp(),
+      title: null,
+      description: null,
+      isActive: true,
+      isMeeting: this.isMeeting
+    };
 
-      // Initialize with empty title and description
-      const { eventId, event } = await this.eventService.createEventDirect(null, null, null, this.isMeeting);
-      //console.log('Event created with ID:', eventId);
-
-      this.eventId = eventId;
-      this.event = event;
-      
-      // Store admin key in localStorage to make this user the administrator
-      if (event.adminKey) {
-        this.adminKey = event.adminKey;
-        this.adminStorageService.storeAdminKey(eventId, event.adminKey);
-      }
-
-      // Create an empty form for the user to fill out
-      this.eventForm.patchValue({
-        title: '',
-        description: '',
-        location: '',
-        startTime: null,
-        endTime: null,
-        meetingDuration: this.isMeeting ? 120 : null, // Default to 2 hours for meetings
-        adminPassword: '',
-        confirmPassword: ''
-      });
-
-      // Now the user can edit the empty event
-      //console.log('New event ready for editing:', this.event);
-    } catch (error) {
-      console.error('Error creating event:', error);
-      // Navigate back to home on error
-      this.router.navigate(['/']);
-    } finally {
-      this.isLoading = false;
-    }
+    this.eventForm.patchValue({
+      title: '',
+      description: '',
+      location: '',
+      startTime: null,
+      endTime: null,
+      meetingDuration: this.isMeeting ? 120 : null, // Default to 2 hours for meetings
+      adminPassword: '',
+      confirmPassword: ''
+    });
   }
-  
+
   async loadEvent(): Promise<void> {
     try {
       this.isLoading = true;
@@ -281,20 +265,24 @@ export class EventCreationComponent implements OnInit, OnDestroy {
         // Check if this is a meeting
         this.isMeeting = this.event.isMeeting || false;
 
-        // Verify admin key if not creating new event
-        if (this.adminKey && !this.isCreatingNew) {
-          this.isAdmin = await this.eventService.verifyAdminKey(this.eventId, this.adminKey);
+        // Verify admin access if not creating a new event. Access is granted by a
+        // valid admin key OR a stored password-verified marker (set after the
+        // admin passed the password check on the view page).
+        if (!this.isCreatingNew) {
+          let ok = false;
+          if (this.adminKey) {
+            ok = await this.eventService.verifyAdminKey(this.eventId, this.adminKey);
+          }
+          if (!ok && this.adminStorageService.isPasswordVerified(this.eventId)) {
+            ok = true;
+          }
+          this.isAdmin = ok;
 
-          if (!this.isAdmin) {
-            console.warn('Invalid admin key provided - redirecting to view');
+          if (!ok) {
+            console.warn('No valid admin access - redirecting to view');
             this.router.navigate(['/event', this.eventId, 'view']);
             return;
           }
-        } else if (!this.isCreatingNew) {
-          // If no admin key is provided and we're not creating a new event, redirect to view
-          console.warn('No admin key provided - redirecting to view');
-          this.router.navigate(['/event', this.eventId, 'view']);
-          return;
         }
 
         // Populate form
@@ -320,7 +308,7 @@ export class EventCreationComponent implements OnInit, OnDestroy {
     this.checkTimeValidity();
     this.checkPasswordValidity();
 
-    if (this.eventForm.valid && this.eventId && !this.timeError && !this.passwordError) {
+    if (this.eventForm.valid && (this.isCreatingNew || this.eventId) && !this.timeError && !this.passwordError) {
       try {
         this.isSaving = true;
 
@@ -328,8 +316,8 @@ export class EventCreationComponent implements OnInit, OnDestroy {
         let finalStartTime = startTime;
         let finalEndTime = endTime;
 
-        // Create update object without empty time fields
-        const updateData: Partial<Event> = {
+        // Non-secret fields, written on both create and edit.
+        const fields: Partial<Event> = {
           title: title || null,
           description: description || null,
           isMeeting: this.isMeeting
@@ -337,22 +325,17 @@ export class EventCreationComponent implements OnInit, OnDestroy {
 
         // Only add location if it's not empty
         if (location) {
-          updateData.location = location;
+          fields.location = location;
         }
 
         // Add meeting duration if this is a meeting
         if (this.isMeeting && meetingDuration) {
-          updateData.meetingDuration = meetingDuration;
-        }
-
-        // Add admin password if provided
-        if (adminPassword) {
-          updateData.adminPassword = adminPassword;
+          fields.meetingDuration = meetingDuration;
         }
 
         // If start time exists
         if (finalStartTime) {
-          updateData.startTime = finalStartTime;
+          fields.startTime = finalStartTime;
 
           // If end time is missing, set it to start time + 2 hours
           if (!finalEndTime) {
@@ -371,21 +354,39 @@ export class EventCreationComponent implements OnInit, OnDestroy {
               finalEndTime = `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
             }
 
-            updateData.endTime = finalEndTime;
+            fields.endTime = finalEndTime;
           } else {
             // Use end time as is - validation will prevent invalid submissions
-            updateData.endTime = finalEndTime;
+            fields.endTime = finalEndTime;
           }
         } else if (finalEndTime) {
           // If only end time is provided, add it to the update
-          updateData.endTime = finalEndTime;
+          fields.endTime = finalEndTime;
         }
 
-        await this.eventService.updateEvent(this.eventId, updateData);
-        
-        // If this is a new event, store the admin key in localStorage
-        if (this.isCreatingNew && this.event?.adminKey) {
-          this.adminStorageService.storeAdminKey(this.eventId, this.event.adminKey);
+        if (this.isCreatingNew) {
+          // Create the document atomically so the admin password (immutable
+          // after creation) is part of the initial write.
+          const { eventId, adminKey } = await this.eventService.createEventDirect(
+            fields.title ?? null,
+            fields.description ?? null,
+            fields.location ?? null,
+            this.isMeeting,
+            adminPassword || null
+          );
+          this.eventId = eventId;
+          this.adminKey = adminKey;
+          this.adminStorageService.storeAdminKey(eventId, adminKey);
+
+          // Persist the remaining non-secret fields (times, meeting duration).
+          const { title: _t, description: _d, location: _l, ...rest } = fields;
+          if (Object.keys(rest).length > 0) {
+            await this.eventService.updateEvent(eventId, rest);
+          }
+        } else {
+          // Edit: never write admin credentials (adminKey/adminPassword are
+          // immutable after creation and enforced by firestore.rules).
+          await this.eventService.updateEvent(this.eventId, fields);
         }
 
         // Redirect to the event view page after saving
@@ -405,8 +406,8 @@ export class EventCreationComponent implements OnInit, OnDestroy {
   }
   
   copyAdminLink(): void {
-    if (this.event?.adminKey) {
-      const adminUrl = `${window.location.origin}/event/${this.eventId}/view#admin=${this.event.adminKey}`;
+    if (this.adminKey) {
+      const adminUrl = `${window.location.origin}/event/${this.eventId}/view#admin=${this.adminKey}`;
       navigator.clipboard.writeText(adminUrl);
       // Would add a notification here in a real app
     }

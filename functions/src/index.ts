@@ -8,22 +8,11 @@ admin.initializeApp();
 import './config/appcheck';
 
 // Import functions
-import { createEvent, getEvent, getEventHttp } from './events';
-import { addParticipant, getParticipants } from './participants';
 import { parseDates } from './parsing';
 
-// Export functions with the same structure as before
-export const events = {
-  createEvent,
-  getEvent,
-  getEventHttp
-};
-
-export const participants = {
-  addParticipant,
-  getParticipants
-};
-
+// The only function the app uses is date parsing. Event/participant CRUD happens
+// via direct Firestore access from the client (guarded by firestore.rules), so
+// the previous events-*/participants-* callables were dead code and were removed.
 export const parsing = {
   parseDates
 };

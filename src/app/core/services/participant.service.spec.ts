@@ -3,7 +3,8 @@ import { FirestoreService } from './firestore.service';
 
 describe('ParticipantService', () => {
   let service: ParticipantService;
-  let mockFirestoreService: jest.Mocked<Pick<FirestoreService, 'addDocument' | 'getCollection' | 'getDocument' | 'setDocument' | 'deleteDocument'>>;
+  let mockFirestoreService: jest.Mocked<Pick<FirestoreService, 'addDocument' | 'getCollection' | 'getDocument' | 'setDocument' | 'deleteDocument' | 'createTimestamp'>>;
+  let mockAuth: { currentUser: { uid: string } | null };
 
   beforeEach(() => {
     mockFirestoreService = {
@@ -12,8 +13,10 @@ describe('ParticipantService', () => {
       getDocument: jest.fn(),
       setDocument: jest.fn(),
       deleteDocument: jest.fn(),
+      createTimestamp: jest.fn().mockReturnValue({ seconds: 1000, nanoseconds: 0 }),
     };
-    service = new ParticipantService(mockFirestoreService as any);
+    mockAuth = { currentUser: { uid: 'uid-123' } };
+    service = new ParticipantService(mockFirestoreService as any, mockAuth as any);
   });
 
   describe('addParticipantDirect', () => {
@@ -40,11 +43,21 @@ describe('ParticipantService', () => {
       expect(result.participant.eventId).toBe('evt-1');
     });
 
-    it('includes submittedAt timestamp', async () => {
+    it('includes an integer-second submittedAt timestamp from the firestore service', async () => {
       mockFirestoreService.addDocument.mockResolvedValueOnce('p1');
       const result = await service.addParticipantDirect('evt-1', 'Alice', '6/15', []);
-      expect(result.participant.submittedAt).toBeDefined();
-      expect(result.participant.submittedAt.seconds).toBeGreaterThan(0);
+      expect(mockFirestoreService.createTimestamp).toHaveBeenCalled();
+      expect(result.participant.submittedAt.seconds).toBe(1000);
+      expect(Number.isInteger(result.participant.submittedAt.seconds)).toBe(true);
+    });
+
+    it('records the author ownerUid from auth', async () => {
+      mockFirestoreService.addDocument.mockResolvedValueOnce('p1');
+      await service.addParticipantDirect('evt-1', 'Alice', '6/15', []);
+      expect(mockFirestoreService.addDocument).toHaveBeenCalledWith(
+        'events/evt-1/participants',
+        expect.objectContaining({ ownerUid: 'uid-123' })
+      );
     });
   });
 

@@ -90,9 +90,9 @@
       </mat-form-field>
     </div>
     
-    <div class="password-section">
+    <div class="password-section" *ngIf="isCreatingNew">
       <h3>Administrator Password (Optional but recommended)</h3>
-      <p class="password-hint">Set a password to edit the event later</p>
+      <p class="password-hint">Set a password to edit the event later (cannot be changed afterward)</p>
       
       <div class="password-fields">
         <mat-form-field appearance="outline">

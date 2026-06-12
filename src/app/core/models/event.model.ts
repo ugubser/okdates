@@ -7,8 +7,9 @@ export interface Event {
   description: string | null;
   location?: string | null; // Optional location for the event
   isActive: boolean;
-  adminKey?: string; // Unique key for admin access
-  adminPassword?: string; // Optional encrypted password for admin access
+  adminKeyHash?: string; // SHA-256 hash of the admin key; the plaintext key is never stored
+  adminKey?: string; // DEPRECATED: legacy plaintext key, only present on un-migrated docs
+  adminPassword?: string; // Optional password hash (pbkdf2$… or legacy salt$hash) for admin access
   startTime?: string | null; // Optional start time in HH:MM format
   endTime?: string | null; // Optional end time in HH:MM format
   isMeeting?: boolean; // Whether this is a meeting with specific times rather than just a date

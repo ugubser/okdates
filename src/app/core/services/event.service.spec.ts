@@ -1,33 +1,51 @@
 import { EventService } from './event.service';
 import { FirestoreService } from './firestore.service';
 
-// Mock window.crypto for Node/Jest environment
+// Mock window.crypto for Node/Jest environment.
 const mockGetRandomValues = jest.fn((arr: Uint8Array) => {
   for (let i = 0; i < arr.length; i++) arr[i] = i + 1;
   return arr;
 });
-const mockDigest = jest.fn(async (_algo: string, data: BufferSource) => {
-  // Simple deterministic hash: FNV-1a-like per-byte mixing to produce different output for different inputs
-  const input = new Uint8Array(data as ArrayBuffer);
+
+// Deterministic SHA-256 stand-in: different input → different (stable) output.
+function fnvDigest(bytes: Uint8Array, seed = 0x811c9dc5): Uint8Array {
   const hash = new Uint8Array(32);
-  let h = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    h ^= input[i];
+  let h = seed;
+  for (let i = 0; i < bytes.length; i++) {
+    h ^= bytes[i];
     h = Math.imul(h, 0x01000193);
   }
   for (let i = 0; i < 32; i++) {
     h ^= (h >>> 13);
     h = Math.imul(h, 0x5bd1e995);
     hash[i] = h & 0xff;
-    h = h >>> 8 | (h << 24);
+    h = (h >>> 8) | (h << 24);
   }
-  return hash.buffer;
+  return hash;
+}
+
+const mockDigest = jest.fn(async (_algo: string, data: BufferSource) => {
+  return fnvDigest(new Uint8Array(data as ArrayBuffer)).buffer;
+});
+
+// PBKDF2 stand-in: deterministic from (password bytes + salt), so hashing then
+// verifying the same password with the stored salt produces a match.
+const mockImportKey = jest.fn(async (_fmt: string, keyData: BufferSource) => ({
+  __pw: new Uint8Array(keyData as ArrayBuffer)
+}));
+const mockDeriveBits = jest.fn(async (algo: any, key: any, length: number) => {
+  const pw = key.__pw as Uint8Array;
+  const salt = new Uint8Array(algo.salt);
+  const combined = new Uint8Array(pw.length + salt.length);
+  combined.set(pw, 0);
+  combined.set(salt, pw.length);
+  return fnvDigest(combined, 0x12345678).slice(0, length / 8).buffer;
 });
 
 Object.defineProperty(globalThis, 'crypto', {
   value: {
     getRandomValues: mockGetRandomValues,
-    subtle: { digest: mockDigest },
+    subtle: { digest: mockDigest, importKey: mockImportKey, deriveBits: mockDeriveBits },
   },
   writable: true,
 });
@@ -48,13 +66,13 @@ describe('EventService', () => {
   });
 
   describe('hashPassword', () => {
-    it('returns salt$hash format', async () => {
+    it('returns pbkdf2$iter$salt$hash format', async () => {
       const result = await service.hashPassword('mypassword');
-      expect(result).toContain('$');
       const parts = result.split('$');
-      expect(parts).toHaveLength(2);
-      expect(parts[0].length).toBe(32); // 16 bytes as hex
-      expect(parts[1].length).toBe(64); // SHA-256 as hex
+      expect(parts[0]).toBe('pbkdf2');
+      expect(parts[1]).toBe('100000');
+      expect(parts[2].length).toBe(32); // 16-byte salt as hex
+      expect(parts[3].length).toBe(64); // 32-byte derived key as hex
     });
 
     it('returns empty string for empty password', async () => {
@@ -64,52 +82,43 @@ describe('EventService', () => {
   });
 
   describe('verifyPasswordHash', () => {
-    it('validates correct password', async () => {
+    it('validates correct password (pbkdf2)', async () => {
       const hash = await service.hashPassword('secret');
-      const result = await service.verifyPasswordHash('secret', hash);
-      expect(result).toBe(true);
+      expect(await service.verifyPasswordHash('secret', hash)).toBe(true);
     });
 
-    it('rejects wrong password', async () => {
+    it('rejects wrong password (pbkdf2)', async () => {
       const hash = await service.hashPassword('secret');
-      const result = await service.verifyPasswordHash('wrong', hash);
-      expect(result).toBe(false);
+      expect(await service.verifyPasswordHash('wrong', hash)).toBe(false);
     });
 
-    it('returns false for empty password', async () => {
-      const result = await service.verifyPasswordHash('', 'salt$hash');
-      expect(result).toBe(false);
+    it('still verifies legacy salt$hash (SHA-256) format', async () => {
+      // salt$hash where hash = sha256(salt + password)
+      const salt = 'abcd';
+      const digest = fnvDigest(new TextEncoder().encode(salt + 'secret'));
+      const hex = Array.from(digest).map(b => b.toString(16).padStart(2, '0')).join('');
+      expect(await service.verifyPasswordHash('secret', `${salt}$${hex}`)).toBe(true);
+      expect(await service.verifyPasswordHash('nope', `${salt}$${hex}`)).toBe(false);
     });
 
-    it('returns false for empty stored value', async () => {
-      const result = await service.verifyPasswordHash('secret', '');
-      expect(result).toBe(false);
+    it('returns false for empty password / stored value', async () => {
+      expect(await service.verifyPasswordHash('', 'pbkdf2$1$aa$bb')).toBe(false);
+      expect(await service.verifyPasswordHash('secret', '')).toBe(false);
     });
   });
 
   describe('createEventDirect', () => {
-    it('calls addDocument and returns eventId', async () => {
+    it('stores adminKeyHash (never plaintext) and returns the plaintext adminKey', async () => {
       mockFirestoreService.addDocument.mockResolvedValueOnce('new-event-id');
       const result = await service.createEventDirect('My Event', 'Description', null, false);
-      expect(mockFirestoreService.addDocument).toHaveBeenCalledWith(
-        'events',
-        expect.objectContaining({
-          title: 'My Event',
-          description: 'Description',
-          isActive: true,
-          isMeeting: false,
-        })
-      );
-      expect(result.eventId).toBe('new-event-id');
-      expect(result.event.id).toBe('new-event-id');
-    });
 
-    it('generates an adminKey', async () => {
-      mockFirestoreService.addDocument.mockResolvedValueOnce('evt-1');
-      const result = await service.createEventDirect('Test');
-      expect(result.event.adminKey).toBeDefined();
-      expect(typeof result.event.adminKey).toBe('string');
-      expect(result.event.adminKey!.length).toBe(16);
+      const stored = mockFirestoreService.addDocument.mock.calls[0][1];
+      expect(stored.adminKeyHash).toBeDefined();
+      expect(stored.adminKey).toBeUndefined(); // plaintext must not be persisted
+      expect(result.eventId).toBe('new-event-id');
+      expect(typeof result.adminKey).toBe('string');
+      expect(result.adminKey.length).toBe(16);
+      expect(result.event.adminKeyHash).toBe(stored.adminKeyHash);
     });
 
     it('includes location when provided', async () => {
@@ -123,36 +132,25 @@ describe('EventService', () => {
   });
 
   describe('verifyAdminKey', () => {
-    it('returns true for correct admin key', async () => {
-      mockFirestoreService.getDocument.mockResolvedValueOnce({
-        id: 'evt-1',
-        adminKey: 'secret-key',
-        title: 'Test',
-        description: null,
-        isActive: true,
-        createdAt: { seconds: 0, nanoseconds: 0 },
-      });
-      const result = await service.verifyAdminKey('evt-1', 'secret-key');
-      expect(result).toBe(true);
+    it('returns true for the correct key against a hashed doc', async () => {
+      mockFirestoreService.addDocument.mockResolvedValueOnce('evt-1');
+      const created = await service.createEventDirect('Test');
+
+      mockFirestoreService.getDocument.mockResolvedValueOnce({ id: 'evt-1', adminKeyHash: created.event.adminKeyHash });
+      expect(await service.verifyAdminKey('evt-1', created.adminKey)).toBe(true);
+
+      mockFirestoreService.getDocument.mockResolvedValueOnce({ id: 'evt-1', adminKeyHash: created.event.adminKeyHash });
+      expect(await service.verifyAdminKey('evt-1', 'wrong-key')).toBe(false);
     });
 
-    it('returns false for wrong admin key', async () => {
-      mockFirestoreService.getDocument.mockResolvedValueOnce({
-        id: 'evt-1',
-        adminKey: 'secret-key',
-        title: 'Test',
-        description: null,
-        isActive: true,
-        createdAt: { seconds: 0, nanoseconds: 0 },
-      });
-      const result = await service.verifyAdminKey('evt-1', 'wrong-key');
-      expect(result).toBe(false);
+    it('supports legacy un-migrated docs with plaintext adminKey', async () => {
+      mockFirestoreService.getDocument.mockResolvedValueOnce({ id: 'evt-1', adminKey: 'secret-key' });
+      expect(await service.verifyAdminKey('evt-1', 'secret-key')).toBe(true);
     });
 
     it('returns false when event not found', async () => {
       mockFirestoreService.getDocument.mockResolvedValueOnce(null);
-      const result = await service.verifyAdminKey('missing', 'any-key');
-      expect(result).toBe(false);
+      expect(await service.verifyAdminKey('missing', 'any-key')).toBe(false);
     });
   });
 

@@ -1,27 +1,65 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Events: authenticated users can read and create.
-    // Updates allowed for authenticated users (admin verification happens in app logic).
+
+    // ── Security model (lighter-hardening) ───────────────────────────────────
+    // The app uses anonymous auth and writes to Firestore directly from the
+    // client, so `request.auth != null` means "any visitor". These rules cannot
+    // verify a capability secret (the admin key) on write, because rules have no
+    // hashing/crypto. So they enforce what they CAN:
+    //   • The admin key is stored only as `adminKeyHash` (never plaintext), so
+    //     reads can't leak it.
+    //   • Admin credentials (`adminKeyHash`, `adminPassword`) are write-once at
+    //     create and immutable afterward, so they can't be hijacked.
+    // Tampering with non-secret fields (title/description/dates) and with
+    // participants is NOT prevented here by design — closing that fully requires
+    // routing writes through Cloud Functions. See the security plan.
+
     match /events/{eventId} {
       allow read: if request.auth != null;
+
       allow create: if request.auth != null
-        && request.resource.data.keys().hasAll(['createdAt', 'isActive', 'adminKey'])
-        && request.resource.data.title is string || request.resource.data.title == null
-        && request.resource.data.adminKey is string;
-      allow update: if request.auth != null;
+        && request.resource.data.keys().hasAll(['createdAt', 'isActive', 'adminKeyHash'])
+        && (request.resource.data.title is string || request.resource.data.title == null)
+        && request.resource.data.adminKeyHash is string
+        // Never allow a plaintext admin key to be written.
+        && !('adminKey' in request.resource.data);
+
+      // Updates: anyone authenticated may edit non-secret fields, but admin
+      // credentials must not change.
+      //  • adminKeyHash: settable once if it was absent (defensive lazy
+      //    migration), otherwise must equal the existing value.
+      //  • adminPassword: must equal the existing value — so it can be neither
+      //    added nor changed after creation.
+      allow update: if request.auth != null
+        && (
+             !('adminKeyHash' in resource.data)
+             || request.resource.data.adminKeyHash == resource.data.adminKeyHash
+           )
+        && request.resource.data.get('adminPassword', '') == resource.data.get('adminPassword', '')
+        // Plaintext admin key must never appear via an update either.
+        && !('adminKey' in request.resource.data);
 
       // Participants: scoped to their parent event.
-      // Authenticated users can read and create.
-      // Only the original author (tracked by auth UID) can update/delete.
       match /participants/{participantId} {
         allow read: if request.auth != null;
+
         allow create: if request.auth != null
           && request.resource.data.keys().hasAll(['name', 'rawDateInput', 'parsedDates'])
           && request.resource.data.name is string
           && request.resource.data.name.size() <= 100
           && request.resource.data.rawDateInput is string
-          && request.resource.data.rawDateInput.size() <= 2000;
+          && request.resource.data.rawDateInput.size() <= 2000
+          // ownerUid, when present, must match the caller (anti-spoof). Older
+          // clients that don't send it still work.
+          && (
+               !('ownerUid' in request.resource.data)
+               || request.resource.data.ownerUid == request.auth.uid
+             );
+
+        // Kept permissive to preserve admin moderation (delete any participant)
+        // and author self-edit. Capability-gated participant writes require the
+        // server-gated option. See the security plan.
         allow update, delete: if request.auth != null;
       }
     }
