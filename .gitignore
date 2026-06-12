@@ -57,17 +57,15 @@ emulator_data/firestore_export/all_namespaces/all_kinds/all_namespaces_all_kinds
 /secrets
 *.key
 *.secret
-ai.config.local.json
 ai.secrets.json
-functions/.runtimeconfig.json
-**/ai.config.json
-!**/ai.config.template.json
 functions/test-openrouter.js
-functions/.runtimeconfig.json
-functions/ai.config.json
-src/assets/ai.config.json
-functions/ai.config.json
+# Cloud Functions env file (holds the OpenRouter key); template is committed.
+functions/.env
+!functions/.env.template
 src/environments/environment.ts
 src/environments/environment.prod.ts
 emulator_data/auth_export/accounts.json
 emulator_data/auth_export/config.json
+
+# Local security/audit reports (gstack)
+.gstack/

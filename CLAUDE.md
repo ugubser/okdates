@@ -58,20 +58,27 @@ npm test
 
 ## API Keys and Configuration
 
-The application requires an OpenRouter API key for LLM-based date parsing functionality:
+The application requires an OpenRouter API key for LLM-based date parsing functionality.
+The key is configured via `functions/.env`, which Firebase loads into `process.env` for
+**both** the emulator and `firebase deploy` — one source of truth for local and prod.
 
-1. Create a file `keys/openrouter.key` in the project root with your OpenRouter API key, or 
-2. Run `./start-emulator.sh` which will prompt for the API key if not found and save it to the appropriate file.
+Set it up one of two ways:
 
-The key is stored securely and never committed to the repository. The repository contains template files without actual API keys:
-- `functions/ai.config.template.json`
-- `src/assets/ai.config.template.json`
-- `functions/.runtimeconfig.template.json`
+1. Copy `functions/.env.template` to `functions/.env` and fill in `OPENROUTER_API_KEY`, or
+2. Run `./start-emulator.sh`, which prompts for the key (stored in `keys/openrouter.key`)
+   and writes `functions/.env` for you.
 
-When deploying to production, set the API key in Firebase Functions config:
-```bash
-firebase functions:config:set openrouter.api_key="YOUR_API_KEY" openrouter.model="meta-llama/llama-4-maverick"
-```
+`functions/.env` is gitignored and never committed; `functions/.env.template` is the
+committed placeholder. The function's key loader (`functions/src/parsing/llm-parser.ts`)
+reads `OPENROUTER_API_KEY` / `OPENROUTER_MODEL` / `OPENROUTER_BASE_URL` from the
+environment, with `keys/openrouter.key` as a local file fallback.
+
+Deploying to production picks up `functions/.env` automatically (`firebase deploy`).
+For stronger secret handling, use Cloud Secret Manager via firebase-functions
+`defineSecret('OPENROUTER_API_KEY')` instead of the .env value.
+
+Note: the legacy `functions.config()` API and the `ai.config.json` / `.runtimeconfig.json`
+files have been retired.
 
 ## Architecture
 

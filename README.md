@@ -79,8 +79,8 @@ The AI-powered parser can handle various formats:
 
 4. Configure OpenRouter API (for AI features):
    - Get an API key from [OpenRouter](https://openrouter.ai)
-   - Create a `functions/ai.config.json` using the template from `functions/ai.config.template.json`
-   - Add your API key to the config file
+   - Copy `functions/.env.template` to `functions/.env` and set `OPENROUTER_API_KEY`
+     (or just run `./start-emulator.sh`, which writes `functions/.env` for you)
 
 5. Start firebase local emulator server:
    ```bash
