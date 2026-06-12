@@ -36,6 +36,12 @@
         background-color: var(--primary-color);
       }
 
+      // Window overlaps the slot but is shorter than the meeting duration.
+      &.partial {
+        background-color: var(--partial-bg, #f5a623);
+        border: 1px solid var(--partial-border, #d98e00);
+      }
+
       &.unavailable {
         background-color: var(--unavailable-bg);
         border: 1px solid var(--unavailable-border);

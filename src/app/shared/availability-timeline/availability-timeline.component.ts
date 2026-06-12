@@ -89,6 +89,11 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
     }
 
     this.buildAvailableCountCache();
+
+    // Common-slot highlighting depends on the count cache, so run it last.
+    if (isMeeting) {
+      this.findCommonAvailableTimeSlots();
+    }
   }
 
   private buildAvailableCountCache(): void {
@@ -237,9 +242,11 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
       return new Date(a).getTime() - new Date(b).getTime();
     });
 
-    // Find earliest start time and latest end time from all participants (in viewer timezone)
+    // Find earliest start time and latest end time from all participants (in
+    // viewer timezone), and collect the distinct start times people offered.
     let earliestMinuteOfDay = 24 * 60;
     let latestMinuteOfDay = 0;
+    const candidateStartMinutes = new Set<number>();
 
     this.participants.forEach(participant => {
       if (participant.parsedDates && participant.parsedDates.length > 0) {
@@ -255,6 +262,7 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
 
             earliestMinuteOfDay = Math.min(earliestMinuteOfDay, startMinutes);
             latestMinuteOfDay = Math.max(latestMinuteOfDay, endMinutes);
+            candidateStartMinutes.add(startMinutes);
           }
         });
       }
@@ -278,12 +286,31 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
     earliestMinuteOfDay = Math.floor(earliestMinuteOfDay / 15) * 15;
     latestMinuteOfDay = Math.ceil(latestMinuteOfDay / 15) * 15;
 
+    // Decide which start times to generate slots for. Slots are anchored at the
+    // distinct start times participants actually offered, so the real common
+    // windows surface (e.g. a 13:00-15:00 slot everyone shares) instead of only
+    // arbitrary blocks tiled from the earliest time.
+    //  • View mode: the offered start times alone keep the table focused.
+    //  • Select mode (clickable picker): the UNION of the fixed grid and the
+    //    offered start times, so a new participant can pick generic blocks AND
+    //    the slots that align with the existing roster.
+    const startSet = new Set<number>();
+    if (this.mode !== 'view' || candidateStartMinutes.size === 0) {
+      for (let m = earliestMinuteOfDay; m + meetingDuration <= latestMinuteOfDay; m += meetingDuration) {
+        startSet.add(m);
+      }
+    }
+    if (candidateStartMinutes.size > 0) {
+      candidateStartMinutes.forEach(m => startSet.add(m));
+    }
+    const slotStartMinutes = Array.from(startSet).sort((a, b) => a - b);
+
     // Create time slots for each date using viewer timezone
     sortedDates.forEach(dateString => {
       // Parse date components from ISO date string
       const [year, month, day] = dateString.split('-').map(Number);
 
-      for (let minuteOfDay = earliestMinuteOfDay; minuteOfDay < latestMinuteOfDay; minuteOfDay += meetingDuration) {
+      slotStartMinutes.forEach(minuteOfDay => {
         if (minuteOfDay + meetingDuration <= latestMinuteOfDay) {
           const hours = Math.floor(minuteOfDay / 60);
           const minutes = minuteOfDay % 60;
@@ -323,7 +350,7 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
           this.displayColumns.push(slotKey);
           this.footerColumns.push(slotKey);
         }
-      }
+      });
     });
 
     // Second pass: populate availability map
@@ -360,6 +387,13 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
 
                 if (slotStartTs >= participantStartTs && slotEndTs <= participantEndTs) {
                   participantAvailability[index] = 'available';
+                } else if (slotStartTs < participantEndTs && slotEndTs > participantStartTs) {
+                  // The participant's window overlaps this slot but is too narrow
+                  // to cover the full meeting duration. Mark as 'partial' (amber),
+                  // unless another of their ranges already fully covers this slot.
+                  if (participantAvailability[index] !== 'available') {
+                    participantAvailability[index] = 'partial';
+                  }
                 }
               }
             });
@@ -369,9 +403,8 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
 
       this.availabilityMap.set(participant.id || participant.name, participantAvailability);
     });
-
-    // Find common available time slots
-    this.findCommonAvailableTimeSlots();
+    // Note: common-slot detection runs in processAvailabilityData() AFTER the
+    // availability count cache is built (it depends on those counts).
   }
 
   findCommonAvailableTimeSlots(): void {
@@ -480,6 +513,26 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
 
   getAvailabilityClass(isAvailable: boolean): string {
     return isAvailable ? 'available' : 'unavailable';
+  }
+
+  /**
+   * Raw availability state for a participant/slot: 'available' | 'partial' | 'unavailable'.
+   * 'partial' means the participant's window overlaps the slot but is shorter than
+   * the meeting duration (rendered amber).
+   */
+  getParticipantSlotState(participant: Participant, dateString: string): string {
+    const dateIndex = this.uniqueDates.findIndex(d => d.dateString === dateString);
+    if (dateIndex === -1) {
+      return 'unavailable';
+    }
+    const availability = this.availabilityMap.get(participant.id || participant.name);
+    return availability ? availability[dateIndex] : 'unavailable';
+  }
+
+  getSlotStateTooltip(participant: Participant, dateString: string): string {
+    return this.getParticipantSlotState(participant, dateString) === 'partial'
+      ? 'Available here, but this window is shorter than the meeting duration'
+      : '';
   }
 
   // Selection mode methods
