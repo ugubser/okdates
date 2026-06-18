@@ -2,13 +2,14 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { EventService } from '../../core/services/event.service';
 import { FirestoreService } from '../../core/services/firestore.service';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, MatButtonModule],
+  imports: [CommonModule, MatButtonModule, MatIconModule],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss']
 })
@@ -28,7 +29,11 @@ export class HomeComponent implements OnInit {
     //console.log(`Creating new ${isMeeting ? 'meeting' : 'event'} - navigating to create page`);
     this.router.navigate(['/event/create'], { queryParams: { isMeeting } });
   }
-  
+
+  createICal(): void {
+    this.router.navigate(['/ical']);
+  }
+
 
   /**
    * Debug function to list all events in the console

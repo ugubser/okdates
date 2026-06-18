@@ -3,9 +3,11 @@ import { HomeComponent } from './modules/home/home.component';
 import { EventCreationComponent } from './modules/event/creation/event-creation.component';
 import { EventViewComponent } from './modules/event/view/event-view.component';
 import { ParticipantFormComponent } from './modules/participant/form/participant-form.component';
+import { IcalGeneratorComponent } from './modules/ical/ical-generator.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
+  { path: 'ical', component: IcalGeneratorComponent },
   { path: 'event/create', component: EventCreationComponent },
   { path: 'event/:id/edit', component: EventCreationComponent },
   { path: 'event/:id/view', component: EventViewComponent },

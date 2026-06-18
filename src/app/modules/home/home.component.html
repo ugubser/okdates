@@ -7,25 +7,23 @@
 
     <div class="action-container">
       <div class="action-buttons">
-        <div class="action-button-container">
-          <button
-            mat-raised-button
-            color="primary"
-            (click)="createNewEvent(false)">
-            Create New Event
-          </button>
-        <p class="button-description">Plan a casual event with just dates</p>  
-        </div>
+        <button type="button" class="action-card" (click)="createNewEvent(false)">
+          <div class="action-icon"><mat-icon>event</mat-icon></div>
+          <h3>Create New Event</h3>
+          <p class="button-description">Plan a casual event with just dates</p>
+        </button>
 
-        <div class="action-button-container">
-          <button
-            mat-raised-button
-            color="primary"
-            (click)="createNewEvent(true)">
-            Create New Meeting
-          </button>
+        <button type="button" class="action-card" (click)="createNewEvent(true)">
+          <div class="action-icon"><mat-icon>schedule</mat-icon></div>
+          <h3>Create New Meeting</h3>
           <p class="button-description">Schedule a specific meeting time</p>
-        </div>
+        </button>
+
+        <button type="button" class="action-card" (click)="createICal()">
+          <div class="action-icon"><mat-icon>download</mat-icon></div>
+          <h3>Create iCAL for download</h3>
+          <p class="button-description">Turn text into a downloadable calendar file</p>
+        </button>
       </div>
     </div>
   </div>

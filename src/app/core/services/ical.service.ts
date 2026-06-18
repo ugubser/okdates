@@ -1,12 +1,103 @@
 import { Injectable } from '@angular/core';
 import { Event } from '../models/event.model';
 
+/**
+ * A single calendar entry used by {@link ICalendarService.generateMultiEventCalendar}.
+ * Date components are read in UTC, matching how OkDates stores wall-clock time as
+ * UTC seconds (see the parsing Cloud Function).
+ */
+export interface ICalEventInput {
+  /** Event title (SUMMARY) */
+  summary: string;
+  /** Optional free-text description */
+  description?: string;
+  /** Optional location */
+  location?: string;
+  /** When true the entry is an all-day event (DATE value type, no time) */
+  allDay: boolean;
+  /** For all-day: the day to use. For timed: the wall-clock start */
+  start: Date;
+  /** Wall-clock end (timed events only) */
+  end?: Date;
+  /** IANA timezone for timed events; omit for all-day or floating UTC */
+  timezone?: string;
+  /** Globally unique identifier for this VEVENT */
+  uid: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class ICalendarService {
 
   constructor() {}
+
+  /**
+   * Build a single iCalendar file containing one VEVENT per supplied entry.
+   * Used by the standalone "Create iCAL for download" tool, where free-text
+   * prose is parsed into several dates/time-slots that all share one title.
+   * @param events The calendar entries to include
+   * @returns The complete iCalendar (VCALENDAR) content as a string
+   */
+  generateMultiEventCalendar(events: ICalEventInput[]): string {
+    const dtstamp = this.formatDateForICal(new Date());
+
+    const lines: string[] = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:OkDates',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH'
+    ];
+
+    // Emit one VTIMEZONE per distinct timezone used by timed events
+    const timezones = new Set<string>();
+    for (const ev of events) {
+      if (!ev.allDay && ev.timezone) {
+        timezones.add(ev.timezone);
+      }
+    }
+    for (const tz of timezones) {
+      lines.push('BEGIN:VTIMEZONE', `TZID:${tz}`, `X-LIC-LOCATION:${tz}`, 'END:VTIMEZONE');
+    }
+
+    for (const ev of events) {
+      lines.push('BEGIN:VEVENT');
+      lines.push(`UID:${ev.uid}`);
+      lines.push(`DTSTAMP:${dtstamp}`);
+
+      if (ev.allDay) {
+        // All-day events use the DATE value type; DTEND is exclusive (next day)
+        const next = new Date(Date.UTC(
+          ev.start.getUTCFullYear(),
+          ev.start.getUTCMonth(),
+          ev.start.getUTCDate() + 1
+        ));
+        lines.push(`DTSTART;VALUE=DATE:${this.formatDateOnly(ev.start)}`);
+        lines.push(`DTEND;VALUE=DATE:${this.formatDateOnly(next)}`);
+      } else if (ev.timezone && ev.end) {
+        // Timed event anchored to a named timezone
+        lines.push(`DTSTART;TZID=${ev.timezone}:${this.formatWallClock(ev.start)}`);
+        lines.push(`DTEND;TZID=${ev.timezone}:${this.formatWallClock(ev.end)}`);
+      } else if (ev.end) {
+        // Timed event without a timezone: emit as UTC
+        lines.push(`DTSTART:${this.formatDateForICal(ev.start)}`);
+        lines.push(`DTEND:${this.formatDateForICal(ev.end)}`);
+      }
+
+      lines.push(`SUMMARY:${this.escapeText(ev.summary || 'Untitled Event')}`);
+      if (ev.description) {
+        lines.push(`DESCRIPTION:${this.escapeText(ev.description)}`);
+      }
+      if (ev.location) {
+        lines.push(`LOCATION:${this.escapeText(ev.location)}`);
+      }
+      lines.push('END:VEVENT');
+    }
+
+    lines.push('END:VCALENDAR');
+    return lines.join('\r\n');
+  }
 
   /**
    * Generate an iCalendar file for a specific event on a specific date
@@ -172,6 +263,30 @@ export class ICalendarService {
     return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
   }
   
+  /**
+   * Format the date portion only, in UTC (YYYYMMDD) — for all-day DATE values.
+   */
+  private formatDateOnly(date: Date): string {
+    const year = date.getUTCFullYear();
+    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+    const day = date.getUTCDate().toString().padStart(2, '0');
+    return `${year}${month}${day}`;
+  }
+
+  /**
+   * Format wall-clock components (read in UTC) as YYYYMMDDTHHmmss with no zone
+   * suffix — used together with a DTSTART;TZID= property.
+   */
+  private formatWallClock(date: Date): string {
+    const year = date.getUTCFullYear();
+    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+    const day = date.getUTCDate().toString().padStart(2, '0');
+    const hours = date.getUTCHours().toString().padStart(2, '0');
+    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+    const seconds = date.getUTCSeconds().toString().padStart(2, '0');
+    return `${year}${month}${day}T${hours}${minutes}${seconds}`;
+  }
+
   /**
    * Format a date according to iCalendar specifications with timezone (YYYYMMDDTHHMMSS)
    * @param date The date to format

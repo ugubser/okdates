@@ -1,0 +1,107 @@
+<div class="ical-container">
+  <div class="ical-header">
+    <a routerLink="/" class="back-link">&larr; Back to home</a>
+    <h1>Create iCAL for download</h1>
+    <p>
+      Describe your event in plain language &mdash; OkDates turns it into a calendar
+      file (<code>.ics</code>) you can download and import into any calendar app.
+      No event, no sharing, nothing saved.
+    </p>
+  </div>
+
+  <form (ngSubmit)="parse()">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Event title</mat-label>
+      <input matInput name="title" [(ngModel)]="title" placeholder="e.g., Team Dinner">
+      <mat-hint>This becomes the calendar entry's title.</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Location (optional)</mat-label>
+      <input matInput name="location" [(ngModel)]="location" placeholder="e.g., Luigi's, Main St 5">
+    </mat-form-field>
+
+    <div class="mode-toggle-container">
+      <mat-button-toggle-group [(ngModel)]="mode" name="mode" aria-label="Entry mode"
+        (change)="onModeChange()">
+        <mat-button-toggle value="dates">All-day dates</mat-button-toggle>
+        <mat-button-toggle value="times">Specific times</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{ isMeeting ? 'Dates and times' : 'Dates' }}</mat-label>
+      <textarea
+        matInput
+        name="rawInput"
+        [(ngModel)]="rawInput"
+        [placeholder]="isMeeting ? 'e.g., March 15 from 14:00-16:00, next Monday afternoon' : 'e.g., June 2-4, July 5, next Friday'"
+        rows="4"></textarea>
+      <mat-hint *ngIf="!isMeeting">
+        Any format works: "June 2,3,4", "06/02, 06/03", "June 2-4", "next Friday".
+      </mat-hint>
+      <mat-hint *ngIf="isMeeting">
+        Include times: "Monday 15:00-17:00", "Wed afternoon", "March 15 9-10am".
+      </mat-hint>
+    </mat-form-field>
+
+    <mat-form-field *ngIf="isMeeting" appearance="outline" class="full-width">
+      <mat-label>Timezone</mat-label>
+      <mat-select name="timezone" [(ngModel)]="timezone">
+        <mat-option *ngFor="let tz of timezones" [value]="tz.value">
+          {{ tz.label }}
+        </mat-option>
+      </mat-select>
+      <mat-hint>Times you enter are interpreted in this timezone.</mat-hint>
+    </mat-form-field>
+
+    <div class="actions">
+      <button
+        mat-raised-button
+        color="primary"
+        type="submit"
+        [disabled]="isParsing || !rawInput.trim()">
+        <mat-spinner *ngIf="isParsing" diameter="20" class="inline-spinner"></mat-spinner>
+        <span>{{ isParsing ? 'Reading…' : 'Read dates' }}</span>
+      </button>
+    </div>
+  </form>
+
+  <!-- Results / review -->
+  <div class="results" *ngIf="showResults">
+    <div class="parse-error" *ngIf="parseError">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ parseError }}</span>
+    </div>
+
+    <div class="no-dates" *ngIf="!parseError && parsedDates.length === 0">
+      <p>We couldn't find any {{ isMeeting ? 'time slots' : 'dates' }} in your text. Try a different format.</p>
+    </div>
+
+    <div *ngIf="parsedDates.length > 0">
+      <h2>Review the entries</h2>
+      <p class="review-hint">
+        Uncheck anything that was misread. Each checked entry becomes one event in the file.
+        LLMs aren't perfect &mdash; double-check before downloading.
+      </p>
+
+      <ul class="entry-list">
+        <li *ngFor="let d of parsedDates; let i = index">
+          <mat-checkbox [(ngModel)]="selected[i]">{{ formatEntry(d) }}</mat-checkbox>
+        </li>
+      </ul>
+
+      <div class="actions">
+        <button
+          mat-raised-button
+          color="primary"
+          type="button"
+          [disabled]="selectedCount === 0"
+          (click)="download()">
+          <mat-icon>download</mat-icon>
+          Download .ics ({{ selectedCount }})
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

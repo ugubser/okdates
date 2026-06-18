@@ -21,37 +21,70 @@
 }
 
 .action-container {
-  button {
-    padding: 0.75rem 2rem;
-    font-size: 1.1rem;
+  .action-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    max-width: 900px;
+    margin: 0 auto;
   }
 
-  .action-buttons {
+  // Embossed, clickable cards that mirror the "How it works" feature cards
+  .action-card {
     display: flex;
-    gap: 1.5rem;
-    justify-content: center;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
 
+    background-color: var(--surface-color);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 
-    .action-button-container {
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+
+    .action-icon {
+      width: 50px;
+      height: 50px;
+      background-color: var(--primary-color);
+      color: var(--text-on-primary);
+      border-radius: 50%;
       display: flex;
-      flex-direction: column;
       align-items: center;
-      min-width: 150px;
-      color: var(--primary-color);
-      
-      padding: 1rem;
-      text-align: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
 
-
-      .button-description {
-        color: var(--text-primary);
-        margin-top: 0.5rem;
-        font-size: 0.9rem;
-        opacity: 0.8;
-        text-decoration: none;
-        text-align: center;
+      mat-icon {
+        font-size: 1.6rem;
+        width: 1.6rem;
+        height: 1.6rem;
       }
+    }
+
+    h3 {
+      margin: 0 0 0.5rem;
+      color: var(--primary-color);
+      font-size: 1.15rem;
+    }
+
+    .button-description {
+      color: var(--text-secondary);
+      margin: 0;
+      font-size: 0.9rem;
     }
   }
 }
@@ -112,7 +145,13 @@
       font-size: 2.5rem;
     }
   }
-  
+
+  .action-container {
+    .action-buttons {
+      grid-template-columns: 1fr;
+    }
+  }
+
   .features-section {
     .feature-cards {
       grid-template-columns: 1fr;

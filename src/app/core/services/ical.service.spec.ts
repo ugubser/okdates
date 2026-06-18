@@ -179,4 +179,97 @@ describe('ICalendarService', () => {
       expect(result).toContain('Meeting Duration: 60 minutes');
     });
   });
+
+  describe('generateMultiEventCalendar', () => {
+    it('wraps all entries in a single VCALENDAR', () => {
+      const result = service.generateMultiEventCalendar([
+        { summary: 'Dinner', allDay: true, start: new Date(Date.UTC(2025, 6, 5)), uid: 'a@okdates.web.app' },
+        { summary: 'Dinner', allDay: true, start: new Date(Date.UTC(2025, 6, 6)), uid: 'b@okdates.web.app' }
+      ]);
+
+      expect((result.match(/BEGIN:VCALENDAR/g) || []).length).toBe(1);
+      expect((result.match(/END:VCALENDAR/g) || []).length).toBe(1);
+      expect((result.match(/BEGIN:VEVENT/g) || []).length).toBe(2);
+      expect((result.match(/END:VEVENT/g) || []).length).toBe(2);
+      expect(result).toContain('UID:a@okdates.web.app');
+      expect(result).toContain('UID:b@okdates.web.app');
+    });
+
+    it('uses CRLF line endings', () => {
+      const result = service.generateMultiEventCalendar([
+        { summary: 'X', allDay: true, start: new Date(Date.UTC(2025, 6, 5)), uid: 'a@x' }
+      ]);
+      expect(result).toContain('\r\n');
+    });
+
+    it('emits all-day entries as DATE values with an exclusive next-day DTEND', () => {
+      const result = service.generateMultiEventCalendar([
+        { summary: 'Dinner', allDay: true, start: new Date(Date.UTC(2025, 6, 5)), uid: 'a@x' }
+      ]);
+      expect(result).toContain('DTSTART;VALUE=DATE:20250705');
+      expect(result).toContain('DTEND;VALUE=DATE:20250706');
+    });
+
+    it('rolls over month/year boundaries for the all-day DTEND', () => {
+      const result = service.generateMultiEventCalendar([
+        { summary: 'NYE', allDay: true, start: new Date(Date.UTC(2025, 11, 31)), uid: 'a@x' }
+      ]);
+      expect(result).toContain('DTSTART;VALUE=DATE:20251231');
+      expect(result).toContain('DTEND;VALUE=DATE:20260101');
+    });
+
+    it('emits timed entries with TZID and a VTIMEZONE block', () => {
+      // Wall-clock 14:00-16:00 stored as UTC seconds
+      const start = new Date(Date.UTC(2025, 2, 15, 14, 0, 0));
+      const end = new Date(Date.UTC(2025, 2, 15, 16, 0, 0));
+      const result = service.generateMultiEventCalendar([
+        { summary: 'Meeting', allDay: false, start, end, timezone: 'Europe/Zurich', uid: 'a@x' }
+      ]);
+      expect(result).toContain('BEGIN:VTIMEZONE');
+      expect(result).toContain('TZID:Europe/Zurich');
+      expect(result).toContain('DTSTART;TZID=Europe/Zurich:20250315T140000');
+      expect(result).toContain('DTEND;TZID=Europe/Zurich:20250315T160000');
+    });
+
+    it('emits a single VTIMEZONE per distinct timezone', () => {
+      const start = new Date(Date.UTC(2025, 2, 15, 14, 0, 0));
+      const end = new Date(Date.UTC(2025, 2, 15, 16, 0, 0));
+      const result = service.generateMultiEventCalendar([
+        { summary: 'A', allDay: false, start, end, timezone: 'Europe/Zurich', uid: 'a@x' },
+        { summary: 'B', allDay: false, start, end, timezone: 'Europe/Zurich', uid: 'b@x' }
+      ]);
+      expect((result.match(/BEGIN:VTIMEZONE/g) || []).length).toBe(1);
+    });
+
+    it('includes SUMMARY, DESCRIPTION and LOCATION when provided', () => {
+      const result = service.generateMultiEventCalendar([
+        { summary: 'Team Dinner', description: 'Bring cake', location: 'Luigi\'s', allDay: true, start: new Date(Date.UTC(2025, 6, 5)), uid: 'a@x' }
+      ]);
+      expect(result).toContain('SUMMARY:Team Dinner');
+      expect(result).toContain('DESCRIPTION:Bring cake');
+      expect(result).toContain('LOCATION:Luigi\'s');
+    });
+
+    it('omits DESCRIPTION and LOCATION when absent', () => {
+      const result = service.generateMultiEventCalendar([
+        { summary: 'Plain', allDay: true, start: new Date(Date.UTC(2025, 6, 5)), uid: 'a@x' }
+      ]);
+      expect(result).not.toContain('DESCRIPTION:');
+      expect(result).not.toContain('LOCATION:');
+    });
+
+    it('escapes special characters in text fields', () => {
+      const result = service.generateMultiEventCalendar([
+        { summary: 'A;B,C', allDay: true, start: new Date(Date.UTC(2025, 6, 5)), uid: 'a@x' }
+      ]);
+      expect(result).toContain('SUMMARY:A\\;B\\,C');
+    });
+
+    it('falls back to "Untitled Event" for an empty summary', () => {
+      const result = service.generateMultiEventCalendar([
+        { summary: '', allDay: true, start: new Date(Date.UTC(2025, 6, 5)), uid: 'a@x' }
+      ]);
+      expect(result).toContain('SUMMARY:Untitled Event');
+    });
+  });
 });
