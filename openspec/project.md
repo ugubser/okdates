@@ -15,7 +15,7 @@ OkDates is an intelligent event scheduling tool that makes it easy to find dates
   - Firestore (database)
   - Cloud Functions (Node.js, TypeScript)
   - Firebase Hosting
-- **AI/LLM**: OpenRouter API (meta-llama/llama-4-maverick)
+- **AI/LLM**: OpenRouter API (openai/gpt-5.6-luna)
 - **Region**: europe-west1 (Firebase Functions)
 
 ## Project Conventions
@@ -86,7 +86,7 @@ OkDates is an intelligent event scheduling tool that makes it easy to find dates
 ## External Dependencies
 **OpenRouter API:**
 - Primary LLM provider for natural language date parsing
-- Model: `meta-llama/llama-4-maverick`
+- Model: `openai/gpt-5.6-luna`
 - Authentication requires API key in HTTP headers
 - Configuration:
   ```typescript

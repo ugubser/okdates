@@ -5,7 +5,7 @@ import * as path from 'path';
 // Default values
 let openRouterKey: string | undefined;
 let openRouterBaseUrl = 'https://openrouter.ai/api/v1';
-let openRouterModel = 'meta-llama/llama-4-maverick';
+let openRouterModel = 'openai/gpt-5.6-luna';
 
 /**
  * Load API key in priority order:

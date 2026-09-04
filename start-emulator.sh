@@ -6,7 +6,7 @@ OPENROUTER_KEY_FILE="${KEYS_DIR}/openrouter.key"
 FIREBASE_KEY_FILE="${KEYS_DIR}/firebase.keys"
 RECAPTCHA_SITE_KEY_FILE="${KEYS_DIR}/recaptch_site_key"
 ENV_OUTPUT="./functions/.env"
-OPENROUTER_MODEL="meta-llama/llama-4-maverick:free"
+OPENROUTER_MODEL="openai/gpt-5.6-luna"
 OPENROUTER_BASE_URL="https://openrouter.ai/api/v1"
 
 # Add timestamp to environment files to prevent browser caching
@@ -150,4 +150,3 @@ rm -rf node_modules/.cache 2>/dev/null || true
 echo "🚀 Starting Firebase emulators..."
 # Start Firebase emulators with all services
 firebase emulators:start --import=./emulator_data --export-on-exit=./emulator_data
-

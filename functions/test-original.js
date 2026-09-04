@@ -24,7 +24,7 @@ async function testOriginalConfig() {
   
   try {
     const response = await openai.chat.completions.create({
-      model: 'meta-llama/llama-4-maverick:free',
+      model: 'openai/gpt-5.6-luna',
       messages: [
         { role: 'user', content: 'Say hello!' }
       ],
@@ -54,7 +54,7 @@ async function testOriginalConfig() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'meta-llama/llama-4-maverick:free',
+          model: 'openai/gpt-5.6-luna',
           messages: [
             { role: 'user', content: 'Say hello!' }
           ],
