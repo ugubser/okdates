@@ -1,107 +1,102 @@
-<div class="ical-container">
-  <div class="ical-header">
-    <a routerLink="/" class="back-link">&larr; Back to home</a>
-    <h1>Create iCAL for download</h1>
-    <p>
-      Describe your event in plain language &mdash; OkDates turns it into a calendar
-      file (<code>.ics</code>) you can download and import into any calendar app.
-      No event, no sharing, nothing saved.
+<div class="page page--narrow ical">
+  <div class="page-head">
+    <a routerLink="/" class="back-link"><mat-icon>arrow_back</mat-icon> Home</a>
+    <h1>Make a calendar file</h1>
+    <p class="lede">
+      Describe the dates in plain language and download an <code>.ics</code> file you can import into
+      any calendar. Nothing is saved and nothing is shared.
     </p>
   </div>
 
-  <form (ngSubmit)="parse()">
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Event title</mat-label>
-      <input matInput name="title" [(ngModel)]="title" placeholder="e.g., Team Dinner">
-      <mat-hint>This becomes the calendar entry's title.</mat-hint>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Location (optional)</mat-label>
-      <input matInput name="location" [(ngModel)]="location" placeholder="e.g., Luigi's, Main St 5">
-    </mat-form-field>
-
-    <div class="mode-toggle-container">
-      <mat-button-toggle-group [(ngModel)]="mode" name="mode" aria-label="Entry mode"
-        (change)="onModeChange()">
-        <mat-button-toggle value="dates">All-day dates</mat-button-toggle>
-        <mat-button-toggle value="times">Specific times</mat-button-toggle>
-      </mat-button-toggle-group>
+  <form (ngSubmit)="parse()" class="stack" novalidate>
+    <div class="field">
+      <label class="field__label" for="ical-title">Title</label>
+      <input id="ical-title" class="field__control" name="title" [(ngModel)]="title" placeholder="e.g. Team dinner" autocomplete="off">
+      <span class="field__hint">Used as the name of every calendar entry. Leave it empty and we'll suggest one.</span>
     </div>
 
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>{{ isMeeting ? 'Dates and times' : 'Dates' }}</mat-label>
-      <textarea
-        matInput
-        name="rawInput"
-        [(ngModel)]="rawInput"
-        [placeholder]="isMeeting ? 'e.g., March 15 from 14:00-16:00, next Monday afternoon' : 'e.g., June 2-4, July 5, next Friday'"
-        rows="4"></textarea>
-      <mat-hint *ngIf="!isMeeting">
-        Any format works: "June 2,3,4", "06/02, 06/03", "June 2-4", "next Friday".
-      </mat-hint>
-      <mat-hint *ngIf="isMeeting">
-        Include times: "Monday 15:00-17:00", "Wed afternoon", "March 15 9-10am".
-      </mat-hint>
-    </mat-form-field>
+    <div class="field">
+      <label class="field__label" for="ical-location">
+        Location
+        <span class="field__optional">optional</span>
+      </label>
+      <input id="ical-location" class="field__control" name="location" [(ngModel)]="location" placeholder="e.g. Luigi's, Main St 5" autocomplete="off">
+    </div>
 
-    <mat-form-field *ngIf="isMeeting" appearance="outline" class="full-width">
-      <mat-label>Timezone</mat-label>
-      <mat-select name="timezone" [(ngModel)]="timezone">
-        <mat-option *ngFor="let tz of timezones" [value]="tz.value">
-          {{ tz.label }}
-        </mat-option>
-      </mat-select>
-      <mat-hint>Times you enter are interpreted in this timezone.</mat-hint>
-    </mat-form-field>
+    <div class="field">
+      <span class="field__label">What kind of entries</span>
+      <div class="segmented" role="radiogroup" aria-label="Entry mode">
+        <label>
+          <input type="radio" name="mode" value="dates" [(ngModel)]="mode" (change)="onModeChange()">
+          All-day dates
+        </label>
+        <label>
+          <input type="radio" name="mode" value="times" [(ngModel)]="mode" (change)="onModeChange()">
+          Specific times
+        </label>
+      </div>
+    </div>
 
-    <div class="actions">
-      <button
-        mat-raised-button
-        color="primary"
-        type="submit"
-        [disabled]="isParsing || !rawInput.trim()">
-        <mat-spinner *ngIf="isParsing" diameter="20" class="inline-spinner"></mat-spinner>
-        <span>{{ isParsing ? 'Reading…' : 'Read dates' }}</span>
+    <div class="field">
+      <label class="field__label" for="ical-raw">{{ isMeeting ? 'Dates and times' : 'Dates' }}</label>
+      <textarea id="ical-raw" class="field__control" name="rawInput" [(ngModel)]="rawInput" rows="4"
+        [placeholder]="isMeeting ? 'e.g. March 15 from 14:00 to 16:00, next Monday afternoon' : 'e.g. June 2 to 4, July 5, next Friday'"></textarea>
+      <span class="field__hint" *ngIf="!isMeeting">Any format works: “June 2, 3, 4”, “06/02, 06/03”, “June 2-4”, “next Friday”.</span>
+      <span class="field__hint" *ngIf="isMeeting">Include times: “Monday 15:00-17:00”, “Wed afternoon”, “March 15 9-10am”.</span>
+    </div>
+
+    <div class="field" *ngIf="isMeeting">
+      <label class="field__label" for="ical-tz">Time zone</label>
+      <select id="ical-tz" class="field__control" name="timezone" [(ngModel)]="timezone">
+        <option *ngFor="let tz of timezones" [value]="tz.value">{{ tz.label }}</option>
+      </select>
+      <span class="field__hint">The times you typed are read in this zone.</span>
+    </div>
+
+    <div class="row">
+      <button class="btn btn--primary" type="submit" [disabled]="isParsing || !rawInput.trim()">
+        <span class="spinner spinner--sm" *ngIf="isParsing"></span>
+        {{ isParsing ? 'Reading' : 'Read the dates' }}
       </button>
     </div>
   </form>
 
-  <!-- Results / review -->
-  <div class="results" *ngIf="showResults">
-    <div class="parse-error" *ngIf="parseError">
+  <section class="section results" *ngIf="showResults">
+    <div class="note note--error" *ngIf="parseError">
       <mat-icon>error_outline</mat-icon>
       <span>{{ parseError }}</span>
     </div>
 
-    <div class="no-dates" *ngIf="!parseError && parsedDates.length === 0">
-      <p>We couldn't find any {{ isMeeting ? 'time slots' : 'dates' }} in your text. Try a different format.</p>
+    <div class="note" *ngIf="!parseError && parsedDates.length === 0">
+      <mat-icon>search_off</mat-icon>
+      <span>No {{ isMeeting ? 'time slots' : 'dates' }} found in that text. Try naming the days or months explicitly.</span>
     </div>
 
-    <div *ngIf="parsedDates.length > 0">
-      <h2>Review the entries</h2>
-      <p class="review-hint">
-        Uncheck anything that was misread. Each checked entry becomes one event in the file.
-        LLMs aren't perfect &mdash; double-check before downloading.
-      </p>
+    <ng-container *ngIf="parsedDates.length > 0">
+      <div class="section-head">
+        <h2>Check what we read</h2>
+        <span class="section-hint">Untick anything that's wrong. Each ticked line becomes one entry.</span>
+      </div>
 
-      <ul class="entry-list">
+      <ul class="check-list">
         <li *ngFor="let d of parsedDates; let i = index">
-          <mat-checkbox [(ngModel)]="selected[i]">{{ formatEntry(d) }}</mat-checkbox>
+          <label class="check">
+            <input type="checkbox" [(ngModel)]="selected[i]" [name]="'entry-' + i">
+            <span class="check__body">
+              <span class="check__title">{{ formatEntry(d) }}</span>
+              <span class="check__meta" *ngIf="d.originalText">from “{{ d.originalText }}”</span>
+            </span>
+          </label>
         </li>
       </ul>
 
-      <div class="actions">
-        <button
-          mat-raised-button
-          color="primary"
-          type="button"
-          [disabled]="selectedCount === 0"
-          (click)="download()">
+      <div class="row results__actions">
+        <button class="btn btn--primary" type="button" [disabled]="selectedCount === 0" (click)="download()">
           <mat-icon>download</mat-icon>
-          Download .ics ({{ selectedCount }})
+          Download .ics
+          <span class="count" *ngIf="selectedCount > 0">{{ selectedCount }}</span>
         </button>
       </div>
-    </div>
-  </div>
+    </ng-container>
+  </section>
 </div>

@@ -2,15 +2,7 @@ import { Component, OnInit, Inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTableModule } from '@angular/material/table';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatCardModule } from '@angular/material/card';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatDialogModule, MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { EventService } from '../../../core/services/event.service';
 import { ParticipantService } from '../../../core/services/participant.service';
@@ -27,49 +19,35 @@ import { AvailabilityTimelineComponent } from '../../../shared/availability-time
 @Component({
   selector: 'admin-password-dialog',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatButtonModule,
-    MatInputModule,
-    MatFormFieldModule,
-    MatDialogModule
-  ],
+  imports: [CommonModule, ReactiveFormsModule, MatDialogModule],
   template: `
-    <h2 mat-dialog-title>Administrator Access</h2>
+    <h2 mat-dialog-title>Organizer access</h2>
     <mat-dialog-content>
-      <p>Enter the administrator password to access admin features:</p>
-      <form [formGroup]="passwordForm">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Password</mat-label>
-          <input matInput type="password" formControlName="password" required>
-          <mat-error *ngIf="passwordForm.get('password')?.hasError('required')">
-            Password is required
-          </mat-error>
-          <mat-error *ngIf="errorMessage">
-            {{ errorMessage }}
-          </mat-error>
-        </mat-form-field>
+      <p class="dialog-lede">Enter the organizer password to edit this event and manage answers.</p>
+      <form [formGroup]="passwordForm" (ngSubmit)="verifyPassword()" novalidate>
+        <div class="field" [class.is-invalid]="errorMessage">
+          <label class="field__label" for="admin-password">Password</label>
+          <input id="admin-password" class="field__control" type="password" formControlName="password"
+            autocomplete="current-password" required autofocus>
+          <span class="field__error" *ngIf="errorMessage">{{ errorMessage }}</span>
+        </div>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Cancel</button>
-      <button 
-        mat-raised-button 
-        color="primary" 
+      <button class="btn btn--ghost" type="button" mat-dialog-close>Cancel</button>
+      <button class="btn btn--primary" type="button"
         [disabled]="!passwordForm.valid || isVerifying"
         (click)="verifyPassword()">
-        {{ isVerifying ? 'Verifying...' : 'Submit' }}
+        <span class="spinner spinner--sm" *ngIf="isVerifying"></span>
+        {{ isVerifying ? 'Checking' : 'Unlock' }}
       </button>
     </mat-dialog-actions>
   `,
   styles: [`
-    .full-width {
-      width: 100%;
-    }
-    input[type="password"] {
-      padding: 8px;
-    }
+    :host { display: block; width: min(440px, 92vw); }
+    .dialog-lede { margin-bottom: 1.1rem; }
+    form { padding-bottom: 0.5rem; }
+    mat-dialog-actions { gap: 0.5rem; padding: 0.75rem 1.5rem 1.25rem; }
   `]
 })
 export class AdminPasswordDialogComponent {
@@ -118,15 +96,7 @@ export class AdminPasswordDialogComponent {
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
-    MatTableModule,
-    MatChipsModule,
-    MatCardModule,
-    MatMenuModule,
-    MatInputModule,
-    MatFormFieldModule,
     MatDialogModule,
     AvailabilityTimelineComponent
   ],

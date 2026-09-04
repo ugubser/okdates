@@ -1,60 +1,84 @@
-<div class="home-container">
-  <div class="hero-section">
-    <h1>OkDates</h1>
-    <p>Find the perfect date that works for everyone - use natural language, instead of clicking buttons
-      and selecting dates</p>
-    <p>OkDates is a free tool, that doesn't require any registration and is completely anonymous</p>
+<div class="page home">
+  <section class="hero">
+    <div class="hero__copy">
+      <h1>Say when you're free.<br>We'll find the day.</h1>
+      <p class="hero__lede">
+        No calendars to click through. Everyone writes their availability in a sentence,
+        OkDates reads it and shows the dates that work for the whole group.
+      </p>
+      <p class="hero__fineprint">Free, no account, nothing to install.</p>
 
-    <div class="action-container">
-      <div class="action-buttons">
-        <button type="button" class="action-card" (click)="createNewEvent(false)">
-          <div class="action-icon"><mat-icon>event</mat-icon></div>
-          <h3>Create New Event</h3>
-          <p class="button-description">Plan a casual event with just dates</p>
+      <div class="choices" role="list">
+        <button type="button" class="choice" role="listitem" (click)="createNewEvent(false)">
+          <mat-icon aria-hidden="true">event</mat-icon>
+          <span class="choice__text">
+            <span class="choice__title">Plan an event</span>
+            <span class="choice__desc">Whole days. Dinners, trips, weekends away.</span>
+          </span>
+          <mat-icon class="choice__arrow" aria-hidden="true">arrow_forward</mat-icon>
         </button>
 
-        <button type="button" class="action-card" (click)="createNewEvent(true)">
-          <div class="action-icon"><mat-icon>schedule</mat-icon></div>
-          <h3>Create New Meeting</h3>
-          <p class="button-description">Schedule a specific meeting time</p>
+        <button type="button" class="choice" role="listitem" (click)="createNewEvent(true)">
+          <mat-icon aria-hidden="true">schedule</mat-icon>
+          <span class="choice__text">
+            <span class="choice__title">Plan a meeting</span>
+            <span class="choice__desc">A time slot of a set length, across time zones.</span>
+          </span>
+          <mat-icon class="choice__arrow" aria-hidden="true">arrow_forward</mat-icon>
         </button>
 
-        <button type="button" class="action-card" (click)="createICal()">
-          <div class="action-icon"><mat-icon>download</mat-icon></div>
-          <h3>Create iCAL for download</h3>
-          <p class="button-description">Turn text into a downloadable calendar file</p>
+        <button type="button" class="choice" role="listitem" (click)="createICal()">
+          <mat-icon aria-hidden="true">download</mat-icon>
+          <span class="choice__text">
+            <span class="choice__title">Make a calendar file</span>
+            <span class="choice__desc">Turn a sentence into an .ics you can import anywhere.</span>
+          </span>
+          <mat-icon class="choice__arrow" aria-hidden="true">arrow_forward</mat-icon>
         </button>
       </div>
     </div>
-  </div>
-  
-  <div class="features-section">
+
+    <figure class="hero__demo" aria-label="Example: a sentence turned into dates">
+      <div class="demo-note">
+        <p class="demo-note__from">Anna wrote</p>
+        <p class="demo-note__text">“Any evening next week except Wednesday, or Saturday if that's easier.”</p>
+      </div>
+      <div class="demo-week">
+        <div class="demo-day" *ngFor="let d of sampleDays; let i = index"
+             [class.is-picked]="d.picked"
+             [style.--i]="i">
+          <span class="demo-day__weekday">{{ d.weekday }}</span>
+          <span class="demo-day__num">{{ d.day }}</span>
+          <span class="demo-day__mark" aria-hidden="true"></span>
+        </div>
+      </div>
+      <figcaption class="demo-caption">Read as five days. Nobody clicked a calendar.</figcaption>
+    </figure>
+  </section>
+
+  <section class="how">
     <h2>How it works</h2>
-    
-    <div class="feature-cards">
-      <div class="feature-card">
-        <div class="feature-icon">1</div>
+    <ol class="steps">
+      <li class="step">
+        <span class="step__num" aria-hidden="true">1</span>
         <h3>Create an event or a meeting</h3>
-        <p>Generate a unique shareable link for your event, set a password or store the administrator link securely</p>
-      </div>
-      
-      <div class="feature-card">
-        <div class="feature-icon">2</div>
-        <h3>Share with friends</h3>
-        <p>Send the link to all participants or add them yourself one by one</p>
-      </div>
-      
-      <div class="feature-card">
-        <div class="feature-icon">3</div>
-        <h3>Collect availability</h3>
-        <p>Everyone enters their available dates in free text or you do it for them</p>
-      </div>
-      
-      <div class="feature-card">
-        <div class="feature-icon">4</div>
-        <h3>Find the best date</h3>
-        <p>Agree on the best availability for everyone, download the ical calendar invite (as Administrator) and send to everyone</p>
-      </div>
-    </div>
-  </div>
+        <p>You get a link to share and a private organizer link. Add a password if you want to edit later from another device.</p>
+      </li>
+      <li class="step">
+        <span class="step__num" aria-hidden="true">2</span>
+        <h3>Send the link</h3>
+        <p>Everyone answers on their own, or you type their availability in for them.</p>
+      </li>
+      <li class="step">
+        <span class="step__num" aria-hidden="true">3</span>
+        <h3>People write when they're free</h3>
+        <p>In their own words. Once a few have answered, the rest can just tick the dates in the grid.</p>
+      </li>
+      <li class="step">
+        <span class="step__num" aria-hidden="true">4</span>
+        <h3>Pick the day that works</h3>
+        <p>The grid highlights the date everyone can make. As organizer you download the calendar invite and send it round.</p>
+      </li>
+    </ol>
+  </section>
 </div>

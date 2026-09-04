@@ -477,6 +477,29 @@ export class AvailabilityTimelineComponent implements OnInit, OnChanges {
     return this.commonAvailableSlots.includes(dateString);
   }
 
+  /** True when every participant is available for the slot (regular events and meetings). */
+  isEveryoneAvailable(dateString: string): boolean {
+    if (this.participants.length === 0) {
+      return false;
+    }
+    if (this.event?.isMeeting) {
+      return this.isCommonAvailableSlot(dateString);
+    }
+    return this.getAvailableCountForDate(dateString) === this.participants.length;
+  }
+
+  /** "Mon" from a formatted "Mon, Jun 2" header. */
+  headerWeekday(dateInfo: DateInfo): string {
+    const idx = dateInfo.formattedDate.indexOf(',');
+    return idx > 0 ? dateInfo.formattedDate.slice(0, idx) : dateInfo.formattedDate;
+  }
+
+  /** "Jun 2" from a formatted "Mon, Jun 2" header. */
+  headerDay(dateInfo: DateInfo): string {
+    const idx = dateInfo.formattedDate.indexOf(',');
+    return idx > 0 ? dateInfo.formattedDate.slice(idx + 1).trim() : '';
+  }
+
   getParticipationClass(dateString: string): string {
     const count = this.getAvailableCountForDate(dateString);
     const total = this.participants.length;

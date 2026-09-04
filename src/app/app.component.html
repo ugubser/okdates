@@ -1,23 +1,28 @@
-<div class="app-container">
-  <mat-toolbar color="primary">
-    <a *ngIf="themeConfig.logo.type === 'image'" [href]="themeConfig.logo.link" class="logo">
-      <img [src]="themeConfig.logo.path" [alt]="themeConfig.logo.alt" class="logo-image">
-    </a>
-    <a *ngIf="themeConfig.logo.type === 'text'" routerLink="/" class="logo">{{ themeConfig.logo.alt }}</a>
-    <span class="spacer"></span>
-    <a routerLink="/" mat-button>Home</a>
-  </mat-toolbar>
+<div class="app">
+  <header class="app-header">
+    <div class="app-header__inner">
+      <a *ngIf="themeConfig.logo.type === 'image'" [href]="themeConfig.logo.link" class="brand brand--image">
+        <img [src]="themeConfig.logo.path" [alt]="themeConfig.logo.alt">
+      </a>
+      <a *ngIf="themeConfig.logo.type !== 'image'" routerLink="/" class="brand brand--word">
+        <span class="brand__mark" aria-hidden="true"></span>
+        <span>{{ themeConfig.logo.alt || title }}</span>
+      </a>
 
-  <div class="content-container">
+    </div>
+  </header>
+
+  <main class="app-main">
     <router-outlet></router-outlet>
-  </div>
+  </main>
 
   <footer class="app-footer">
-    <div class="footer-content">
-      <!--
-      <p>&copy; 2025 OkDates. All rights reserved.</p>
-      -->
-      <p>OkDates is Open Source and free to use. <a href="https://github.com/ugubser/OkDates" target="_blank">Learn more</a>. Made in Switzerland 🇨🇭</p>
+    <div class="app-footer__inner">
+      <p>
+        OkDates is open source and free to use.
+        <a href="https://github.com/ugubser/OkDates" target="_blank" rel="noopener">Source on GitHub</a>
+      </p>
+      <p class="app-footer__made">Made in Switzerland</p>
     </div>
   </footer>
 </div>

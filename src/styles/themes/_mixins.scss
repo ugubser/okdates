@@ -1,47 +1,30 @@
-// Shared mixins and utilities for all themes
+// Shared mixins for component styles. Everything reads tokens; nothing hard-codes a colour.
 
-// Button mixin that adapts to theme variables
-@mixin themed-button($variant: 'primary') {
-  @if $variant == 'primary' {
-    background-color: var(--primary-color);
-    color: var(--text-on-primary);
-    
-    &:hover {
-      background-color: var(--primary-light);
-    }
-  } @else if $variant == 'accent' {
-    background-color: var(--accent-color);
-    color: var(--text-on-accent);
-    
-    &:hover {
-      background-color: var(--accent-light);
-    }
+@mixin surface($level: 1) {
+  background-color: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  @if $level == 2 {
+    background-color: var(--surface-2);
   }
 }
 
-// Card styling that adapts to theme
-@mixin themed-card() {
-  background-color: var(--surface-color);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+@mixin label {
+  font-family: var(--label-font);
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  text-transform: var(--label-transform);
+  letter-spacing: var(--label-tracking);
+  color: var(--ink-2);
 }
 
-// Typography mixins
-@mixin themed-text($type: 'primary') {
-  @if $type == 'primary' {
-    color: var(--text-primary);
-  } @else if $type == 'secondary' {
-    color: var(--text-secondary);
-  }
-}
-
-// Input styling
-@mixin themed-input() {
-  background-color: var(--surface-color);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  
-  &:focus {
-    border-color: var(--accent-color);
-  }
+@mixin display($size) {
+  font-family: var(--font);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking);
+  line-height: 1.05;
+  font-size: $size;
+  font-variation-settings: 'opsz' 96;
+  color: var(--ink);
+  margin: 0;
 }

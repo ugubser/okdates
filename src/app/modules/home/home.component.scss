@@ -1,160 +1,217 @@
-.home-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+@use '../../../styles/themes/mixins' as m;
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: clamp(2rem, 6vw, 5rem);
+  align-items: center;
+  padding-top: clamp(1rem, 3vw, 2.5rem);
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
 }
 
-.hero-section {
-  text-align: center;
-  margin-bottom: 4rem;
-  
+.hero__copy {
   h1 {
-    font-size: 3rem;
-    margin-bottom: 1rem;
+    @include m.display(clamp(2.2rem, 4.4vw, 3.2rem));
   }
-  
-  p {
-    font-size: 1.2rem;
-    margin-bottom: 2rem;
-    color: var(--text-secondary);
+
+  .hero__lede {
+    margin-top: 1.25rem;
+    max-width: 48ch;
+    font-size: 1.12rem;
+    color: var(--ink-2);
+  }
+
+  .hero__fineprint {
+    margin-top: 0.75rem;
+    font-size: 0.92rem;
+    color: var(--ink-3);
   }
 }
 
-.action-container {
-  .action-buttons {
+/* The three things you can do, as a list of wide rows rather than a card grid. */
+.choices {
+  margin-top: 2.25rem;
+  display: flex;
+  flex-direction: column;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.choice {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1.1rem;
+  width: 100%;
+  padding: 1.15rem 1.25rem;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:last-child { border-bottom: 0; }
+  &:hover { background: var(--accent-wash); }
+  &:hover .choice__arrow { transform: translateX(4px); color: var(--accent-strong); }
+  &:focus-visible { box-shadow: inset var(--focus-ring); }
+
+  > mat-icon:first-child {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    max-width: 900px;
-    margin: 0 auto;
+    place-content: center;
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    color: var(--on-accent);
   }
 
-  // Embossed, clickable cards that mirror the "How it works" feature cards
-  .action-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    width: 100%;
+  .choice__text { display: flex; flex-direction: column; gap: 0.15rem; }
+  .choice__title { font-weight: 700; font-size: 1.2rem; letter-spacing: -0.015em; }
+  .choice__desc { color: var(--ink-2); font-size: 0.95rem; }
+  .choice__arrow { color: var(--ink-3); transition: transform 0.18s ease, color 0.18s ease; }
+}
 
-    background-color: var(--surface-color);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    cursor: pointer;
-    font-family: inherit;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+:host-context(:root.vanguard-theme) {
+  .choices { border-color: var(--rule-strong); }
+  .choice {
+    &:hover { background: var(--surface-2); }
+    &:hover .choice__arrow { color: var(--accent); }
+    > mat-icon:first-child { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+  }
+}
 
-    &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    }
+/* Demo: a sentence turned into a week of dates. */
+.hero__demo {
+  margin: 0;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
 
-    &:focus-visible {
-      outline: 2px solid var(--primary-color);
-      outline-offset: 2px;
-    }
+.demo-note {
+  .demo-note__from {
+    @include m.label;
+  }
+  .demo-note__text {
+    margin-top: 0.4rem;
+    font-size: clamp(1.15rem, 2vw, 1.4rem);
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    font-variation-settings: 'opsz' 40;
+  }
+}
 
-    .action-icon {
-      width: 50px;
-      height: 50px;
-      background-color: var(--primary-color);
-      color: var(--text-on-primary);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1rem;
+.demo-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
 
-      mat-icon {
-        font-size: 1.6rem;
-        width: 1.6rem;
-        height: 1.6rem;
-      }
-    }
+.demo-day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.55rem 0.2rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  color: var(--ink-3);
+  background: var(--surface);
+  isolation: isolate;
 
-    h3 {
-      margin: 0 0 0.5rem;
-      color: var(--primary-color);
-      font-size: 1.15rem;
-    }
+  .demo-day__weekday { font-size: 0.7rem; letter-spacing: 0.02em; }
+  .demo-day__num { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink-2); }
 
-    .button-description {
-      color: var(--text-secondary);
-      margin: 0;
-      font-size: 0.9rem;
+  .demo-day__mark {
+    position: absolute;
+    inset: 3px;
+    z-index: -1;
+    border-radius: calc(var(--radius-sm) - 2px);
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+
+  &.is-picked {
+    border-color: var(--accent-strong);
+    color: var(--on-accent);
+    .demo-day__num { color: var(--on-accent); }
+    .demo-day__mark {
+      animation: mark 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      animation-delay: calc(0.35s + var(--i) * 0.09s);
     }
   }
 }
 
-.features-section {
-  h2 {
-    text-align: center;
-    margin-bottom: 2rem;
-  }
-  
-  .feature-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
-  }
-  
-  .feature-card {
-    background-color: var(--surface-color);
-    border-radius: 8px;
-    padding: 1.5rem;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border: 1px solid var(--border-color);
-    
-    &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    }
-    
-    .feature-icon {
-      width: 50px;
-      height: 50px;
-      background-color: var(--primary-color);
-      color: var(--text-on-primary);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1rem;
-      font-size: 1.5rem;
-      font-weight: bold;
-    }
-    
-    h3 {
-      margin-bottom: 0.5rem;
-    }
-    
-    p {
-      color: var(--text-secondary);
-    }
-  }
+@keyframes mark { to { transform: scaleX(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-day.is-picked .demo-day__mark { animation: none; transform: scaleX(1); }
 }
 
-@media (max-width: 768px) {
-  .hero-section {
-    h1 {
-      font-size: 2.5rem;
-    }
+.demo-caption {
+  font-size: 0.88rem;
+  color: var(--ink-2);
+}
+
+/* How it works: a real sequence, so numbers are earned. */
+.how {
+  margin-top: clamp(3.5rem, 8vw, 6rem);
+
+  h2 { font-size: clamp(1.5rem, 2.6vw, 2rem); margin-bottom: 1.75rem; }
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  border-top: 1px solid var(--rule-strong);
+
+  @media (max-width: 900px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 560px) { grid-template-columns: 1fr; }
+}
+
+.step {
+  padding-top: 1.25rem;
+
+  .step__num {
+    display: block;
+    font-size: 2.2rem;
+    font-weight: 300;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--ink-3);
+    font-variation-settings: 'opsz' 96;
+    margin-bottom: 0.9rem;
   }
 
-  .action-container {
-    .action-buttons {
-      grid-template-columns: 1fr;
-    }
-  }
+  h3 { font-size: 1.08rem; margin-bottom: 0.45rem; }
+  p { color: var(--ink-2); font-size: 0.95rem; max-width: 34ch; }
+}
 
-  .features-section {
-    .feature-cards {
-      grid-template-columns: 1fr;
-    }
-  }
+:host-context(:root.vanguard-theme) .step .step__num {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  &::before { content: '0'; }
 }

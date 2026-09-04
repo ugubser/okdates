@@ -1,211 +1,157 @@
-<div class="participant-form-container" *ngIf="event && !isLoading">
-  <div class="event-info">
-    <h1>{{ event.title || 'Untitled Event' }}</h1>
-    <p *ngIf="event.description">{{ event.description }}</p>
+<div class="page page--narrow participate" *ngIf="event && !isLoading">
+  <div class="page-head">
+    <a class="back-link" [routerLink]="['/event', eventId, 'view']"><mat-icon>arrow_back</mat-icon> {{ event.title || 'Untitled event' }}</a>
+    <h1>{{ isEditMode ? 'Update your availability' : 'When are you free?' }}</h1>
+    <p class="lede" *ngIf="event.description">{{ event.description }}</p>
   </div>
 
-  <div *ngIf="!showParsedDates">
-    <h2>{{ isEditMode ? 'Update Your Availability' : 'Enter Your Availability' }}</h2>
-
-    <!-- Mode Toggle (only shown if there are existing participants) -->
-    <div class="mode-toggle-container" *ngIf="hasExistingParticipants">
-      <mat-button-toggle-group [(ngModel)]="entryMode" aria-label="Entry Mode">
-        <mat-button-toggle value="timeline">Select from Timeline</mat-button-toggle>
-        <mat-button-toggle value="text">Enter as Text</mat-button-toggle>
-      </mat-button-toggle-group>
+  <!-- Step 1: enter -->
+  <ng-container *ngIf="!showParsedDates">
+    <div class="field" *ngIf="hasExistingParticipants">
+      <span class="field__label">How do you want to answer</span>
+      <div class="segmented" role="radiogroup" aria-label="Entry mode">
+        <label>
+          <input type="radio" name="entryMode" value="timeline" [(ngModel)]="entryMode">
+          <mat-icon>grid_on</mat-icon> Tick dates in the grid
+        </label>
+        <label>
+          <input type="radio" name="entryMode" value="text" [(ngModel)]="entryMode">
+          <mat-icon>edit_note</mat-icon> Write it out
+        </label>
+      </div>
+      <span class="field__hint" *ngIf="entryMode === 'timeline'">Others have already answered, so you can pick from the {{ event.isMeeting ? 'slots' : 'dates' }} on the table.</span>
     </div>
 
-    <!-- Empty state message for first participant -->
-    <div class="empty-state-message" *ngIf="!hasExistingParticipants">
-      <p>Be the first to add your availability!</p>
+    <div class="note note--info first-note" *ngIf="!hasExistingParticipants">
+      <mat-icon>flag</mat-icon>
+      <span>You're the first to answer. Write the {{ event.isMeeting ? 'times' : 'dates' }} that suit you in your own words.</span>
     </div>
 
-    <!-- Text Entry Form -->
-    <form [formGroup]="participantForm" (ngSubmit)="parseDates()" *ngIf="entryMode === 'text'">
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Your Name</mat-label>
-        <input matInput formControlName="name" placeholder="Enter your name">
-        <mat-error *ngIf="participantForm.get('name')?.hasError('required')">
-          Name is required
-        </mat-error>
-      </mat-form-field>
-      
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ event.isMeeting ? 'Available Time Slots' : 'Available Dates' }}</mat-label>
-        <textarea
-          matInput
-          formControlName="availability"
-          [placeholder]="event.isMeeting ? 'e.g., Monday from 15:00-17:00, Wednesday afternoons' : 'e.g., June 2-4, July 5'"
-          rows="4">
-        </textarea>
-        <mat-hint *ngIf="!event.isMeeting">
-          Enter dates in any format: "June 2,3,4", "06/02, 06/03", "June 2-4", etc.
-        </mat-hint>
-        <mat-hint *ngIf="event.isMeeting">
-          Enter time slots: "Monday from 15:00-17:00", "Wed afternoons", "Tuesday all day", etc.
-        </mat-hint>
-        <mat-error *ngIf="participantForm.get('availability')?.hasError('required')">
-          Availability is required
-        </mat-error>
-      </mat-form-field>
+    <!-- Text entry -->
+    <form [formGroup]="participantForm" (ngSubmit)="parseDates()" *ngIf="entryMode === 'text'" class="stack entry-form" novalidate>
+      <div class="field" [class.is-invalid]="participantForm.get('name')?.invalid && participantForm.get('name')?.touched">
+        <label class="field__label" for="p-name">Your name</label>
+        <input id="p-name" class="field__control" formControlName="name" placeholder="How the others know you" autocomplete="name">
+        <span class="field__error" *ngIf="participantForm.get('name')?.hasError('required') && participantForm.get('name')?.touched">A name is needed so the group knows who answered.</span>
+      </div>
 
-      <!-- Timezone selector (for meetings only) -->
-      <mat-form-field *ngIf="event.isMeeting" appearance="outline" class="full-width timezone-field">
-        <mat-label>Your Timezone</mat-label>
-        <mat-select formControlName="timezone">
-          <mat-option *ngFor="let tz of timezones" [value]="tz.value">
-            {{ tz.label }}
-          </mat-option>
-        </mat-select>
-        <mat-hint>
-          Times will be interpreted in this timezone
-        </mat-hint>
-      </mat-form-field>
+      <div class="field" [class.is-invalid]="participantForm.get('availability')?.invalid && participantForm.get('availability')?.touched">
+        <label class="field__label" for="p-availability">{{ event.isMeeting ? 'When you could meet' : 'Days that suit you' }}</label>
+        <textarea id="p-availability" class="field__control" formControlName="availability" rows="4"
+          [placeholder]="event.isMeeting ? 'e.g. Monday from 15:00 to 17:00, Wednesday afternoons' : 'e.g. June 2 to 4, July 5, any weekend in August'"></textarea>
+        <span class="field__hint" *ngIf="!event.isMeeting">Any format: “June 2, 3, 4”, “06/02, 06/03”, “June 2-4”, “not Fridays”.</span>
+        <span class="field__hint" *ngIf="event.isMeeting">Say the times too: “Monday 15:00-17:00”, “Wed afternoons”, “Tuesday all day”.</span>
+        <span class="field__error" *ngIf="participantForm.get('availability')?.hasError('required') && participantForm.get('availability')?.touched">Write at least one date.</span>
+      </div>
 
-      <div class="form-actions">
-        <button
-          mat-raised-button
-          color="primary"
-          type="submit"
-          [disabled]="!participantForm.valid || isParsing">
-          {{ isParsing ? 'Processing...' : (isEditMode ? 'Update Dates' : 'Next') }}
-        </button>
+      <div class="field" *ngIf="event.isMeeting">
+        <label class="field__label" for="p-tz">Your time zone</label>
+        <select id="p-tz" class="field__control" formControlName="timezone">
+          <option *ngFor="let tz of timezones" [value]="tz.value">{{ tz.label }}</option>
+        </select>
+        <span class="field__hint">The times you wrote are read in this zone.</span>
+      </div>
 
-        <button
-          mat-button
-          type="button"
-          [routerLink]="['/event', eventId, 'view']">
-          Cancel
+      <div class="row row--end form-actions">
+        <a class="btn btn--ghost" [routerLink]="['/event', eventId, 'view']">Cancel</a>
+        <button class="btn btn--primary" type="submit" [disabled]="!participantForm.valid || isParsing">
+          <span class="spinner spinner--sm" *ngIf="isParsing"></span>
+          {{ isParsing ? 'Reading your dates' : 'Continue' }}
         </button>
       </div>
     </form>
 
-    <!-- Timeline Selection Section -->
-    <div *ngIf="entryMode === 'timeline' && hasExistingParticipants" class="timeline-selection-container">
-      <!-- Name Input (always required) -->
-      <form [formGroup]="participantForm">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Your Name</mat-label>
-          <input matInput formControlName="name" placeholder="Enter your name">
-          <mat-error *ngIf="participantForm.get('name')?.hasError('required')">
-            Name is required
-          </mat-error>
-        </mat-form-field>
+    <!-- Grid entry -->
+    <div *ngIf="entryMode === 'timeline' && hasExistingParticipants" class="stack entry-form">
+      <form [formGroup]="participantForm" class="stack" novalidate>
+        <div class="field" [class.is-invalid]="participantForm.get('name')?.invalid && participantForm.get('name')?.touched">
+          <label class="field__label" for="p-name-grid">Your name</label>
+          <input id="p-name-grid" class="field__control" formControlName="name" placeholder="How the others know you" autocomplete="name">
+          <span class="field__error" *ngIf="participantForm.get('name')?.hasError('required') && participantForm.get('name')?.touched">A name is needed so the group knows who answered.</span>
+        </div>
 
-        <!-- Timezone selector (for meetings only) -->
-        <mat-form-field *ngIf="event.isMeeting" appearance="outline" class="full-width timezone-field">
-          <mat-label>Your Timezone</mat-label>
-          <mat-select formControlName="timezone">
-            <mat-option *ngFor="let tz of timezones" [value]="tz.value">
-              {{ tz.label }}
-            </mat-option>
-          </mat-select>
-          <mat-hint>
-            Times will be interpreted in this timezone
-          </mat-hint>
-        </mat-form-field>
+        <div class="field" *ngIf="event.isMeeting">
+          <label class="field__label" for="p-tz-grid">Your time zone</label>
+          <select id="p-tz-grid" class="field__control" formControlName="timezone">
+            <option *ngFor="let tz of timezones" [value]="tz.value">{{ tz.label }}</option>
+          </select>
+          <span class="field__hint">Slots are shown in this zone.</span>
+        </div>
       </form>
 
-      <h3>Select your available {{ event.isMeeting ? 'time slots' : 'dates' }}</h3>
-      <p>Click on the {{ event.isMeeting ? 'time slots' : 'dates' }} that work for you:</p>
+      <div class="grid-block">
+        <div class="section-head">
+          <h2>Tick the {{ event.isMeeting ? 'slots' : 'dates' }} that work</h2>
+          <span class="section-hint">Bottom row is yours. The rows above show everyone else.</span>
+        </div>
+        <app-availability-timeline
+          [event]="event"
+          [participants]="participants"
+          [mode]="'select'"
+          [timezone]="participantForm.get('timezone')?.value"
+          [preselectedSlots]="preselectedSlotKeys"
+          (slotsSelected)="onSlotsSelected($event)">
+        </app-availability-timeline>
+      </div>
 
-      <!-- Timeline component -->
-      <app-availability-timeline
-        [event]="event"
-        [participants]="participants"
-        [mode]="'select'"
-        [timezone]="participantForm.get('timezone')?.value"
-        [preselectedSlots]="preselectedSlotKeys"
-        (slotsSelected)="onSlotsSelected($event)">
-      </app-availability-timeline>
-
-      <div class="form-actions">
-        <button
-          mat-raised-button
-          color="primary"
+      <div class="row row--end form-actions">
+        <a class="btn btn--ghost" [routerLink]="['/event', eventId, 'view']">Cancel</a>
+        <button class="btn btn--primary" type="button"
           [disabled]="!participantForm.get('name')?.valid || selectedSlotKeys.length === 0"
           (click)="proceedWithSelectedSlots()">
-          Next
-        </button>
-
-        <button
-          mat-button
-          [routerLink]="['/event', eventId, 'view']">
-          Cancel
+          Continue
+          <span class="count" *ngIf="selectedSlotKeys.length > 0">{{ selectedSlotKeys.length }}</span>
         </button>
       </div>
     </div>
-  </div>
-  
-  <div *ngIf="showParsedDates">
-    <h2>{{ event.isMeeting ? 'Confirm Your Time Slots' : 'Confirm Your Dates' }}</h2>
+  </ng-container>
 
-    <div class="parsed-dates-section">
-      <div class="ai-powered-badge" *ngIf="!usedTimelineSelection">
-        <mat-icon>smart_toy</mat-icon> AI-Powered {{ event.isMeeting ? 'Time' : 'Date' }} Recognition
-      </div>
-
-      <p *ngIf="!usedTimelineSelection">We identified the following {{ event.isMeeting ? 'time slots' : 'dates' }} from your input:</p>
-      <p *ngIf="usedTimelineSelection">You selected the following {{ event.isMeeting ? 'time slots' : 'dates' }}:</p>
-      
-      <div class="parsed-dates-list">
-        <mat-selection-list #datesList>
-          <mat-list-option 
-            *ngFor="let date of parsedDates; let i = index; trackBy: trackByIndex"
-            [selected]="true"
-            checkboxPosition="before"
-            [attr.data-index]="i">
-            <div class="date-option-content">
-              <div class="date-display">
-                <span class="date-number">{{ i + 1 }}.</span>
-                <span class="date-value">
-                  {{ date.startTimestamp && date.endTimestamp ?
-                      formatDate(null, date.startTimestamp, date.endTimestamp) :
-                      formatDate(date.timestamp)
-                  }}
-                </span>
-              </div>
-              <small class="original-text">From: "{{ date.originalText }}"</small>
-            </div>
-          </mat-list-option>
-        </mat-selection-list>
-
-        <p class="help-text" *ngIf="!usedTimelineSelection">
-          <mat-icon class="info-icon">info</mat-icon>
-          Uncheck any dates that were incorrectly identified. Only checked dates will be submitted. If you don't see the date you want, please go back and try a different approach. LLMs are not perfect.
-        </p>
-
-        <p class="help-text" *ngIf="usedTimelineSelection">
-          <mat-icon class="info-icon">info</mat-icon>
-          Uncheck any {{ event.isMeeting ? 'time slots' : 'dates' }} you don't want to include. Only checked items will be submitted.
-        </p>
-
-        <div class="no-dates" *ngIf="parsedDates.length === 0">
-          <p>We couldn't identify any dates from your input. Please go back and try a different format.</p>
-          <p class="suggestion">Try formats like "June 15-17", "6/15, 6/16", or "next Monday and Tuesday".</p>
-        </div>
-      </div>
+  <!-- Step 2: confirm -->
+  <div *ngIf="showParsedDates" class="stack confirm">
+    <div class="section-head">
+      <h2>{{ usedTimelineSelection ? 'Your selection' : 'What we read' }}</h2>
+      <span class="pill" *ngIf="!usedTimelineSelection"><mat-icon>auto_awesome</mat-icon> Read by AI</span>
     </div>
-    
-    <div class="form-actions">
-      <button 
-        mat-raised-button
-        color="primary"
-        (click)="confirmDates()"
-        [disabled]="isSubmitting || parsedDates.length === 0">
-        {{ isSubmitting ? 'Submitting...' : (isEditMode ? 'Update' : 'Submit') }}
-      </button>
-      
-      <button 
-        mat-button
-        (click)="backToDateInput()"
-        [disabled]="isSubmitting">
-        Back
+
+    <ul class="check-list" *ngIf="parsedDates.length > 0">
+      <li *ngFor="let date of parsedDates; let i = index; trackBy: trackByIndex">
+        <label class="check">
+          <input type="checkbox" [(ngModel)]="selectedDates[i]" [name]="'date-' + i">
+          <span class="check__body">
+            <span class="check__title">
+              {{ date.startTimestamp && date.endTimestamp ? formatDate(null, date.startTimestamp, date.endTimestamp) : formatDate(date.timestamp) }}
+            </span>
+            <span class="check__meta" *ngIf="date.originalText && !usedTimelineSelection">from “{{ date.originalText }}”</span>
+          </span>
+        </label>
+      </li>
+    </ul>
+
+    <div class="note note--info" *ngIf="parsedDates.length > 0 && !usedTimelineSelection">
+      <mat-icon>info</mat-icon>
+      <span>Untick anything that was misread. Only ticked {{ event.isMeeting ? 'slots' : 'dates' }} are saved. If a date is missing, go back and phrase it differently.</span>
+    </div>
+    <div class="note note--info" *ngIf="parsedDates.length > 0 && usedTimelineSelection">
+      <mat-icon>info</mat-icon>
+      <span>Untick anything you don't want to include. Only ticked {{ event.isMeeting ? 'slots' : 'dates' }} are saved.</span>
+    </div>
+
+    <div class="note note--error" *ngIf="parsedDates.length === 0">
+      <mat-icon>search_off</mat-icon>
+      <span>No dates found in that text. Go back and try something like “June 15-17”, “6/15, 6/16” or “next Monday and Tuesday”.</span>
+    </div>
+
+    <div class="row row--end form-actions">
+      <button class="btn btn--ghost" type="button" (click)="backToDateInput()" [disabled]="isSubmitting">Back</button>
+      <button class="btn btn--primary" type="button" (click)="confirmDates()"
+        [disabled]="isSubmitting || parsedDates.length === 0 || selectedCount === 0">
+        <span class="spinner spinner--sm" *ngIf="isSubmitting"></span>
+        {{ isSubmitting ? 'Saving' : (isEditMode ? 'Save changes' : 'Save my availability') }}
       </button>
     </div>
   </div>
 </div>
 
 <div class="loading-container" *ngIf="isLoading">
-  <mat-spinner></mat-spinner>
+  <span class="spinner" role="status" aria-label="Loading"></span>
 </div>

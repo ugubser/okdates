@@ -2,14 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSelectModule } from '@angular/material/select';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { DateParsingService } from '../../core/services/date-parsing.service';
 import { ICalendarService, ICalEventInput } from '../../core/services/ical.service';
 import { ParsedDate } from '../../core/models/parsed-date.model';
@@ -23,14 +16,7 @@ type IcalMode = 'dates' | 'times';
     CommonModule,
     FormsModule,
     RouterLink,
-    MatButtonModule,
-    MatInputModule,
-    MatFormFieldModule,
-    MatProgressSpinnerModule,
-    MatIconModule,
-    MatSelectModule,
-    MatButtonToggleModule,
-    MatCheckboxModule
+    MatIconModule
   ],
   templateUrl: './ical-generator.component.html',
   styleUrls: ['./ical-generator.component.scss']

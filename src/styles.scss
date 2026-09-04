@@ -1,219 +1,613 @@
-/* Import theme files */
+@use '@angular/material' as mat;
 @use './styles/themes/okdates';
 @use './styles/themes/vanguard';
-@use './styles/themes/mixins';
+@use './styles/themes/mixins' as m;
 
-/* Global styles */
+/* ------------------------------------------------------------------
+   Material system tokens, mapped onto our template tokens.
+   Material is only used for the dialog, tooltip and the table.
+   ------------------------------------------------------------------ */
+:root.okdates-theme {
+  @include mat.theme((
+    color: (primary: mat.$spring-green-palette, tertiary: mat.$yellow-palette, theme-type: light),
+    typography: (plain-family: 'Bricolage Grotesque', brand-family: 'Bricolage Grotesque'),
+    density: 0
+  ));
+}
+:root.vanguard-theme {
+  @include mat.theme((
+    color: (primary: mat.$cyan-palette, tertiary: mat.$cyan-palette, theme-type: dark),
+    typography: (plain-family: 'brother-1816', brand-family: 'brother-1816'),
+    density: 0
+  ));
+}
+:root.okdates-theme,
+:root.vanguard-theme {
+  --mat-sys-surface: var(--surface);
+  --mat-sys-surface-container: var(--surface);
+  --mat-sys-surface-container-high: var(--surface);
+  --mat-sys-surface-container-highest: var(--surface-2);
+  --mat-sys-on-surface: var(--ink);
+  --mat-sys-on-surface-variant: var(--ink-2);
+  --mat-sys-outline: var(--rule-strong);
+  --mat-sys-outline-variant: var(--rule);
+  --mat-sys-primary: var(--accent);
+  --mat-sys-on-primary: var(--on-accent);
+  --mat-sys-inverse-surface: var(--ink);
+  --mat-sys-inverse-on-surface: var(--bg);
+  --mat-sys-body-large-font: var(--font);
+  --mat-sys-body-medium-font: var(--font);
+  --mat-sys-title-large-font: var(--font);
+  --mat-sys-headline-small-font: var(--font);
+  --mat-sys-label-large-font: var(--font);
+  --mat-sys-corner-extra-large: var(--radius-lg);
+  --mat-sys-corner-extra-small: var(--radius-sm);
+}
+
+/* ------------------------------------------------------------------
+   Base
+   ------------------------------------------------------------------ */
+*, *::before, *::after { box-sizing: border-box; }
+
 html, body { height: 100%; }
+
 body {
   margin: 0;
-  font-family: var(--font-family);
-  color: var(--text-primary);
-  background-color: var(--background-color);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+  background-color: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Material theme overrides */
-.mat-mdc-button.mat-primary {
-  background-color: var(--primary-color);
-  color: var(--text-on-primary);
+h1, h2, h3, h4 {
+  font-family: var(--font);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking);
+  line-height: 1.1;
+  color: var(--ink);
+  margin: 0;
 }
 
-.mat-mdc-raised-button.mat-primary {
-  background-color: var(--primary-color);
-  color: var(--text-on-primary);
+p { margin: 0; }
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+:root.vanguard-theme a { color: var(--accent); }
+:root.vanguard-theme a:hover { color: var(--ink); }
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: 0 0.35em;
 }
 
-.mat-toolbar.mat-primary {
-  background-color: var(--primary-color);
-  color: var(--text-on-primary);
+::selection { background: var(--accent); color: var(--on-accent); }
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
-.mat-mdc-button.mat-accent {
-  background-color: var(--accent-color);
-  color: var(--text-on-accent);
-}
-
-.mat-mdc-raised-button.mat-accent {
-  background-color: var(--accent-color);
-  color: var(--text-on-accent);
-}
-
-/* Vanguard theme Material component overrides */
-:root.vanguard-theme {
-  .mat-toolbar.mat-primary {
-    background: rgba(0, 0, 0, 0.95) !important;
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .mat-mdc-button.mat-primary {
-    background-color: transparent;
-    color: var(--accent-color);
-    border: 2px solid var(--accent-color);
-  }
-
-  .mat-mdc-raised-button.mat-primary {
-    background-color: var(--accent-color);
-    color: var(--text-on-accent);
-  }
-
-  .mat-mdc-outlined-button.mat-primary {
-    border-color: var(--accent-color);
-    color: var(--accent-color);
-  }
-
-  .mat-mdc-button.mat-primary:hover {
-    background-color: var(--accent-color);
-    color: var(--text-on-accent);
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
-/* Global styles */
-* {
-  box-sizing: border-box;
-}
-
-.full-width {
+/* ------------------------------------------------------------------
+   Layout
+   ------------------------------------------------------------------ */
+.page {
   width: 100%;
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(3rem, 6vw, 5rem);
 }
+.page--narrow { max-width: 760px; }
+
+.page-head {
+  margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+
+  h1 { @include m.display(clamp(1.9rem, 4vw, 2.8rem)); }
+
+  .lede {
+    margin-top: 0.75rem;
+    max-width: 58ch;
+    font-size: 1.05rem;
+    color: var(--ink-2);
+  }
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--ink-2);
+  text-decoration: none;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &:hover { color: var(--ink); text-decoration: underline; }
+}
+:root.vanguard-theme .back-link { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.section {
+  margin-top: clamp(2rem, 5vw, 3.5rem);
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+
+    h2 { font-size: 1.35rem; }
+    .section-hint { color: var(--ink-2); font-size: 0.95rem; }
+  }
+}
+
+.stack { display: flex; flex-direction: column; gap: 1.25rem; }
+.row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.row--end { justify-content: flex-end; }
+.row--between { justify-content: space-between; }
+
+/* ------------------------------------------------------------------
+   Buttons
+   ------------------------------------------------------------------ */
+.btn {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: var(--btn-pad);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-family: var(--btn-font);
+  font-size: var(--btn-size);
+  font-weight: var(--btn-weight);
+  letter-spacing: var(--btn-tracking);
+  text-transform: var(--btn-transform);
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--ink);
+  background: transparent;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+
+  mat-icon { font-size: 19px; width: 19px; height: 19px; flex: none; }
+
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+  &:not(:disabled):active { transform: scale(0.98); }
+}
+
+.btn--primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  border-color: var(--btn-primary-bg);
+  &:not(:disabled):hover { background: var(--btn-primary-hover); border-color: var(--btn-primary-hover); }
+}
+.btn--secondary {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+  &:not(:disabled):hover { border-color: var(--ink); background: var(--surface-2); }
+}
+.btn--ghost {
+  color: var(--ink-2);
+  &:not(:disabled):hover { color: var(--ink); background: var(--surface-2); }
+}
+.btn--danger {
+  border-color: var(--bad);
+  color: var(--bad);
+  &:not(:disabled):hover { background: var(--bad); color: #fff; }
+}
+.btn--accent {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  &:not(:disabled):hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+}
+.btn--sm { padding: 0.45rem 0.85rem; font-size: calc(var(--btn-size) * 0.92); }
+.btn--block { width: 100%; }
+
+.btn--icon {
+  padding: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  color: var(--ink-2);
+  &:not(:disabled):hover { color: var(--ink); background: var(--surface-2); }
+  &.is-danger:not(:disabled):hover { color: var(--bad); background: var(--bad-soft); }
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+}
+
+/* Vanguard: the wipe-fill hover from the landing site. */
+:root.vanguard-theme {
+  .btn--primary, .btn--secondary, .btn--danger, .btn--accent {
+    transition: color 0.14s ease 0.14s, border-color 0.14s ease, transform 0.14s ease, letter-spacing 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      transform: scaleX(0);
+      transform-origin: left center;
+      transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    &:not(:disabled):hover { letter-spacing: 0.15em; }
+    &:not(:disabled):hover::before { transform: scaleX(1); }
+  }
+  .btn--primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .btn--primary::before { background: var(--bg); }
+  .btn--primary:not(:disabled):hover { background: var(--accent); color: var(--accent); }
+
+  .btn--secondary { border-color: var(--rule-strong); color: var(--ink); }
+  .btn--secondary::before { background: var(--surface-2); }
+  .btn--secondary:not(:disabled):hover { background: transparent; border-color: var(--ink); }
+
+  .btn--danger::before { background: var(--bad); }
+  .btn--danger:not(:disabled):hover { background: transparent; color: var(--bg); }
+
+  .btn--accent { background: transparent; color: var(--accent); border-color: var(--accent); }
+  .btn--accent::before { background: var(--accent); }
+  .btn--accent:not(:disabled):hover { background: transparent; color: var(--on-accent); }
+
+  .btn--ghost { font-family: var(--font-mono); }
+}
+
+/* ------------------------------------------------------------------
+   Fields (native controls)
+   ------------------------------------------------------------------ */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+
+  .field__label {
+    @include m.label;
+    color: var(--ink);
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+
+    .field__optional { color: var(--ink-3); font-weight: 400; }
+  }
+
+  .field__control {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    min-height: 46px;
+    padding: 0.65rem 0.9rem;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &::placeholder { color: var(--ink-3); }
+    &:hover { border-color: var(--ink-2); }
+    &:focus, &:focus-visible { border-color: var(--ink); box-shadow: var(--focus-ring); outline: none; }
+    &:disabled { opacity: 0.55; }
+  }
+  textarea.field__control { resize: vertical; line-height: 1.5; min-height: 6.5rem; }
+
+  select.field__control {
+    padding-right: 2.5rem;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path d='M4 6l4 4 4-4' fill='none' stroke='%23808a85' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    cursor: pointer;
+  }
+
+  .field__hint { font-size: 0.85rem; color: var(--ink-2); }
+  .field__error { font-size: 0.85rem; color: var(--bad); }
+
+  &.is-invalid .field__control { border-color: var(--bad); }
+  &.is-invalid .field__control:focus { box-shadow: 0 0 0 3px var(--bad-soft); }
+}
+:root.vanguard-theme .field .field__control {
+  background: var(--surface);
+  border-color: var(--rule);
+  &:hover { border-color: var(--rule-strong); }
+  &:focus { border-color: var(--accent); }
+}
+:root.vanguard-theme .field input.field__control,
+:root.vanguard-theme .field select.field__control { font-family: var(--font-mono); font-size: 0.92rem; }
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+}
+
+/* Fieldset-like group with a small heading. */
+.group {
+  padding: 1.25rem 0 0;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+
+  .group__head {
+    h3 { font-size: 1.05rem; }
+    p { color: var(--ink-2); font-size: 0.92rem; margin-top: 0.25rem; }
+  }
+}
+
+/* ------------------------------------------------------------------
+   Segmented control (radio group)
+   ------------------------------------------------------------------ */
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+
+  label {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.95rem;
+    border-radius: calc(var(--radius-md) - 3px);
+    font-family: var(--btn-font);
+    font-size: var(--btn-size);
+    font-weight: var(--btn-weight);
+    letter-spacing: var(--btn-tracking);
+    text-transform: var(--btn-transform);
+    color: var(--ink-2);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    input {
+      position: absolute;
+      opacity: 0;
+      inset: 0;
+      margin: 0;
+      cursor: pointer;
+    }
+    &:hover { color: var(--ink); }
+    &:has(input:checked) { background: var(--surface); color: var(--ink); box-shadow: 0 1px 0 var(--rule); }
+    &:has(input:focus-visible) { box-shadow: var(--focus-ring); }
+  }
+}
+:root.vanguard-theme .segmented label:has(input:checked) { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+
+/* ------------------------------------------------------------------
+   Checkbox and check list
+   ------------------------------------------------------------------ */
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  cursor: pointer;
+
+  input[type='checkbox'] {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: none;
+    width: 22px;
+    height: 22px;
+    margin: 1px 0 0;
+    border: 1.5px solid var(--rule-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    display: grid;
+    place-content: center;
+    cursor: pointer;
+    transition: background-color 0.12s ease, border-color 0.12s ease;
+
+    &::after {
+      content: '';
+      width: 12px;
+      height: 12px;
+      transform: scale(0);
+      transition: transform 0.12s ease;
+      background: currentColor;
+      mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M3 8.5l3 3 7-7' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / contain no-repeat;
+      -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M3 8.5l3 3 7-7' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / contain no-repeat;
+      color: var(--on-accent);
+    }
+    &:checked { background: var(--accent); border-color: var(--accent-strong); }
+    &:checked::after { transform: scale(1); }
+    &:focus-visible { box-shadow: var(--focus-ring); }
+  }
+
+  .check__body { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+  .check__title { font-size: 1.02rem; color: var(--ink); }
+  .check__meta { font-size: 0.85rem; color: var(--ink-2); }
+}
+
+.check-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+
+  li {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--rule);
+    &:last-child { border-bottom: none; }
+    .check { align-items: center; }
+  }
+}
+
+/* ------------------------------------------------------------------
+   Panels, notes, link boxes
+   ------------------------------------------------------------------ */
+.panel {
+  @include m.surface;
+  padding: clamp(1.1rem, 3vw, 1.6rem);
+
+  .panel__head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.35rem;
+    h3 { font-size: 1.1rem; }
+    mat-icon { font-size: 20px; width: 20px; height: 20px; color: var(--ink-2); }
+  }
+  .panel__hint { color: var(--ink-2); font-size: 0.92rem; }
+}
+.panel--accent {
+  border-color: var(--accent-strong);
+  background: linear-gradient(0deg, var(--accent-wash), var(--accent-wash)), var(--surface);
+}
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 0.92rem;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; flex: none; margin-top: 1px; }
+}
+.note--error { border-color: var(--bad); background: var(--bad-soft); color: var(--ink); mat-icon { color: var(--bad); } }
+.note--ok { border-color: var(--good); background: var(--good-soft); color: var(--ink); mat-icon { color: var(--good); } }
+.note--info { mat-icon { color: var(--info); } }
+
+.link-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.35rem 0.35rem 0.9rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+
+  .link-box__url {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 0.86rem;
+    color: var(--ink);
+  }
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--label-font);
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: var(--label-transform);
+  border: 1px solid var(--rule-strong);
+  color: var(--ink-2);
+  white-space: nowrap;
+
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+}
+.pill--accent { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+/* ------------------------------------------------------------------
+   Spinner
+   ------------------------------------------------------------------ */
+.spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid var(--rule);
+  border-top-color: var(--ink);
+  animation: spin 0.8s linear infinite;
+  flex: none;
+}
+.spinner--sm { width: 16px; height: 16px; border-width: 2px; }
+.btn .spinner { border-color: rgba(255, 255, 255, 0.35); border-top-color: currentColor; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .loading-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 50vh;
+  min-height: 50vh;
+  .spinner { width: 32px; height: 32px; border-width: 3px; }
 }
 
-/* Add padding to textareas and inputs */
-textarea,
-input[type="text"],
-input[type="time"],
-input:not([type]) {
-  padding: 8px !important;
-  background-color: var(--surface-color);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+/* ------------------------------------------------------------------
+   Material overrides (dialog, tooltip, table)
+   ------------------------------------------------------------------ */
+.mat-mdc-dialog-container .mat-mdc-dialog-surface {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
 }
-
-/* Vanguard theme link colors */
-:root.vanguard-theme {
-  a {
-    color: var(--accent-color);
-    transition: color 0.3s ease;
-
-    &:visited {
-      color: var(--accent-dark);
-    }
-
-    &:hover {
-      color: var(--text-primary);
-    }
-  }
+.mat-mdc-dialog-container .mat-mdc-dialog-title.mdc-dialog__title {
+  font-family: var(--font);
+  font-weight: var(--display-weight) !important;
+  letter-spacing: var(--display-tracking);
+  font-size: 1.45rem;
+  color: var(--ink);
 }
-
-/* Vanguard theme form field improvements */
-:root.vanguard-theme {
-  .mat-mdc-form-field {
-    .mat-mdc-text-field-wrapper {
-      background-color: var(--surface-color);
-    }
-
-    .mat-mdc-form-field-infix {
-      color: var(--text-primary);
-    }
-
-    .mat-mdc-input-element {
-      color: var(--text-primary);
-      caret-color: var(--accent-color);
-    }
-
-    .mat-mdc-form-field-label {
-      color: var(--text-secondary);
-    }
-
-    .mat-mdc-form-field-hint {
-      color: var(--text-secondary);
-    }
-  }
-
-  .mat-mdc-text-field-wrapper {
-    background-color: var(--surface-color) !important;
-    border: 1px solid var(--border-color) !important;
-  }
-
-  .mat-mdc-form-field-focus-overlay {
-    background-color: transparent;
-  }
-
-  /* Event Time section padding */
-  .time-fields {
-    padding: 2rem !important;
-    margin: 1.5rem 0 !important;
-  }
+.mat-mdc-dialog-container .mat-mdc-dialog-content.mdc-dialog__content {
+  color: var(--ink-2);
+  overflow-x: hidden;
+  font-family: var(--font);
 }
+.cdk-overlay-dark-backdrop { background: rgba(8, 10, 11, 0.55); }
 
-/* Dropdown panel styling — rendered in overlay, needs global rules */
-.mat-mdc-select-panel {
-  background-color: var(--surface-color, #fff) !important;
-  color: var(--text-primary);
-}
-
-.mat-mdc-option {
-  color: var(--text-primary) !important;
-
-  &:hover:not(.mdc-list-item--disabled),
-  &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
-    background-color: var(--hover-overlay, rgba(0, 0, 0, 0.04)) !important;
-  }
+.mat-mdc-tooltip .mdc-tooltip__surface {
+  background: var(--ink);
+  color: var(--bg);
+  font-family: var(--font);
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
 }
 
 /* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: var(--radius-pill); border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); background-clip: padding-box; }
 
-::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
-}
-
-/* Styling for ngx-material-timepicker */
-::ng-deep .timepicker-overlay {
-  z-index: 1000;
-}
-
-::ng-deep .timepicker {
-  .timepicker__header {
-    padding: 15px 20px !important;
-  }
-
-  .timepicker-dial__time {
-    font-size: 36px !important;
-
-    .timepicker-dial__item {
-      min-width: 36px !important;
-    }
-  }
-
-  .clock-face__number {
-    > span {
-      font-size: 14px !important;
-      width: 22px !important;
-      height: 22px !important;
-      line-height: 22px !important;
-      text-align: center !important;
-    }
-  }
-
-  .clock-face__clock-hand {
-    height: 103px;
-  }
+/* Visually hidden */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

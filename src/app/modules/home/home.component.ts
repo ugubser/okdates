@@ -1,32 +1,28 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { EventService } from '../../core/services/event.service';
-import { FirestoreService } from '../../core/services/firestore.service';
+
+interface SampleDay {
+  weekday: string;
+  day: number;
+  picked: boolean;
+}
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss']
 })
-export class HomeComponent implements OnInit {
-  constructor(
-    private router: Router,
-    private eventService: EventService,
-    private firestoreService: FirestoreService
-  ) {}
+export class HomeComponent {
+  /** A week of days for the hero illustration, built from next Monday so it always reads as "next week". */
+  readonly sampleDays: SampleDay[] = this.buildSampleWeek();
 
-  ngOnInit(): void {
-    // Removed debug function that was causing Firestore permissions error
-    // this.listEvents();
-  }
+  constructor(private router: Router) {}
 
   createNewEvent(isMeeting: boolean = false): void {
-    //console.log(`Creating new ${isMeeting ? 'meeting' : 'event'} - navigating to create page`);
     this.router.navigate(['/event/create'], { queryParams: { isMeeting } });
   }
 
@@ -34,16 +30,16 @@ export class HomeComponent implements OnInit {
     this.router.navigate(['/ical']);
   }
 
-
-  /**
-   * Debug function to list all events in the console
-   */
-  private async listEvents(): Promise<void> {
-    try {
-      const events = await this.firestoreService.getCollection('events');
-      //console.log('Current events in the database:', events);
-    } catch (error) {
-      console.error('Error listing events:', error);
-    }
+  private buildSampleWeek(): SampleDay[] {
+    const today = new Date();
+    const daysUntilMonday = ((8 - today.getDay()) % 7) || 7;
+    const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + daysUntilMonday);
+    const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    // Sentence in the hero: "any evening next week except Wednesday, or Saturday"
+    const picked = [true, true, false, true, true, true, false];
+    return names.map((weekday, i) => {
+      const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+      return { weekday, day: d.getDate(), picked: picked[i] };
+    });
   }
 }

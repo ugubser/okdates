@@ -1,46 +1,81 @@
-.app-container {
+.app {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
 }
 
-.logo {
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--header-bg);
+  color: var(--header-fg);
+  border-bottom: 1px solid var(--rule);
+  backdrop-filter: blur(10px);
+
+  .app-header__inner {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0.8rem clamp(1.25rem, 4vw, 2.5rem);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
   text-decoration: none;
   color: var(--logo-color);
-  font-size: 1.5rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
+
+  &--word {
+    font-weight: 800;
+    font-size: 1.35rem;
+    letter-spacing: -0.03em;
+    font-variation-settings: 'opsz' 96;
+  }
+
+  .brand__mark {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    background: var(--accent);
+    transform: rotate(-8deg);
+  }
+
+  &--image img {
+    height: 54px;
+    width: auto;
+    display: block;
+  }
 }
 
-.logo-image {
-  height: 60px;
-  width: auto;
-}
-
-.spacer {
-  flex: 1 1 auto;
-}
-
-.content-container {
+.app-main {
   flex: 1;
-  background-color: var(--background-color);
 }
 
 .app-footer {
-  background-color: var(--footer-background);
-  padding: 1.5rem 0;
-  border-top: 1px solid var(--border-color);
-  
-  .footer-content {
-    max-width: 1200px;
+  border-top: 1px solid var(--rule);
+
+  .app-footer__inner {
+    max-width: 1140px;
     margin: 0 auto;
-    padding: 0 2rem;
-    text-align: center;
-    
-    p {
-      color: var(--text-secondary);
-      margin: 0;
-    }
+    padding: 1.5rem clamp(1.25rem, 4vw, 2.5rem);
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.88rem;
+    color: var(--ink-2);
   }
+
+  .app-footer__made { color: var(--ink-3); }
+}
+:host-context(:root.vanguard-theme) .app-footer .app-footer__inner {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
 }

@@ -2,15 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { provideNativeDateAdapter } from '@angular/material/core';
 import { Subject, takeUntil } from 'rxjs';
 import { EventService } from '../../../core/services/event.service';
 import { Event } from '../../../core/models/event.model';
@@ -24,16 +16,8 @@ import { AdminStorageService } from '../../../core/services/admin-storage.servic
     CommonModule,
     ReactiveFormsModule,
     RouterLink,
-    MatButtonModule,
-    MatIconModule,
-    MatInputModule,
-    MatFormFieldModule,
-    MatTooltipModule,
-    MatProgressSpinnerModule,
-    MatDatepickerModule,
-    MatNativeDateModule
+    MatIconModule
   ],
-  providers: [provideNativeDateAdapter()],
   templateUrl: './event-creation.component.html',
   styleUrls: ['./event-creation.component.scss']
 })

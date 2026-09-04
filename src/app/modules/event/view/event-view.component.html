@@ -1,170 +1,138 @@
-<div class="event-view-container" *ngIf="event && !isLoading">
-  <div class="event-header">
-    <div class="event-info">
-      <h1>{{ event.title || 'Untitled Event' }}</h1>
-      <p *ngIf="event.description" class="event-description">{{ event.description }}</p>
-      <div class="event-time" *ngIf="hasTimeInfo()">
-        <mat-icon>access_time</mat-icon>
-        <span *ngIf="!event.isMeeting">
-          {{ event.startTime || '--:--' }} to {{ event.endTime || '--:--' }}
-        </span>
-        <span *ngIf="event.isMeeting">
-          Duration: {{ event.meetingDuration || 60 }} minutes
-        </span>
+<div class="page event-view" *ngIf="event && !isLoading">
+  <header class="event-head">
+    <div class="event-head__info">
+      <div class="event-head__kicker">
+        <span class="pill pill--accent" *ngIf="isAdmin"><mat-icon>key</mat-icon> You're the organizer</span>
+        <span class="pill" *ngIf="!isAdmin">{{ event.isMeeting ? 'Meeting' : 'Event' }}</span>
       </div>
-      <div class="event-location" *ngIf="event.location">
-        <mat-icon>place</mat-icon>
-        <span>{{ event.location }}</span>
-      </div>
-      <p class="event-created" *ngIf="event.createdAt">
-        Created {{ formatCreatedAt(event.createdAt) }}
-      </p>
+      <h1>{{ event.title || (event.isMeeting ? 'Untitled meeting' : 'Untitled event') }}</h1>
+      <p class="event-head__desc" *ngIf="event.description">{{ event.description }}</p>
+
+      <ul class="meta" aria-label="Details">
+        <li *ngIf="hasTimeInfo() && !event.isMeeting">
+          <mat-icon>schedule</mat-icon>
+          <span>{{ event.startTime || '--:--' }} to {{ event.endTime || '--:--' }}</span>
+        </li>
+        <li *ngIf="hasTimeInfo() && event.isMeeting">
+          <mat-icon>timelapse</mat-icon>
+          <span>{{ event.meetingDuration || 60 }} minutes</span>
+        </li>
+        <li *ngIf="event.location">
+          <mat-icon>place</mat-icon>
+          <span>{{ event.location }}</span>
+        </li>
+        <li *ngIf="event.createdAt" class="meta__muted">
+          <mat-icon>history</mat-icon>
+          <span>Created {{ formatCreatedAt(event.createdAt) }}</span>
+        </li>
+      </ul>
     </div>
-    
-    <div class="event-actions">
-      <div class="admin-badge" *ngIf="isAdmin">
-        <mat-icon>admin_panel_settings</mat-icon>
-        Administrator
-      </div>
-      <button mat-stroked-button (click)="editEvent()" *ngIf="isAdmin">
-        <mat-icon>edit</mat-icon> Edit Event
+
+    <div class="event-head__actions">
+      <button class="btn btn--primary" type="button" (click)="addAvailability()">
+        <mat-icon>edit_calendar</mat-icon> Add my availability
       </button>
-      <button mat-raised-button color="primary" (click)="addAvailability()">
-        <mat-icon>calendar_today</mat-icon> Add My Availability
+      <button class="btn btn--secondary" type="button" (click)="editEvent()" *ngIf="isAdmin">
+        <mat-icon>tune</mat-icon> Edit {{ event.isMeeting ? 'meeting' : 'event' }}
       </button>
-      <!-- Show password button for non-admins if a password is set -->
-      <button 
-        *ngIf="!isAdmin && event.adminPassword"
-        mat-stroked-button 
-        color="accent"
-        (click)="openAdminPasswordDialog()"
-        class="admin-password-button">
-        <mat-icon>lock</mat-icon> Enter Admin Password
+      <button class="btn btn--ghost" type="button" *ngIf="!isAdmin && event.adminPassword" (click)="openAdminPasswordDialog()">
+        <mat-icon>lock_open</mat-icon> I'm the organizer
       </button>
     </div>
-  </div>
-  
-  <!-- Admin Panel (visible only to admins) -->
-  <div class="admin-panel" *ngIf="isAdmin">
-    <div class="admin-panel-header">
-      <mat-icon color="warn">admin_panel_settings</mat-icon>
-      <h3>Administrator Controls</h3>
+  </header>
+
+  <!-- Organizer tools -->
+  <section class="panel organizer" *ngIf="isAdmin">
+    <div class="panel__head">
+      <mat-icon>share</mat-icon>
+      <h3>Invite people</h3>
     </div>
-    
-    <div class="admin-panel-content">
-      <p class="admin-note">As the event administrator, you can edit or remove any participant's availability.</p>
-      <p class="admin-hint">Use the edit/delete buttons next to each participant in the list below.</p>
-      
-      <div class="admin-actions">
-        <button 
-          mat-stroked-button 
-          color="warn" 
-          (click)="deleteAllParticipants()"
-          *ngIf="participants.length > 0">
-          <mat-icon>delete_sweep</mat-icon> Delete All Participants
-        </button>
+    <p class="panel__hint">Anyone with this link can add their availability. Only you can edit the {{ event.isMeeting ? 'meeting' : 'event' }} or remove answers.</p>
+
+    <div class="organizer__links">
+      <div class="organizer__link">
+        <span class="organizer__label">Link for participants</span>
+        <div class="link-box">
+          <span class="link-box__url">{{ getShareableUrl() }}</span>
+          <button class="btn btn--icon" type="button" (click)="copyEventLink()" title="Copy link" aria-label="Copy participant link">
+            <mat-icon>{{ linkCopied ? 'check' : 'content_copy' }}</mat-icon>
+          </button>
+        </div>
+        <span class="organizer__status" *ngIf="linkCopied" role="status">Copied</span>
       </div>
-    </div>
-  </div>
-  
-  <div class="share-section" *ngIf="isAdmin">
-    <h3>Share this {{ event.isMeeting ? 'meeting' : 'event' }} with participants</h3>
-    <p class="share-prompt">Copy and share this link so people can add their availability:</p>
-    <div class="link-container">
-      <span class="event-link">{{ getShareableUrl() }}</span>
-      <button 
-        mat-icon-button 
-        color="primary" 
-        (click)="copyEventLink()"
-        matTooltip="Copy to clipboard">
-        <mat-icon>content_copy</mat-icon>
-      </button>
-    </div>
-    <div class="share-success" *ngIf="linkCopied">
-      <mat-icon color="primary">check_circle</mat-icon> 
-      <span>Link copied to clipboard!</span>
-    </div>
-    
-    <!-- Admin access section -->
-    <div class="admin-access-section">
-      <!-- Show admin link only to admins who hold the plaintext key (arrived via the key link) -->
-      <div *ngIf="isAdmin && adminKey" class="admin-link-container">
-        <h4><mat-icon color="accent">admin_panel_settings</mat-icon> Administrator Link</h4>
-        <div class="link-container admin-link-display">
-          <span class="event-link admin-link">{{ window.location.origin }}/event/{{ eventId }}/view#admin={{ adminKey }}</span>
-          <button 
-            mat-icon-button 
-            color="accent" 
-            (click)="copyAdminLink()"
-            matTooltip="Copy to clipboard">
+
+      <div class="organizer__link" *ngIf="adminKey">
+        <span class="organizer__label">Your organizer link</span>
+        <div class="link-box link-box--admin">
+          <span class="link-box__url">{{ window.location.origin }}/event/{{ eventId }}/view#admin={{ adminKey }}</span>
+          <button class="btn btn--icon" type="button" (click)="copyAdminLink()" title="Copy organizer link" aria-label="Copy organizer link">
             <mat-icon>content_copy</mat-icon>
           </button>
         </div>
-        <p class="admin-hint">This admin link gives full access to edit the event.</p>
+        <span class="organizer__note">Keep this one to yourself. It gives full control of the {{ event.isMeeting ? 'meeting' : 'event' }}.</span>
       </div>
     </div>
-  </div>
-  
-  <div class="participants-section" *ngIf="participants.length > 0">
-    <h2>{{ event.isMeeting ? 'Participant Time Slot Availability' : 'Participant Date Availability' }}</h2>
 
-
-    <!-- Detailed availability table -->
-    <div class="availability-table">
-      <app-availability-timeline
-        [event]="event"
-        [participants]="participants"
-        [mode]="'view'"
-        [isAdmin]="isAdmin"
-        (downloadRequested)="downloadICalForDate($event)">
-      </app-availability-timeline>
-    </div>
-    
-    <!-- Raw participant input list -->
-    <div class="raw-input-section">
-      <h3>Raw Availability Input</h3>
-      <div class="participant-list">
-        <div class="participant-item" *ngFor="let participant of participants; trackBy: trackByParticipant">
-          <div class="participant-info">
-            <div class="participant-name">{{ participant.name }}</div>
-            <div class="participant-dates">{{ participant.rawDateInput }}</div>
-          </div>
-          <div class="participant-actions">
-            <!-- Show edit/delete for admin or participant owner -->
-            <ng-container *ngIf="isAdmin || isParticipantOwner(participant)">
-              <button 
-                mat-icon-button 
-                color="primary" 
-                (click)="editParticipant(participant)"
-                matTooltip="Edit availability">
-                <mat-icon>edit</mat-icon>
-              </button>
-              <button 
-                mat-icon-button 
-                color="warn" 
-                (click)="deleteParticipant(participant)"
-                matTooltip="Remove participant">
-                <mat-icon>delete</mat-icon>
-              </button>
-            </ng-container>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <div class="no-participants" *ngIf="participants.length === 0">
-    <div class="empty-state">
-      <mat-icon class="empty-icon">people</mat-icon>
-      <h3>No participants yet</h3>
-      <p>Share the link with people to collect their availability</p>
-      <button mat-raised-button color="primary" (click)="addAvailability()">
-        Add My Availability
+    <div class="organizer__danger" *ngIf="participants.length > 0">
+      <button class="btn btn--danger btn--sm" type="button" (click)="deleteAllParticipants()">
+        <mat-icon>delete_sweep</mat-icon> Remove all answers
       </button>
     </div>
-  </div>
+  </section>
+
+  <!-- Availability -->
+  <section class="section" *ngIf="participants.length > 0">
+    <div class="section-head">
+      <h2>{{ event.isMeeting ? 'Who can make which slot' : 'Who can make which day' }}</h2>
+      <span class="section-hint">
+        {{ participants.length }} {{ participants.length === 1 ? 'person has' : 'people have' }} answered.
+        <ng-container *ngIf="isAdmin">Download the invite from a column header.</ng-container>
+      </span>
+    </div>
+
+    <app-availability-timeline
+      [event]="event"
+      [participants]="participants"
+      [mode]="'view'"
+      [isAdmin]="isAdmin"
+      (downloadRequested)="downloadICalForDate($event)">
+    </app-availability-timeline>
+
+    <div class="answers">
+      <div class="section-head">
+        <h2>What people wrote</h2>
+      </div>
+      <ul class="answers__list">
+        <li class="answer" *ngFor="let participant of participants; trackBy: trackByParticipant">
+          <span class="answer__name">{{ participant.name }}</span>
+          <span class="answer__text">{{ participant.rawDateInput }}</span>
+          <span class="answer__actions" *ngIf="isAdmin || isParticipantOwner(participant)">
+            <button class="btn btn--icon" type="button" (click)="editParticipant(participant)" title="Edit" [attr.aria-label]="'Edit ' + participant.name">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button class="btn btn--icon is-danger" type="button" (click)="deleteParticipant(participant)" title="Remove" [attr.aria-label]="'Remove ' + participant.name">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Empty -->
+  <section class="empty" *ngIf="participants.length === 0">
+    <div class="empty__art" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <h2>Nobody has answered yet</h2>
+    <p *ngIf="isAdmin">Share the participant link above, or add your own availability to get things started.</p>
+    <p *ngIf="!isAdmin">Be the first. Write when you're free and the grid starts here.</p>
+    <button class="btn btn--primary" type="button" (click)="addAvailability()">
+      <mat-icon>edit_calendar</mat-icon> Add my availability
+    </button>
+  </section>
 </div>
 
 <div class="loading-container" *ngIf="isLoading">
-  <mat-spinner></mat-spinner>
+  <span class="spinner" role="status" aria-label="Loading"></span>
 </div>

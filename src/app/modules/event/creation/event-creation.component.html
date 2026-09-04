@@ -1,145 +1,112 @@
-<div class="event-creation-container" *ngIf="event">
-  <h1>{{ isCreatingNew ? (isMeeting ? 'Create New Meeting' : 'Create New Event') : (isMeeting ? 'Edit Meeting' : 'Edit Event') }}</h1>
-  
-  <form [formGroup]="eventForm" (ngSubmit)="saveEvent()">
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>{{ isMeeting ? 'Meeting Title (optional)' : 'Event Title (optional)' }}</mat-label>
-      <input matInput formControlName="title" placeholder="e.g., Team Dinner">
-      <mat-hint>Give your {{ isMeeting ? 'meeting' : 'event' }} a name so participants know what it's for</mat-hint>
-    </mat-form-field>
-    
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Description (optional)</mat-label>
-      <textarea
-        matInput
-        formControlName="description"
-        placeholder="Add details about your event..."
-        rows="4">
-      </textarea>
-      <mat-hint>Add any additional information participants should know</mat-hint>
-    </mat-form-field>
+<div class="page page--narrow" *ngIf="event">
+  <div class="page-head">
+    <a *ngIf="!isCreatingNew" class="back-link" [routerLink]="['/event', eventId, 'view']">
+      <mat-icon>arrow_back</mat-icon> Back to the {{ isMeeting ? 'meeting' : 'event' }}
+    </a>
+    <h1>{{ isCreatingNew ? (isMeeting ? 'New meeting' : 'New event') : (isMeeting ? 'Edit meeting' : 'Edit event') }}</h1>
+    <p class="lede" *ngIf="isCreatingNew && !isMeeting">
+      Give it a name and, if you like, a time. You'll get a link to share as soon as you save.
+    </p>
+    <p class="lede" *ngIf="isCreatingNew && isMeeting">
+      Set how long the meeting should last. Participants say when they're free and the grid finds a slot that fits.
+    </p>
+  </div>
 
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Location (optional)</mat-label>
-      <input
-        matInput
-        formControlName="location"
-        placeholder="e.g., Conference Room A or https://zoom.us/j/..."
-      >
-      <mat-icon matSuffix>place</mat-icon>
-      <mat-hint>Where will this event take place?</mat-hint>
-    </mat-form-field>
+  <form [formGroup]="eventForm" (ngSubmit)="saveEvent()" class="stack" novalidate>
+    <div class="field">
+      <label class="field__label" for="title">
+        {{ isMeeting ? 'Meeting title' : 'Event title' }}
+        <span class="field__optional">optional</span>
+      </label>
+      <input id="title" class="field__control" formControlName="title" placeholder="e.g. Team dinner" autocomplete="off">
+      <span class="field__hint">So people know what they're saying yes to.</span>
+    </div>
 
-    <!-- Time fields only shown for regular events, not meetings -->
-    <div class="time-fields" *ngIf="!isMeeting">
-      <h3>Event Time (optional)</h3>
-      <p class="time-hint">Set a default time range for your event</p>
+    <div class="field">
+      <label class="field__label" for="description">
+        Description
+        <span class="field__optional">optional</span>
+      </label>
+      <textarea id="description" class="field__control" formControlName="description" rows="4"
+        placeholder="Anything participants should know"></textarea>
+    </div>
 
-      <div class="time-inputs">
-        <mat-form-field appearance="outline">
-          <mat-label>Start Time</mat-label>
-          <input
-            matInput
-            placeholder="12:00"
-            formControlName="startTime"
-            type="time"
-            (input)="onStartTimeChange()"
-          >
-          <mat-icon matSuffix>access_time</mat-icon>
-          <mat-hint>Enter time in 24-hour format</mat-hint>
-        </mat-form-field>
+    <div class="field">
+      <label class="field__label" for="location">
+        Location
+        <span class="field__optional">optional</span>
+      </label>
+      <input id="location" class="field__control" formControlName="location"
+        placeholder="e.g. Conference room A, or a video call link" autocomplete="off">
+    </div>
 
-        <mat-form-field appearance="outline" [class.error-state]="timeError">
-          <mat-label>End Time</mat-label>
-          <input
-            matInput
-            placeholder="14:00"
-            formControlName="endTime"
-            type="time"
-            [class.invalid-time]="timeError"
-          >
-          <mat-icon matSuffix>access_time</mat-icon>
-          <mat-hint *ngIf="!timeError">Enter time in 24-hour format</mat-hint>
-          <mat-error *ngIf="timeError">{{ timeError }}</mat-error>
-        </mat-form-field>
+    <!-- Regular events: a default time range for the day -->
+    <div class="group" *ngIf="!isMeeting">
+      <div class="group__head">
+        <h3>Time of day</h3>
+        <p>Optional. Goes into the calendar invite for the date you pick.</p>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field__label" for="startTime">Starts</label>
+          <input id="startTime" class="field__control" type="time" formControlName="startTime" (input)="onStartTimeChange()">
+        </div>
+        <div class="field" [class.is-invalid]="timeError">
+          <label class="field__label" for="endTime">Ends</label>
+          <input id="endTime" class="field__control" type="time" formControlName="endTime">
+          <span class="field__hint" *ngIf="!timeError">Leave empty for two hours after the start.</span>
+          <span class="field__error" *ngIf="timeError">{{ timeError }}</span>
+        </div>
       </div>
     </div>
 
-    <!-- Meeting Duration field (only shown for meetings) -->
-    <div class="meeting-duration-field" *ngIf="isMeeting">
-      <h3>Meeting Duration</h3>
-      <p class="time-hint">How long should the meeting last?</p>
-
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Duration (minutes)</mat-label>
-        <input
-          matInput
-          type="number"
-          formControlName="meetingDuration"
-          min="15"
-          max="720"
-          required
-        >
-        <mat-hint>Enter duration between 15 minutes and 12 hours (720 minutes)</mat-hint>
-        <mat-error *ngIf="eventForm.get('meetingDuration')?.hasError('min')">
-          Duration must be at least 15 minutes
-        </mat-error>
-        <mat-error *ngIf="eventForm.get('meetingDuration')?.hasError('max')">
-          Duration cannot exceed 12 hours (720 minutes)
-        </mat-error>
-      </mat-form-field>
-    </div>
-    
-    <div class="password-section" *ngIf="isCreatingNew">
-      <h3>Administrator Password (Optional but recommended)</h3>
-      <p class="password-hint">Set a password to edit the event later (cannot be changed afterward)</p>
-      
-      <div class="password-fields">
-        <mat-form-field appearance="outline">
-          <mat-label>Admin Password</mat-label>
-          <input 
-            matInput 
-            type="password" 
-            formControlName="adminPassword"
-            placeholder="Enter password"
-          >
-          <mat-hint>Leave blank if no password is needed</mat-hint>
-        </mat-form-field>
-        
-        <mat-form-field appearance="outline" [class.error-state]="passwordError">
-          <mat-label>Confirm Password</mat-label>
-          <input 
-            matInput 
-            type="password" 
-            formControlName="confirmPassword"
-            [class.invalid-password]="passwordError"
-          >
-          <mat-hint *ngIf="!passwordError">Re-enter the password</mat-hint>
-          <mat-error *ngIf="passwordError">{{ passwordError }}</mat-error>
-        </mat-form-field>
+    <!-- Meetings: duration -->
+    <div class="group" *ngIf="isMeeting">
+      <div class="group__head">
+        <h3>Duration</h3>
+        <p>The grid only offers slots that fit this length.</p>
+      </div>
+      <div class="field duration-field"
+        [class.is-invalid]="eventForm.get('meetingDuration')?.invalid && eventForm.get('meetingDuration')?.touched">
+        <label class="field__label" for="meetingDuration">Minutes</label>
+        <input id="meetingDuration" class="field__control" type="number" formControlName="meetingDuration" min="15" max="720" step="15" required>
+        <span class="field__hint" *ngIf="!eventForm.get('meetingDuration')?.hasError('min') && !eventForm.get('meetingDuration')?.hasError('max')">
+          Between 15 minutes and 12 hours.
+        </span>
+        <span class="field__error" *ngIf="eventForm.get('meetingDuration')?.hasError('min')">At least 15 minutes.</span>
+        <span class="field__error" *ngIf="eventForm.get('meetingDuration')?.hasError('max')">At most 12 hours (720 minutes).</span>
       </div>
     </div>
-    
-    <div class="action-buttons">
-      <button 
-        mat-raised-button
-        color="primary"
-        type="submit"
-        [disabled]="!eventForm.valid || isSaving">
-        {{ isSaving ? 'Saving...' : 'Save & Continue' }}
-      </button>
-      
-      <button
-        mat-button
-        type="button"
-        [routerLink]="['/event', eventId, 'view']"
-        *ngIf="!isCreatingNew">
-        Cancel Changes
+
+    <!-- Organizer password: create only, immutable afterwards -->
+    <div class="group" *ngIf="isCreatingNew">
+      <div class="group__head">
+        <h3>Organizer password</h3>
+        <p>Optional but useful. Lets you edit from any device without the organizer link. It can't be changed later.</p>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field__label" for="adminPassword">Password</label>
+          <input id="adminPassword" class="field__control" type="password" formControlName="adminPassword" autocomplete="new-password">
+        </div>
+        <div class="field" [class.is-invalid]="passwordError">
+          <label class="field__label" for="confirmPassword">Repeat password</label>
+          <input id="confirmPassword" class="field__control" type="password" formControlName="confirmPassword" autocomplete="new-password">
+          <span class="field__error" *ngIf="passwordError">{{ passwordError }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row row--end form-actions">
+      <a class="btn btn--ghost" *ngIf="!isCreatingNew" [routerLink]="['/event', eventId, 'view']">Discard changes</a>
+      <button class="btn btn--primary" type="submit" [disabled]="!eventForm.valid || isSaving">
+        <span class="spinner spinner--sm" *ngIf="isSaving"></span>
+        {{ isSaving ? 'Saving' : (isCreatingNew ? 'Create and get the link' : 'Save changes') }}
       </button>
     </div>
   </form>
 </div>
 
 <div class="loading-container" *ngIf="!event">
-  <mat-spinner></mat-spinner>
+  <span class="spinner" role="status" aria-label="Loading"></span>
 </div>

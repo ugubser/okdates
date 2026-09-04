@@ -1,85 +1,104 @@
-// Vanguard Signals Theme Variables
-// Based on landing-page design system - dark, modern, professional aesthetic with cyan/blue accents
+// Vanguard Signals template tokens.
+// Taken from vanguardsignals.com: near-black ground, cyan signal accent, brother-1816 for text,
+// IBM Plex Mono for controls, no rounded corners, rules instead of shadows.
 
 :root.vanguard-theme {
-  // Primary Colors - Dark theme with cyan accent
-  --primary-color: #00bcd4;
-  --primary-light: #2196f3;
-  --primary-dark: #00838f;
+  color-scheme: dark;
 
-  // Accent Colors - Cyan and blue from landing page
-  --accent-color: #00bcd4;
-  --accent-light: #2196f3;
-  --accent-dark: #00a5bb;
+  // Ground and surfaces
+  --bg: #080a0b;
+  --surface: #101416;
+  --surface-2: #161b1e;
+  --surface-3: #1e2529;
 
-  // Text Colors - High contrast for dark theme
-  --text-on-primary: #ffffff;
-  --text-on-accent: #ffffff;
-  --text-primary: #ffffff;
-  --text-secondary: #dcdcdc;
+  // Ink
+  --ink: #f1f4f2;
+  --ink-2: #929da1;
+  --ink-3: #5f6a6f;
+  --on-accent: #080a0b;
+  --on-ink: #080a0b;
 
-  // Background Colors - Dark theme matching landing page
-  --background-color: #000000;
-  --surface-color: #1a1a1a;
-  --footer-background: #030303;
+  // Rules
+  --rule: #333e43;
+  --rule-strong: #3e4a4f;
 
-  // Neutral Colors - From landing page design system
-  --neutral-dark: #030303;
-  --neutral-darker: #1a1a1a;
-  --neutral-medium: #666666;
-  --neutral-light: #dcdcdc;
+  // Accent (signal)
+  --accent: #01f8f5;
+  --accent-strong: #01f8f5;
+  --accent-soft: rgba(1, 248, 245, 0.16);
+  --accent-wash: rgba(1, 248, 245, 0.10);
 
-  // Border Colors - Subtle borders for dark theme
-  --border-color: rgba(255, 255, 255, 0.1);
+  // Semantic
+  --good: #3dd68c;
+  --good-soft: rgba(61, 214, 140, 0.16);
+  --warn: #f5a623;
+  --warn-soft: rgba(245, 166, 35, 0.16);
+  --bad: #e0644f;
+  --bad-soft: rgba(224, 100, 79, 0.16);
+  --info: #006ef0;
 
-  // Semantic Colors - From landing page
-  --success-color: #4caf50;
-  --warning-color: #ff9800;
-  --error-color: #f44336;
-  --info-color: #2196f3;
+  // Availability matrix
+  --cell-available: var(--good);
+  --cell-partial: var(--warn);
+  --cell-unavailable: transparent;
+  --cell-unavailable-border: var(--rule-strong);
+  --col-low: rgba(224, 100, 79, 0.06);
+  --col-medium: rgba(245, 166, 35, 0.06);
+  --col-high: rgba(61, 214, 140, 0.08);
+  --col-everyone: var(--accent-wash);
+  --col-everyone-border: var(--accent);
+  --selection-bg: var(--accent-soft);
+  --selection-border: var(--accent);
 
-  // Admin Colors
-  --admin-bg: #1a1a1a;
-  --admin-border: #00bcd4;
-  --admin-text: #00bcd4;
+  // Buttons
+  --btn-primary-bg: var(--accent);
+  --btn-primary-fg: var(--on-accent);
+  --btn-primary-hover: var(--accent);
+  --btn-font: var(--font-mono);
+  --btn-size: 11.5px;
+  --btn-weight: 400;
+  --btn-tracking: 0.12em;
+  --btn-transform: uppercase;
+  --btn-pad: 15px 24px;
 
-  // Participation Levels
-  --participation-low-bg: rgba(244, 67, 54, 0.15);
-  --participation-medium-bg: rgba(255, 193, 7, 0.15);
-  --participation-high-bg: rgba(76, 175, 80, 0.15);
+  // Shape
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
 
-  // Common Available
-  --common-available-bg: rgba(76, 175, 80, 0.25);
-  --common-available-border: rgba(76, 175, 80, 0.8);
-  --common-available-badge-bg: rgba(76, 175, 80, 0.9);
+  // Type
+  --font: 'brother-1816', 'IBM Plex Sans JP', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'IBM Plex Sans JP', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --display-weight: 700;
+  --display-tracking: -0.02em;
+  --label-font: var(--font-mono);
+  --label-size: 11px;
+  --label-weight: 400;
+  --label-transform: uppercase;
+  --label-tracking: 0.11em;
 
-  // Selection States
-  --selection-border: #00bcd4;
-  --selection-text: #00bcd4;
-  --selection-hover-bg: rgba(0, 188, 212, 0.15);
-  --selection-active-bg: rgba(0, 188, 212, 0.25);
-  --selection-active-icon: #00bcd4;
-  --selection-inactive-icon: rgba(255, 255, 255, 0.3);
+  // Focus
+  --focus-ring: 0 0 0 1px var(--bg), 0 0 0 3px var(--accent);
 
-  // Feature Accent
-  --feature-accent: #00bcd4;
-
-  // Unavailable State
-  --unavailable-bg: rgba(255, 255, 255, 0.1);
-  --unavailable-border: rgba(255, 255, 255, 0.2);
-
-  // Hover/Interaction
-  --hover-overlay: rgba(255, 255, 255, 0.1);
+  // Header
+  --header-bg: rgba(8, 10, 11, 0.94);
+  --header-fg: var(--ink);
+  --logo-color: var(--ink);
 
   // Scrollbar
-  --scrollbar-track: #1a1a1a;
-  --scrollbar-thumb: #444;
-  --scrollbar-thumb-hover: #666;
+  --scrollbar-track: var(--bg);
+  --scrollbar-thumb: var(--rule);
+  --scrollbar-thumb-hover: var(--rule-strong);
 
-  // Typography - brother-1816 from Adobe TypeKit (landing page design system)
-  --font-family: 'brother-1816', 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  --font-mono: 'Fira Code', 'Courier New', monospace;
-
-  // Logo - White for dark background
-  --logo-color: #ffffff;
+  // Legacy aliases
+  --background-color: var(--bg);
+  --surface-color: var(--surface);
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-2);
+  --border-color: var(--rule);
+  --primary-color: var(--accent);
+  --accent-color: var(--accent);
+  --error-color: var(--bad);
+  --font-family: var(--font);
 }

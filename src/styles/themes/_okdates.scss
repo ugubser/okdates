@@ -1,78 +1,104 @@
-// OkDates Theme Variables
+// OkDates template tokens.
+// Paper, ink and a marker: cool off-white ground, near-black ink, cobalt blue for the one
+// thing that matters on a page (the slot everyone can make, the thing you selected).
 
 :root.okdates-theme {
-  // Primary Colors
-  --primary-color: #3f51b5;
-  --primary-light: #757de8;
-  --primary-dark: #002984;
-  
-  // Accent Colors
-  --accent-color: #ff4081;
-  --accent-light: #ff79b0;
-  --accent-dark: #c60055;
-  
-  // Text Colors
-  --text-on-primary: #ffffff;
-  --text-on-accent: #ffffff;
-  --text-primary: rgba(0, 0, 0, 0.87);
-  --text-secondary: rgba(0, 0, 0, 0.5);
-  
-  // Background Colors
-  --background-color: #fafafa;
-  --surface-color: #ffffff;
-  --footer-background: #f5f5f5;
-  
-  // Border Colors
-  --border-color: #e0e0e0;
-  
-  // Semantic Colors
-  --error-color: #f44336;
-  --success-color: #4caf50;
-  --warning-color: #ff9800;
-  --info-color: #2196f3;
+  color-scheme: light;
 
-  // Admin Colors
-  --admin-bg: #fff8e1;
-  --admin-border: #ffca28;
-  --admin-text: #f57c00;
+  // Ground and surfaces
+  --bg: #f4f5f8;
+  --surface: #ffffff;
+  --surface-2: #e9ebf0;
+  --surface-3: #dcdfe7;
 
-  // Participation Levels
-  --participation-low-bg: rgba(244, 67, 54, 0.1);
-  --participation-medium-bg: rgba(255, 193, 7, 0.1);
-  --participation-high-bg: rgba(76, 175, 80, 0.1);
+  // Ink
+  --ink: #161b26;
+  --ink-2: #4f5665;
+  --ink-3: #8a909d;
+  --on-accent: #ffffff;
+  --on-ink: #f7f8fa;
 
-  // Common Available
-  --common-available-bg: rgba(76, 175, 80, 0.3);
-  --common-available-border: rgba(76, 175, 80, 0.8);
-  --common-available-badge-bg: rgba(76, 175, 80, 0.9);
+  // Rules
+  --rule: rgba(22, 27, 38, 0.12);
+  --rule-strong: rgba(22, 27, 38, 0.3);
 
-  // Selection States
-  --selection-border: #1976d2;
-  --selection-text: #1976d2;
-  --selection-hover-bg: #e3f2fd;
-  --selection-active-bg: #c8e6c9;
-  --selection-active-icon: #4caf50;
-  --selection-inactive-icon: #bdbdbd;
+  // Accent (cobalt marker)
+  --accent: #2f62e8;
+  --accent-strong: #234fc7;
+  --accent-soft: #dce6ff;
+  --accent-wash: rgba(47, 98, 232, 0.12);
 
-  // Feature Accent
-  --feature-accent: #673ab7;
+  // Semantic
+  --good: #1f7a4d;
+  --good-soft: #d6eee0;
+  --warn: #d9822b;
+  --warn-soft: #fbe7cc;
+  --bad: #c2412d;
+  --bad-soft: #f7dad5;
+  --info: #2f62e8;
 
-  // Unavailable State
-  --unavailable-bg: #f5f5f5;
-  --unavailable-border: #e0e0e0;
+  // Availability matrix
+  --cell-available: var(--good);
+  --cell-partial: var(--warn);
+  --cell-unavailable: transparent;
+  --cell-unavailable-border: var(--rule-strong);
+  --col-low: rgba(194, 65, 45, 0.06);
+  --col-medium: rgba(217, 130, 43, 0.08);
+  --col-high: rgba(31, 122, 77, 0.10);
+  --col-everyone: var(--accent-wash);
+  --col-everyone-border: var(--accent-strong);
+  --selection-bg: var(--accent-soft);
+  --selection-border: var(--accent-strong);
 
-  // Hover/Interaction
-  --hover-overlay: rgba(0, 0, 0, 0.04);
+  // Buttons
+  --btn-primary-bg: var(--ink);
+  --btn-primary-fg: var(--on-ink);
+  --btn-primary-hover: #2a3245;
+  --btn-font: var(--font);
+  --btn-size: 0.95rem;
+  --btn-weight: 600;
+  --btn-tracking: -0.005em;
+  --btn-transform: none;
+  --btn-pad: 0.7rem 1.2rem;
+
+  // Shape
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  // Type
+  --font: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --display-weight: 700;
+  --display-tracking: -0.025em;
+  --label-font: var(--font);
+  --label-size: 0.85rem;
+  --label-weight: 600;
+  --label-transform: none;
+  --label-tracking: 0;
+
+  // Focus
+  --focus-ring: 0 0 0 3px var(--accent-wash), 0 0 0 1.5px var(--ink);
+
+  // Header
+  --header-bg: var(--bg);
+  --header-fg: var(--ink);
+  --logo-color: var(--ink);
 
   // Scrollbar
-  --scrollbar-track: #f1f1f1;
-  --scrollbar-thumb: #c2c2c2;
-  --scrollbar-thumb-hover: #a0a0a0;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: var(--surface-3);
+  --scrollbar-thumb-hover: var(--ink-3);
 
-  // Typography
-  --font-family: Roboto, "Helvetica Neue", sans-serif;
-  --font-mono: 'Courier New', monospace;
-
-  // Logo
-  --logo-color: white;
+  // Legacy aliases still referenced in a few places
+  --background-color: var(--bg);
+  --surface-color: var(--surface);
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-2);
+  --border-color: var(--rule);
+  --primary-color: var(--ink);
+  --accent-color: var(--accent);
+  --error-color: var(--bad);
+  --font-family: var(--font);
 }

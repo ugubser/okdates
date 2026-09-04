@@ -1,15 +1,8 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatListModule, MatSelectionList } from '@angular/material/list';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSelectModule } from '@angular/material/select';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { EventService } from '../../../core/services/event.service';
 import { ParticipantService } from '../../../core/services/participant.service';
 import { DateParsingService } from '../../../core/services/date-parsing.service';
@@ -28,26 +21,19 @@ import { AvailabilityTimelineComponent } from '../../../shared/availability-time
     ReactiveFormsModule,
     FormsModule,
     RouterLink,
-    MatButtonModule,
-    MatInputModule,
-    MatFormFieldModule,
-    MatListModule,
-    MatProgressSpinnerModule,
     MatIconModule,
-    MatSelectModule,
-    MatButtonToggleModule,
     AvailabilityTimelineComponent
   ],
   templateUrl: './participant-form.component.html',
   styleUrls: ['./participant-form.component.scss']
 })
 export class ParticipantFormComponent implements OnInit {
-  @ViewChild('datesList') datesList!: MatSelectionList;
-
   participantForm: FormGroup;
   eventId: string;
   event: Event | null = null;
   parsedDates: ParsedDate[] = [];
+  /** Parallel to parsedDates: which entries are ticked on the confirm step. */
+  selectedDates: boolean[] = [];
   isSubmitting = false;
   isParsing = false;
   isLoading = true;
@@ -186,6 +172,7 @@ export class ParticipantFormComponent implements OnInit {
                 isConfirmed: true
               };
             });
+            this.selectedDates = this.parsedDates.map(() => true);
 
             // Pre-select slots for timeline mode (for edit mode)
             this.preselectedSlotKeys = this.convertParsedDatesToSlotKeys(this.existingParticipant.parsedDates);
@@ -220,6 +207,7 @@ export class ParticipantFormComponent implements OnInit {
           null;
 
         this.parsedDates = await this.dateParsingService.parseLlm(rawDateInput, isMeeting, timezone);
+        this.selectedDates = this.parsedDates.map(() => true);
 
         this.showParsedDates = true;
       } catch (error) {
@@ -331,31 +319,28 @@ export class ParticipantFormComponent implements OnInit {
     }
   }
   
+  /** Number of ticked entries on the confirm step. */
+  get selectedCount(): number {
+    return this.selectedDates.filter(Boolean).length;
+  }
+
   confirmDates(): void {
-    // Get the selected dates from the selection list
-    const selectedOptions = this.datesList.selectedOptions.selected;
-
-    // Filter the parsedDates to include only selected ones
+    // Keep only the ticked entries, marked as confirmed
     const confirmedDates: ParsedDate[] = [];
-
-    selectedOptions.forEach(option => {
-      // Get the index from the option
-      const index = parseInt(option._elementRef.nativeElement.getAttribute('data-index') || '0');
-      if (!isNaN(index) && index >= 0 && index < this.parsedDates.length) {
-        const date = {...this.parsedDates[index]};  // Make a copy to avoid references
-        // Mark as confirmed
-        date.isConfirmed = true;
-        confirmedDates.push(date);
+    this.parsedDates.forEach((date, index) => {
+      if (this.selectedDates[index]) {
+        confirmedDates.push({ ...date, isConfirmed: true });
       }
     });
 
     // Update the parsed dates to only include confirmed ones
     this.parsedDates = confirmedDates;
+    this.selectedDates = confirmedDates.map(() => true);
 
     // Submit the participant
     this.submitParticipant();
   }
-  
+
   backToDateInput(): void {
     this.showParsedDates = false;
   }
@@ -489,6 +474,7 @@ export class ParticipantFormComponent implements OnInit {
 
     // Convert slot keys back to ParsedDate format
     this.parsedDates = this.convertSlotKeysToParsedDates(this.selectedSlotKeys);
+    this.selectedDates = this.parsedDates.map(() => true);
 
     // Set raw input for display purposes
     const rawInput = `Selected ${this.parsedDates.length} ${this.event?.isMeeting ? 'time slots' : 'dates'} from timeline`;
