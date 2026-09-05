@@ -42,19 +42,10 @@ export const parseDates = functions.region('europe-west1').https.onCall(async (d
         }
       };
     } catch (llmError) {
-      console.error('LLM parsing failed, falling back to basic parsing:', llmError);
-      // Fall back to basic parsing if LLM fails
-      const parsedDates = basicDateParsing(rawDateInput, isMeeting, timezone);
-
+      console.error('LLM parsing failed:', llmError);
       return {
-        success: true,
-        data: {
-          rawDateInput,
-          parsedDates,
-          title: isMeeting ? 'Available Times (Basic Parsing)' : 'Available Dates (Basic Parsing)',
-          isMeeting,
-          timezone
-        }
+        success: false,
+        error: 'The date-parsing service is temporarily unavailable. Please try again.'
       };
     }
   } catch (error) {

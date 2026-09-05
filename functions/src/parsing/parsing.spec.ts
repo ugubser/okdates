@@ -83,21 +83,21 @@ describe('parseDates', () => {
     expect(mockParseDatesWithLLM).toHaveBeenCalledWith('June 15', false, 'UTC');
   });
 
-  it('falls back to basicDateParsing when LLM fails', async () => {
+  it('reports provider failure instead of returning only the first of several dates', async () => {
     process.env.FUNCTIONS_EMULATOR = 'true';
     mockParseDatesWithLLM.mockRejectedValueOnce(new Error('LLM unavailable'));
 
     const result = await wrapped(
-      { rawDateInput: '6/15', isMeeting: false, timezone: 'UTC' },
+      { rawDateInput: 'September 12, 14, and 16', isMeeting: false, timezone: 'UTC' },
       { app: undefined }
     );
 
-    expect(result.success).toBe(true);
-    expect(result.data.parsedDates).toHaveLength(1);
-    expect(result.data.title).toBe('Available Dates (Basic Parsing)');
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('temporarily unavailable');
+    expect(result.data).toBeUndefined();
   });
 
-  it('falls back to basicDateParsing for meeting mode when LLM fails', async () => {
+  it('reports provider failure for meeting mode without inventing dates', async () => {
     process.env.FUNCTIONS_EMULATOR = 'true';
     mockParseDatesWithLLM.mockRejectedValueOnce(new Error('LLM unavailable'));
 
@@ -106,10 +106,8 @@ describe('parseDates', () => {
       { app: undefined }
     );
 
-    expect(result.success).toBe(true);
-    expect(result.data.parsedDates).toHaveLength(1);
-    expect(result.data.title).toBe('Available Times (Basic Parsing)');
-    expect(result.data.isMeeting).toBe(true);
-    expect(result.data.timezone).toBe('Europe/Zurich');
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('temporarily unavailable');
+    expect(result.data).toBeUndefined();
   });
 });

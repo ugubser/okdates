@@ -11,7 +11,7 @@ export class DateParsingService {
 
   /**
    * Parse dates using LLM via Cloud Function.
-   * The backend has its own basicDateParsing fallback if the LLM is unavailable.
+   * Provider failures are surfaced to the caller without partial parsing.
    * @param rawInput The raw text input from user
    * @param isMeeting Whether this is for a meeting with time ranges
    * @param timezone The user's timezone (only relevant for meetings)

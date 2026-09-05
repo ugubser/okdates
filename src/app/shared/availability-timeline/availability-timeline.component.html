@@ -37,7 +37,7 @@
 
           <ng-container *ngIf="event.isMeeting">
             <span class="col-head__weekday">{{ isFirstTimeSlotOfDay(dateInfo) ? formatDayOnly(dateInfo.date) : '' }}</span>
-            <span class="col-head__time">{{ dateInfo.formattedDate ? (dateInfo.formattedDate | slice:dateInfo.formattedDate.lastIndexOf(' ') + 1) : '' }}</span>
+            <span class="col-head__time">{{ formatSlotTime(dateInfo) }}</span>
             <span class="col-head__tz" *ngIf="dateInfo.timezone">{{ dateInfo.timezone }}</span>
           </ng-container>
 

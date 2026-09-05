@@ -42,5 +42,10 @@ describe('parseDatesWithLLM', () => {
       '2026-09-14',
       '2026-09-16',
     ]);
+    expect(result.dates.map((date: any) => date.timestamp.seconds)).toEqual([
+      Date.UTC(2026, 8, 12) / 1000,
+      Date.UTC(2026, 8, 14) / 1000,
+      Date.UTC(2026, 8, 16) / 1000,
+    ]);
   });
 });

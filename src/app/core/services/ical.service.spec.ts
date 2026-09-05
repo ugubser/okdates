@@ -22,7 +22,7 @@ describe('ICalendarService', () => {
   describe('basic iCal structure', () => {
     it('contains required iCal headers', () => {
       const event = makeEvent();
-      const date = new Date(2025, 5, 15); // June 15 2025
+      const date = new Date(Date.UTC(2025, 5, 15)); // June 15 2025
       const result = service.generateICalendarFile(event, date, 'June 15, 2025');
 
       expect(result).toContain('BEGIN:VCALENDAR');
@@ -37,14 +37,14 @@ describe('ICalendarService', () => {
 
     it('has UID containing event ID', () => {
       const event = makeEvent();
-      const date = new Date(2025, 5, 15);
+      const date = new Date(Date.UTC(2025, 5, 15));
       const result = service.generateICalendarFile(event, date, 'June 15, 2025');
       expect(result).toContain('test-event-id@okdates.web.app');
     });
 
     it('uses CRLF line endings per RFC 5545', () => {
       const event = makeEvent();
-      const date = new Date(2025, 5, 15);
+      const date = new Date(Date.UTC(2025, 5, 15));
       const result = service.generateICalendarFile(event, date, 'June 15, 2025');
       expect(result).toContain('\r\n');
     });
@@ -53,28 +53,28 @@ describe('ICalendarService', () => {
   describe('SUMMARY and LOCATION', () => {
     it('includes SUMMARY from event title', () => {
       const event = makeEvent({ title: 'Team Meeting' });
-      const date = new Date(2025, 5, 15);
+      const date = new Date(Date.UTC(2025, 5, 15));
       const result = service.generateICalendarFile(event, date, 'June 15');
       expect(result).toContain('SUMMARY:Team Meeting');
     });
 
     it('uses "Untitled Event" when title is null', () => {
       const event = makeEvent({ title: null });
-      const date = new Date(2025, 5, 15);
+      const date = new Date(Date.UTC(2025, 5, 15));
       const result = service.generateICalendarFile(event, date, 'June 15');
       expect(result).toContain('SUMMARY:Untitled Event');
     });
 
     it('includes LOCATION when present', () => {
       const event = makeEvent({ location: 'Room 101' });
-      const date = new Date(2025, 5, 15);
+      const date = new Date(Date.UTC(2025, 5, 15));
       const result = service.generateICalendarFile(event, date, 'June 15');
       expect(result).toContain('LOCATION:Room 101');
     });
 
     it('omits LOCATION when not present', () => {
       const event = makeEvent({ location: null });
-      const date = new Date(2025, 5, 15);
+      const date = new Date(Date.UTC(2025, 5, 15));
       const result = service.generateICalendarFile(event, date, 'June 15');
       expect(result).not.toContain('LOCATION:');
     });
@@ -83,48 +83,47 @@ describe('ICalendarService', () => {
   describe('text escaping', () => {
     it('escapes semicolons', () => {
       const event = makeEvent({ title: 'A;B' });
-      const date = new Date(2025, 5, 15);
+      const date = new Date(Date.UTC(2025, 5, 15));
       const result = service.generateICalendarFile(event, date, 'June 15');
       expect(result).toContain('SUMMARY:A\\;B');
     });
 
     it('escapes commas', () => {
       const event = makeEvent({ title: 'A,B' });
-      const date = new Date(2025, 5, 15);
+      const date = new Date(Date.UTC(2025, 5, 15));
       const result = service.generateICalendarFile(event, date, 'June 15');
       expect(result).toContain('SUMMARY:A\\,B');
     });
 
     it('escapes backslashes', () => {
       const event = makeEvent({ title: 'A\\B' });
-      const date = new Date(2025, 5, 15);
+      const date = new Date(Date.UTC(2025, 5, 15));
       const result = service.generateICalendarFile(event, date, 'June 15');
       expect(result).toContain('SUMMARY:A\\\\B');
     });
 
     it('escapes newlines', () => {
       const event = makeEvent({ description: 'Line1\nLine2' });
-      const date = new Date(2025, 5, 15);
+      const date = new Date(Date.UTC(2025, 5, 15));
       const result = service.generateICalendarFile(event, date, 'June 15');
       expect(result).toContain('DESCRIPTION:Line1\\nLine2');
     });
   });
 
   describe('all-day event (no start/end time)', () => {
-    it('generates DTSTART and DTEND for full day in UTC', () => {
+    it('generates DATE values with an exclusive next-day end', () => {
       const event = makeEvent();
-      const date = new Date(2025, 5, 15); // June 15, 2025
+      const date = new Date(Date.UTC(2025, 5, 15)); // June 15, 2025
       const result = service.generateICalendarFile(event, date, 'June 15');
-      // All-day: starts at 00:00:00, ends at 23:59:59
-      expect(result).toMatch(/DTSTART:\d{8}T\d{6}Z/);
-      expect(result).toMatch(/DTEND:\d{8}T\d{6}Z/);
+      expect(result).toContain('DTSTART;VALUE=DATE:20250615');
+      expect(result).toContain('DTEND;VALUE=DATE:20250616');
     });
   });
 
   describe('timed event (startTime/endTime)', () => {
     it('uses event startTime and endTime', () => {
       const event = makeEvent({ startTime: '09:00', endTime: '17:00' });
-      const date = new Date(2025, 5, 15);
+      const date = new Date(Date.UTC(2025, 5, 15));
       const result = service.generateICalendarFile(event, date, 'June 15');
       expect(result).toMatch(/DTSTART:\d{8}T\d{6}Z/);
       expect(result).toMatch(/DTEND:\d{8}T\d{6}Z/);
@@ -134,7 +133,7 @@ describe('ICalendarService', () => {
   describe('meeting slots (slotStart/slotEnd)', () => {
     it('uses slotStart and slotEnd for meeting mode', () => {
       const event = makeEvent({ isMeeting: true });
-      const date = new Date(2025, 5, 15);
+      const date = new Date(Date.UTC(2025, 5, 15));
       const slotStart = new Date(2025, 5, 15, 9, 0);
       const slotEnd = new Date(2025, 5, 15, 12, 0);
       const result = service.generateICalendarFile(event, date, 'June 15', slotStart, slotEnd);
@@ -144,25 +143,25 @@ describe('ICalendarService', () => {
   });
 
   describe('timezone handling', () => {
-    it('includes VTIMEZONE block when timezone is provided', () => {
+    it('does not attach a timezone to an all-day date', () => {
       const event = makeEvent();
-      const date = new Date(2025, 5, 15);
+      const date = new Date(Date.UTC(2025, 5, 15));
       const result = service.generateICalendarFile(event, date, 'June 15', undefined, undefined, 'Europe/Zurich');
-      expect(result).toContain('BEGIN:VTIMEZONE');
-      expect(result).toContain('TZID:Europe/Zurich');
-      expect(result).toContain('END:VTIMEZONE');
+      expect(result).not.toContain('VTIMEZONE');
+      expect(result).toContain('DTSTART;VALUE=DATE:20250615');
     });
 
-    it('uses DTSTART;TZID= format when timezone is provided', () => {
+    it('converts a timed event from the given timezone to UTC', () => {
       const event = makeEvent();
-      const date = new Date(2025, 5, 15);
-      const result = service.generateICalendarFile(event, date, 'June 15', undefined, undefined, 'Europe/Zurich');
-      expect(result).toContain('DTSTART;TZID=Europe/Zurich:');
+      const date = new Date(Date.UTC(2025, 5, 15));
+      const result = service.generateICalendarFile({ ...event, startTime: '09:00', endTime: '10:00' }, date, 'June 15', undefined, undefined, 'Europe/Zurich');
+      expect(result).toContain('DTSTART:20250615T070000Z');
+      expect(result).toContain('DTEND:20250615T080000Z');
     });
 
-    it('uses UTC format (Z suffix) when no timezone', () => {
-      const event = makeEvent();
-      const date = new Date(2025, 5, 15);
+    it('uses UTC format (Z suffix) for timed events without an explicit timezone', () => {
+      const event = makeEvent({ startTime: '09:00', endTime: '10:00' });
+      const date = new Date(Date.UTC(2025, 5, 15));
       const result = service.generateICalendarFile(event, date, 'June 15');
       expect(result).not.toContain('VTIMEZONE');
       expect(result).toMatch(/DTSTART:\d{8}T\d{6}Z/);
@@ -172,15 +171,25 @@ describe('ICalendarService', () => {
   describe('meeting info in description', () => {
     it('adds meeting duration to description', () => {
       const event = makeEvent({ isMeeting: true, meetingDuration: 60 });
-      const date = new Date(2025, 5, 15);
+      const date = new Date(Date.UTC(2025, 5, 15));
       const slotStart = new Date(2025, 5, 15, 9, 0);
       const slotEnd = new Date(2025, 5, 15, 10, 0);
       const result = service.generateICalendarFile(event, date, 'June 15', slotStart, slotEnd);
-      expect(result).toContain('Meeting Duration: 60 minutes');
+      expect(result).toContain('DESCRIPTION:A test event\\nMeeting Duration: 60 minutes');
+      expect(result.replace(/\r\n/g, '')).not.toMatch(/[\r\n]/);
     });
   });
 
   describe('generateMultiEventCalendar', () => {
+    it('applies summer offsets when converting wall-clock times to UTC', () => {
+      const result = service.generateMultiEventCalendar([{
+        summary: 'Summer meeting', allDay: false, timezone: 'Europe/Zurich', uid: 'summer@x',
+        start: new Date(Date.UTC(2026, 8, 12, 9)), end: new Date(Date.UTC(2026, 8, 12, 10))
+      }]);
+      expect(result).toContain('DTSTART:20260912T070000Z');
+      expect(result).toContain('DTEND:20260912T080000Z');
+    });
+
     it('wraps all entries in a single VCALENDAR', () => {
       const result = service.generateMultiEventCalendar([
         { summary: 'Dinner', allDay: true, start: new Date(Date.UTC(2025, 6, 5)), uid: 'a@okdates.web.app' },
@@ -218,27 +227,27 @@ describe('ICalendarService', () => {
       expect(result).toContain('DTEND;VALUE=DATE:20260101');
     });
 
-    it('emits timed entries with TZID and a VTIMEZONE block', () => {
+    it('converts wall-clock intervals to UTC without malformed timezone blocks', () => {
       // Wall-clock 14:00-16:00 stored as UTC seconds
       const start = new Date(Date.UTC(2025, 2, 15, 14, 0, 0));
       const end = new Date(Date.UTC(2025, 2, 15, 16, 0, 0));
       const result = service.generateMultiEventCalendar([
         { summary: 'Meeting', allDay: false, start, end, timezone: 'Europe/Zurich', uid: 'a@x' }
       ]);
-      expect(result).toContain('BEGIN:VTIMEZONE');
-      expect(result).toContain('TZID:Europe/Zurich');
-      expect(result).toContain('DTSTART;TZID=Europe/Zurich:20250315T140000');
-      expect(result).toContain('DTEND;TZID=Europe/Zurich:20250315T160000');
+      expect(result).not.toContain('VTIMEZONE');
+      expect(result).toContain('DTSTART:20250315T130000Z');
+      expect(result).toContain('DTEND:20250315T150000Z');
     });
 
-    it('emits a single VTIMEZONE per distinct timezone', () => {
+    it('exports multiple timed events without requiring timezone definitions', () => {
       const start = new Date(Date.UTC(2025, 2, 15, 14, 0, 0));
       const end = new Date(Date.UTC(2025, 2, 15, 16, 0, 0));
       const result = service.generateMultiEventCalendar([
         { summary: 'A', allDay: false, start, end, timezone: 'Europe/Zurich', uid: 'a@x' },
         { summary: 'B', allDay: false, start, end, timezone: 'Europe/Zurich', uid: 'b@x' }
       ]);
-      expect((result.match(/BEGIN:VTIMEZONE/g) || []).length).toBe(1);
+      expect(result).not.toContain('VTIMEZONE');
+      expect((result.match(/DTSTART:20250315T130000Z/g) || []).length).toBe(2);
     });
 
     it('includes SUMMARY, DESCRIPTION and LOCATION when provided', () => {

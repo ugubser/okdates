@@ -338,15 +338,14 @@ ${rawInput}`
             // Extract date components directly instead of using Date constructor
             const [_, year, month, day] = dateParts;
 
-            // Instead of using Date.UTC, which converts to UTC time,
-            // just store the original date components as provided by the user
-            // JavaScript months are 0-indexed
-            date = new Date(
+            // Date-only values use UTC midnight in every runtime. They are
+            // calendar days, not instants in the server's local timezone.
+            date = new Date(Date.UTC(
               parseInt(year),
               parseInt(month) - 1,
               parseInt(day),
               0, 0, 0
-            );
+            ));
           } else {
             // Fallback to the original method if parsing fails
             console.warn('Could not parse date parts directly, falling back to Date constructor');

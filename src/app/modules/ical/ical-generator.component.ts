@@ -36,8 +36,10 @@ export class IcalGeneratorComponent implements OnInit {
   parsedDates: ParsedDate[] = [];
   /** Parallel array tracking which parsed entries are checked for download */
   selected: boolean[] = [];
+  private entryIds: string[] = [];
   showResults = false;
   isParsing = false;
+  private parseVersion = 0;
   parseError = '';
 
   timezones: { value: string; label: string }[] = [];
@@ -70,13 +72,16 @@ export class IcalGeneratorComponent implements OnInit {
 
     this.isParsing = true;
     this.parseError = '';
+    const version = ++this.parseVersion;
 
     try {
       const timezone = this.isMeeting ? this.timezone : null;
       const result = await this.dateParsingService.parseWithTitle(input, this.isMeeting, timezone);
+      if (version !== this.parseVersion) return;
 
       this.parsedDates = result.dates || [];
       this.selected = this.parsedDates.map(() => true);
+      this.entryIds = this.parsedDates.map(() => crypto.randomUUID());
       this.showResults = true;
 
       // Pre-fill the title from the LLM only if the user hasn't typed one
@@ -84,13 +89,14 @@ export class IcalGeneratorComponent implements OnInit {
         this.title = result.title;
       }
     } catch (error: any) {
+      if (version !== this.parseVersion) return;
       console.error('Error parsing dates for iCal:', error);
       this.parseError = error?.message || 'Failed to parse the text. Please try a different format.';
       this.parsedDates = [];
       this.selected = [];
       this.showResults = true;
     } finally {
-      this.isParsing = false;
+      if (version === this.parseVersion) this.isParsing = false;
     }
   }
 
@@ -114,7 +120,7 @@ export class IcalGeneratorComponent implements OnInit {
           start: new Date(d.startTimestamp.seconds * 1000),
           end: new Date(d.endTimestamp.seconds * 1000),
           timezone: this.timezone,
-          uid: `okdates-ical-${i}-${d.startTimestamp.seconds}@okdates.web.app`
+          uid: this.entryUid(i)
         });
       } else if (d.timestamp) {
         events.push({
@@ -122,7 +128,7 @@ export class IcalGeneratorComponent implements OnInit {
           location,
           allDay: true,
           start: new Date(d.timestamp.seconds * 1000),
-          uid: `okdates-ical-${i}-${d.timestamp.seconds}@okdates.web.app`
+          uid: this.entryUid(i)
         });
       }
     });
@@ -134,6 +140,12 @@ export class IcalGeneratorComponent implements OnInit {
     const content = this.iCalService.generateMultiEventCalendar(events);
     const safeTitle = (this.title.trim() || 'event').replace(/[^a-z0-9]/gi, '_').toLowerCase();
     this.iCalService.downloadICalFile(content, `${safeTitle}.ics`);
+  }
+
+  /** Keep identity stable for repeat downloads of this parsed entry. */
+  private entryUid(index: number): string {
+    this.entryIds[index] ||= crypto.randomUUID();
+    return `${this.entryIds[index]}@okdates.web.app`;
   }
 
   /** Human-readable label for a parsed entry in the review list */
@@ -157,9 +169,12 @@ export class IcalGeneratorComponent implements OnInit {
 
   /** Reset results when switching modes so stale dates aren't carried over */
   onModeChange(): void {
+    this.parseVersion++;
+    this.isParsing = false;
     this.showResults = false;
     this.parsedDates = [];
     this.selected = [];
+    this.entryIds = [];
     this.parseError = '';
   }
 

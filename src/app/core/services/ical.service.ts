@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Event } from '../models/event.model';
+import { DateTime } from 'luxon';
 
 /**
  * A single calendar entry used by {@link ICalendarService.generateMultiEventCalendar}.
@@ -50,17 +51,6 @@ export class ICalendarService {
       'METHOD:PUBLISH'
     ];
 
-    // Emit one VTIMEZONE per distinct timezone used by timed events
-    const timezones = new Set<string>();
-    for (const ev of events) {
-      if (!ev.allDay && ev.timezone) {
-        timezones.add(ev.timezone);
-      }
-    }
-    for (const tz of timezones) {
-      lines.push('BEGIN:VTIMEZONE', `TZID:${tz}`, `X-LIC-LOCATION:${tz}`, 'END:VTIMEZONE');
-    }
-
     for (const ev of events) {
       lines.push('BEGIN:VEVENT');
       lines.push(`UID:${ev.uid}`);
@@ -76,9 +66,10 @@ export class ICalendarService {
         lines.push(`DTSTART;VALUE=DATE:${this.formatDateOnly(ev.start)}`);
         lines.push(`DTEND;VALUE=DATE:${this.formatDateOnly(next)}`);
       } else if (ev.timezone && ev.end) {
-        // Timed event anchored to a named timezone
-        lines.push(`DTSTART;TZID=${ev.timezone}:${this.formatWallClock(ev.start)}`);
-        lines.push(`DTEND;TZID=${ev.timezone}:${this.formatWallClock(ev.end)}`);
+        // Convert stored wall-clock values to real UTC instants. UTC DTSTART
+        // needs no VTIMEZONE and is portable across calendar applications.
+        lines.push(`DTSTART:${this.formatDateForICal(this.wallClockToInstant(ev.start, ev.timezone))}`);
+        lines.push(`DTEND:${this.formatDateForICal(this.wallClockToInstant(ev.end, ev.timezone))}`);
       } else if (ev.end) {
         // Timed event without a timezone: emit as UTC
         lines.push(`DTSTART:${this.formatDateForICal(ev.start)}`);
@@ -124,6 +115,7 @@ export class ICalendarService {
     // Handle different date/time formats depending on event type
     let startDate: Date;
     let endDate: Date;
+    const allDay = !(event.isMeeting && slotStart && slotEnd) && !(event.startTime && event.endTime);
     
     // For meeting mode with specific slot times
     if (event.isMeeting && slotStart && slotEnd) {
@@ -138,36 +130,33 @@ export class ICalendarService {
       const startTime = event.startTime.split(':');
       const endTime = event.endTime.split(':');
       
-      startDate = new Date(eventDate);
-      startDate.setHours(parseInt(startTime[0], 10), parseInt(startTime[1], 10), 0);
-      
-      endDate = new Date(eventDate);
-      endDate.setHours(parseInt(endTime[0], 10), parseInt(endTime[1], 10), 0);
+      const zone = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const atTime = (time: string[]) => this.wallClockToInstant(new Date(Date.UTC(
+        eventDate.getUTCFullYear(), eventDate.getUTCMonth(), eventDate.getUTCDate(),
+        Number(time[0]), Number(time[1])
+      )), zone);
+      startDate = atTime(startTime);
+      endDate = atTime(endTime);
     } 
     // Default case - all day event
     else {
       console.log('Generating iCal for all-day event');
       startDate = new Date(date);
-      startDate.setHours(0, 0, 0, 0);
+      startDate.setUTCHours(0, 0, 0, 0);
       
       endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
+      endDate.setUTCHours(0, 0, 0, 0);
+      endDate.setUTCDate(endDate.getUTCDate() + 1);
     }
     
-    // Format dates for iCalendar - handle timezone if provided
-    const dtstart = timezone ? 
-      this.formatDateForICalWithTimezone(startDate, timezone) : 
-      this.formatDateForICal(startDate);
-      
-    const dtend = timezone ? 
-      this.formatDateForICalWithTimezone(endDate, timezone) : 
-      this.formatDateForICal(endDate);
+    const dtstart = this.formatDateForICal(startDate);
+    const dtend = this.formatDateForICal(endDate);
     
     // Create a unique identifier for the event
     const uid = `${this.formatDateForICal(now)}-${event.id}@okdates.web.app`;
     
     // Clean up description for iCalendar format
-    let description = this.escapeText(event.description || '');
+    let description = event.description || '';
     const summary = this.escapeText(event.title || 'Untitled Event');
     const location = this.escapeText(event.location || '');
     
@@ -176,6 +165,7 @@ export class ICalendarService {
       const meetingInfo = `\nMeeting Duration: ${event.meetingDuration} minutes`;
       description = description ? `${description}${meetingInfo}` : meetingInfo;
     }
+    description = this.escapeText(description);
     
     // Build the base iCalendar content
     let icalContent = [
@@ -190,38 +180,9 @@ export class ICalendarService {
       `DTSTAMP:${dtstamp}`
     ].join('\r\n');
     
-    // Add start and end times with timezone if applicable
-    if (timezone) {
-      // Add VTIMEZONE component
-      icalContent += '\r\n' + [
-        `BEGIN:VTIMEZONE`,
-        `TZID:${timezone}`,
-        `X-LIC-LOCATION:${timezone}`,
-        `END:VTIMEZONE`
-      ].join('\r\n');
-      
-      // Add start and end times with timezone
-      const startWithTZ = dtstart as { dateTime: string, timezone: string };
-      const endWithTZ = dtend as { dateTime: string, timezone: string };
-      
-      if (startWithTZ && startWithTZ.dateTime && startWithTZ.timezone) {
-        icalContent += `\r\nDTSTART;TZID=${startWithTZ.timezone}:${startWithTZ.dateTime}`;
-      } else {
-        // Fallback to UTC if timezone object is invalid
-        icalContent += `\r\nDTSTART:${dtstart}`;
-      }
-      
-      if (endWithTZ && endWithTZ.dateTime && endWithTZ.timezone) {
-        icalContent += `\r\nDTEND;TZID=${endWithTZ.timezone}:${endWithTZ.dateTime}`;
-      } else {
-        // Fallback to UTC if timezone object is invalid
-        icalContent += `\r\nDTEND:${dtend}`;
-      }
-    } else {
-      // Add UTC times without timezone
-      icalContent += `\r\nDTSTART:${dtstart}`;
-      icalContent += `\r\nDTEND:${dtend}`;
-    }
+    icalContent += allDay
+      ? `\r\nDTSTART;VALUE=DATE:${this.formatDateOnly(startDate)}\r\nDTEND;VALUE=DATE:${this.formatDateOnly(endDate)}`
+      : `\r\nDTSTART:${dtstart}\r\nDTEND:${dtend}`;
     
     // Add summary
     icalContent += `\r\nSUMMARY:${summary}`;
@@ -273,42 +234,11 @@ export class ICalendarService {
     return `${year}${month}${day}`;
   }
 
-  /**
-   * Format wall-clock components (read in UTC) as YYYYMMDDTHHmmss with no zone
-   * suffix — used together with a DTSTART;TZID= property.
-   */
-  private formatWallClock(date: Date): string {
-    const year = date.getUTCFullYear();
-    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
-    const day = date.getUTCDate().toString().padStart(2, '0');
-    const hours = date.getUTCHours().toString().padStart(2, '0');
-    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-    const seconds = date.getUTCSeconds().toString().padStart(2, '0');
-    return `${year}${month}${day}T${hours}${minutes}${seconds}`;
-  }
-
-  /**
-   * Format a date according to iCalendar specifications with timezone (YYYYMMDDTHHMMSS)
-   * @param date The date to format
-   * @param timezone IANA timezone string
-   * @returns Object with dateTime and timezone properties
-   */
-  private formatDateForICalWithTimezone(date: Date, timezone: string): { dateTime: string; timezone: string } {
-    // We use the local date/time components directly without UTC conversion
-    // The timezone identifier will be included in the iCal property
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const seconds = date.getSeconds().toString().padStart(2, '0');
-    
-    // For dates with timezone, we return the full format with TZID
-    // This will be used in the DTSTART;TZID=... property
-    return {
-      dateTime: `${year}${month}${day}T${hours}${minutes}${seconds}`,
-      timezone
-    };
+  private wallClockToInstant(date: Date, timezone: string): Date {
+    const instant = DateTime.fromJSDate(date, { zone: 'utc' })
+      .setZone(timezone, { keepLocalTime: true });
+    if (!instant.isValid) throw new Error('Invalid calendar timezone or date');
+    return instant.toJSDate();
   }
   
   /**
@@ -321,7 +251,7 @@ export class ICalendarService {
       .replace(/\\/g, '\\\\')
       .replace(/;/g, '\\;')
       .replace(/,/g, '\\,')
-      .replace(/\n/g, '\\n');
+      .replace(/\r\n|\r|\n/g, '\\n');
   }
   
   /**

@@ -380,7 +380,8 @@ export class EventViewComponent implements OnInit {
       const formattedDate = date.toLocaleDateString('en-US', {
         weekday: 'short',
         month: 'short',
-        day: 'numeric'
+        day: 'numeric',
+        timeZone: 'UTC'
       });
       this.uniqueDates.push({ date, dateString, formattedDate });
       this.displayColumns.push(dateString);

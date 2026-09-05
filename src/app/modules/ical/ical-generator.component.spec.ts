@@ -2,6 +2,10 @@ import { IcalGeneratorComponent } from './ical-generator.component';
 import { DateParsingService } from '../../core/services/date-parsing.service';
 import { ICalendarService, ICalEventInput } from '../../core/services/ical.service';
 import { ParsedDate } from '../../core/models/parsed-date.model';
+import { webcrypto } from 'crypto';
+
+// jsdom lacks randomUUID; exercise Node's real cryptographic UUID generator.
+Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true });
 
 describe('IcalGeneratorComponent', () => {
   let component: IcalGeneratorComponent;
@@ -158,6 +162,37 @@ describe('IcalGeneratorComponent', () => {
   });
 
   describe('onModeChange()', () => {
+    it('ignores a response from the old mode that arrives after switching', async () => {
+      let resolve!: (value: any) => void;
+      dateParsing.parseWithTitle.mockReturnValue(new Promise(r => resolve = r));
+      component.mode = 'times';
+      component.rawInput = 'September 12 9-10am';
+      const pending = component.parse();
+      component.mode = 'dates';
+      component.onModeChange();
+      resolve({ title: 'Old result', dates: [{ startTimestamp: { seconds: 1 }, endTimestamp: { seconds: 2 } }] });
+      await pending;
+      expect(component.parsedDates).toEqual([]);
+      expect(component.showResults).toBe(false);
+      expect(component.isParsing).toBe(false);
+      expect(component.title).toBe('');
+    });
+
+    it('does not let a stale request clear the newer request loading state', async () => {
+      let rejectOld!: (error: Error) => void;
+      let resolveNew!: (value: any) => void;
+      dateParsing.parseWithTitle.mockReturnValueOnce(new Promise((_r, reject) => rejectOld = reject))
+        .mockReturnValueOnce(new Promise(resolve => resolveNew = resolve));
+      component.rawInput = 'September 12';
+      const old = component.parse();
+      component.mode = 'times'; component.onModeChange();
+      const fresh = component.parse();
+      rejectOld(new Error('old failure')); await old;
+      expect(component.isParsing).toBe(true);
+      expect(component.parseError).toBe('');
+      resolveNew({ title: 'New result', dates: [] }); await fresh;
+      expect(component.title).toBe('New result');
+    });
     it('clears prior results', () => {
       component.showResults = true;
       component.parsedDates = [{ originalText: 'a', timestamp: { seconds: 1, nanoseconds: 0 }, isConfirmed: false }];
@@ -167,5 +202,18 @@ describe('IcalGeneratorComponent', () => {
       expect(component.parsedDates).toEqual([]);
       expect(component.selected).toEqual([]);
     });
+  });
+
+  it('uses different UIDs for independent parses and stable UIDs for repeat downloads', async () => {
+    dateParsing.parseWithTitle.mockResolvedValue({ title: 'Event', dates: [
+      { timestamp: { seconds: 1751673600 }, originalText: '2025-07-05' }
+    ] });
+    component.rawInput = 'July 5';
+    await component.parse(); component.download();
+    const first = lastEvents()[0].uid;
+    component.download();
+    expect(lastEvents()[0].uid).toBe(first);
+    await component.parse(); component.download();
+    expect(lastEvents()[0].uid).not.toBe(first);
   });
 });

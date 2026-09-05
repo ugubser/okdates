@@ -12,6 +12,7 @@ import { Event } from '../../../core/models/event.model';
 import { ParsedDate } from '../../../core/models/parsed-date.model';
 import { Participant } from '../../../core/models/participant.model';
 import { AvailabilityTimelineComponent } from '../../../shared/availability-timeline/availability-timeline.component';
+import { DateTime } from 'luxon';
 
 @Component({
   selector: 'app-participant-form',
@@ -51,6 +52,7 @@ export class ParticipantFormComponent implements OnInit {
   participants: Participant[] = [];
   selectedSlotKeys: string[] = [];
   preselectedSlotKeys: string[] = [];
+  preselectedRanges: any[] = [];
   usedTimelineSelection = false; // Track if user used timeline selection
 
   // Timezone handling
@@ -133,6 +135,9 @@ export class ParticipantFormComponent implements OnInit {
       if (this.adminKey) {
         this.isAdmin = await this.eventService.verifyAdminKey(this.eventId, this.adminKey);
       }
+      if (!this.isAdmin && this.adminStorageService.isPasswordVerified(this.eventId)) {
+        this.isAdmin = true;
+      }
       
       // If in edit mode, load the existing participant data
       if (this.isEditMode && this.participantId) {
@@ -165,17 +170,16 @@ export class ParticipantFormComponent implements OnInit {
 
           // Convert the existing parsed dates to our format
           if (this.existingParticipant.parsedDates && this.existingParticipant.parsedDates.length > 0) {
-            this.parsedDates = this.existingParticipant.parsedDates.map(timestamp => {
-              return {
-                timestamp,
-                originalText: '', // We don't have this info from storage
-                isConfirmed: true
-              };
-            });
+            this.parsedDates = this.existingParticipant.parsedDates.map(date => ({
+              ...date, originalText: '', isConfirmed: true
+            }));
             this.selectedDates = this.parsedDates.map(() => true);
 
             // Pre-select slots for timeline mode (for edit mode)
             this.preselectedSlotKeys = this.convertParsedDatesToSlotKeys(this.existingParticipant.parsedDates);
+            this.preselectedRanges = this.existingParticipant.parsedDates.map(date => ({
+              ...date, timezone: date.timezone || this.existingParticipant?.timezone || this.userTimezone
+            }));
           }
         } else {
           console.warn('Participant not found:', this.participantId);
@@ -210,9 +214,9 @@ export class ParticipantFormComponent implements OnInit {
         this.selectedDates = this.parsedDates.map(() => true);
 
         this.showParsedDates = true;
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error parsing dates:', error);
-        alert('Could not parse your dates. Please check your input and try again.');
+        alert(error?.message || 'The date-parsing service is temporarily unavailable. Please try again.');
       } finally {
         this.isParsing = false;
       }
@@ -394,7 +398,8 @@ export class ParticipantFormComponent implements OnInit {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
-        year: 'numeric'
+        year: 'numeric',
+        timeZone: 'UTC'
       });
 
       // Format the time directly using the extracted hours and minutes
@@ -414,7 +419,8 @@ export class ParticipantFormComponent implements OnInit {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
-        year: 'numeric'
+        year: 'numeric',
+        timeZone: 'UTC'
       });
     }
 
@@ -495,9 +501,9 @@ export class ParticipantFormComponent implements OnInit {
     if (!this.event?.isMeeting) {
       // For regular events: slot key is date string "YYYY-MM-DD"
       for (const dateKey of slotKeys) {
-        // Parse the date components and create date in local timezone
+        // Store date-only values at UTC midnight, matching the backend.
         const parts = dateKey.split('-').map(Number);
-        const dateObj = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+        const dateObj = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
 
         const timestamp = {
           seconds: Math.floor(dateObj.getTime() / 1000),
@@ -523,8 +529,11 @@ export class ParticipantFormComponent implements OnInit {
           // IMPORTANT: Create UTC timestamps that represent the wall-clock time
           // The backend stores times as UTC and then "relabels" them to the participant's timezone
           // This preserves the hour/minute values (e.g., 10:00 stays 10:00)
-          const startDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
-          const endDate = new Date(startDate.getTime() + meetingDuration * 60 * 1000);
+          const zone = this.participantForm.get('timezone')?.value || this.userTimezone;
+          const start = DateTime.fromObject({ year, month, day, hour, minute }, { zone });
+          const end = start.plus({ minutes: meetingDuration });
+          const startDate = start.setZone('utc', { keepLocalTime: true }).toJSDate();
+          const endDate = end.setZone('utc', { keepLocalTime: true }).toJSDate();
 
           const startTimestamp = {
             seconds: Math.floor(startDate.getTime() / 1000),
@@ -547,6 +556,43 @@ export class ParticipantFormComponent implements OnInit {
       }
     }
 
+    // Retain an original window (including its trailing partial slot) when
+    // every grid slot originally selected within that window is still selected.
+    // Deselecting a slot instead saves only the remaining selected intervals.
+    if (this.event?.isMeeting && this.isEditMode) {
+      const zone = this.participantForm.get('timezone')?.value || this.userTimezone;
+      const instant = (seconds: number, tz: string) => DateTime.fromSeconds(seconds, { zone: 'utc' })
+        .setZone(tz, { keepLocalTime: true }).toMillis();
+      const keyInstant = (key: string) => {
+        const [year, month, day, hour, minute] = key.split('-').map(Number);
+        return DateTime.fromObject({ year, month, day, hour, minute }, { zone }).toMillis();
+      };
+      const duration = (this.event.meetingDuration || 120) * 60000;
+      for (const original of this.preselectedRanges) {
+        if (!original.startTimestamp || !original.endTimestamp) continue;
+        const originalZone = original.timezone || zone;
+        const start = instant(original.startTimestamp.seconds, originalZone);
+        const end = instant(original.endTimestamp.seconds, originalZone);
+        const originalKeys = this.preselectedSlotKeys.filter(key => {
+          const slotStart = keyInstant(key);
+          return slotStart >= start && slotStart + duration <= end;
+        });
+        if (!originalKeys.length || !originalKeys.every(key => slotKeys.includes(key))) continue;
+        for (let i = parsedDates.length - 1; i >= 0; i--) {
+          const d = parsedDates[i];
+          if (instant(d.startTimestamp.seconds, zone) >= start && instant(d.endTimestamp.seconds, zone) <= end) {
+            parsedDates.splice(i, 1);
+          }
+        }
+        const wallStart = DateTime.fromMillis(start, { zone }).setZone('utc', { keepLocalTime: true });
+        const wallEnd = DateTime.fromMillis(end, { zone }).setZone('utc', { keepLocalTime: true });
+        parsedDates.push({
+          originalText: 'Selected from timeline', isConfirmed: true, timezone: zone,
+          startTimestamp: { seconds: wallStart.toSeconds(), nanoseconds: 0 },
+          endTimestamp: { seconds: wallEnd.toSeconds(), nanoseconds: 0 }
+        });
+      }
+    }
     return parsedDates;
   }
 
@@ -558,11 +604,11 @@ export class ParticipantFormComponent implements OnInit {
 
     for (const pd of parsedDates) {
       if (!this.event?.isMeeting && pd.timestamp) {
-        // Regular event: extract date using local timezone
+        // Regular event: extract the calendar date in UTC.
         const date = new Date(pd.timestamp.seconds * 1000);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
+        const year = date.getUTCFullYear();
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(date.getUTCDate()).padStart(2, '0');
         slotKeys.push(`${year}-${month}-${day}`);
       } else if (this.event?.isMeeting && pd.startTimestamp) {
         // Meeting: extract start time slot using UTC (matches how we store it)

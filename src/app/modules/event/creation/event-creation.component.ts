@@ -304,7 +304,10 @@ export class EventCreationComponent implements OnInit, OnDestroy {
         const fields: Partial<Event> = {
           title: title || null,
           description: description || null,
-          isMeeting: this.isMeeting
+          isMeeting: this.isMeeting,
+          location: location || null,
+          startTime: finalStartTime || null,
+          endTime: finalEndTime || null
         };
 
         // Only add location if it's not empty

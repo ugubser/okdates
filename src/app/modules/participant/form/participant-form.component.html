@@ -90,6 +90,8 @@
           [mode]="'select'"
           [timezone]="participantForm.get('timezone')?.value"
           [preselectedSlots]="preselectedSlotKeys"
+          [preselectedRanges]="preselectedRanges"
+          (selectionRestored)="preselectedSlotKeys = $event"
           (slotsSelected)="onSlotsSelected($event)">
         </app-availability-timeline>
       </div>

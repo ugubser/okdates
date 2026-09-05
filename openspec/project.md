@@ -54,7 +54,7 @@ OkDates is an intelligent event scheduling tool that makes it easy to find dates
 ### Testing Strategy
 - Use `npm test` for running tests
 - Focus on core parsing and data transformation logic
-- Test both server-side (LLM) and client-side (fallback) parsing paths
+- Test server-side LLM parsing and explicit provider-failure responses
 
 ### Git Workflow
 - Main branch: `main`
@@ -71,7 +71,7 @@ OkDates is an intelligent event scheduling tool that makes it easy to find dates
 
 **Date Parsing:**
 - Primary method: LLM-based parsing via OpenRouter API
-- Fallback method: Client-side basic parsing when API unavailable
+- Provider failures: Show a temporary-unavailability error; never substitute a partial basic parse
 - Supports relative dates ("next Tuesday"), absolute dates, and time ranges
 
 ## Important Constraints
@@ -81,7 +81,7 @@ OkDates is an intelligent event scheduling tool that makes it easy to find dates
   - Production deployment uses Firebase Functions config
 - **Firebase Region**: All functions must deploy to `europe-west1`
 - **Security**: API keys and sensitive configuration never committed to repository
-- **Client-side Fallback**: Application must gracefully handle LLM API unavailability
+- **Provider failures**: Surface a clear retryable error when the LLM API is unavailable
 
 ## External Dependencies
 **OpenRouter API:**
